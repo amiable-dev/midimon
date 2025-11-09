@@ -12,5 +12,5 @@ type = "Note"
 note = 12  # The pad you pressed
 [modes.mappings.action]
 type = "Keystroke"
-keys = "space"
+keys = "fn"
 modifiers = ["cmd"]
