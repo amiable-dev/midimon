@@ -3,89 +3,14 @@ name = "Mikro"
 auto_connect = true
 
 [[modes]]
-name = "Default"
-color = "blue"
+name = "Test"
 
 [[modes.mappings]]
-description = "Spotlight Search"
+description = "Test Action - Open Spotlight"
 [modes.mappings.trigger]
 type = "Note"
-note = 60
-velocity_min = 1
+note = 12  # The pad you pressed
 [modes.mappings.action]
 type = "Keystroke"
 keys = "space"
-modifiers = ["cmd"]
-
-[[modes.mappings]]
-description = "Mission Control"
-[modes.mappings.trigger]
-type = "Note"
-note = 61
-[modes.mappings.action]
-type = "Keystroke"
-keys = "up"
-modifiers = ["ctrl"]
-
-[[modes.mappings]]
-description = "Screenshot"
-[modes.mappings.trigger]
-type = "Note"
-note = 62
-[modes.mappings.action]
-type = "Keystroke"
-keys = "4"
-modifiers = ["cmd", "shift"]
-
-[[modes]]
-name = "Development"
-color = "green"
-
-[[modes.mappings]]
-description = "Git Status"
-[modes.mappings.trigger]
-type = "Note"
-note = 60
-[modes.mappings.action]
-type = "Shell"
-command = "osascript -e 'tell application \"Terminal\" to do script \"git status\"'"
-
-[[modes.mappings]]
-description = "Build Project"
-[modes.mappings.trigger]
-type = "Note"
-note = 61
-[modes.mappings.action]
-type = "Sequence"
-actions = [
-    { type = "Launch", app = "Terminal" },
-    { type = "Delay", ms = 500 },
-    { type = "Text", text = "cargo build --release" },
-    { type = "Keystroke", keys = "return", modifiers = [] }
-]
-
-[[modes]]
-name = "Media"
-color = "purple"
-
-[[modes.mappings]]
-description = "Play/Pause"
-[modes.mappings.trigger]
-type = "Note"
-note = 60
-[modes.mappings.action]
-type = "Keystroke"
-keys = "F8"
-modifiers = []
-
-# Global mappings work in all modes
-[[global_mappings]]
-description = "Emergency Exit"
-[global_mappings.trigger]
-type = "Note"
-note = 127  # Last note
-velocity_min = 100
-[global_mappings.action]
-type = "Keystroke"
-keys = "q"
 modifiers = ["cmd"]
