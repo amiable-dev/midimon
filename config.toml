@@ -24,3 +24,13 @@ note = 12  # The pad you pressed
 type = "Keystroke"
 keys = "fn"
 modifiers = []
+
+[[modes.mappings]]
+description = "Type Q"
+[modes.mappings.trigger]
+type = "Note"
+note = 13  # The pad you pressed
+[modes.mappings.action]
+type = "Keystroke"
+keys = "q"
+modifiers = []
