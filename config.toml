@@ -34,3 +34,13 @@ note = 13  # The pad you pressed
 type = "Keystroke"
 keys = "q"
 modifiers = []
+
+[[modes.mappings]]
+description = "Trigger Wispr (Ctrl+Opt+Cmd+Shift+W)"
+[modes.mappings.trigger]
+type = "Note"
+note = 14  # The pad you pressed
+[modes.mappings.action]
+type = "Keystroke"
+keys = "w"
+modifiers = ["ctrl", "alt", "cmd", "shift"]
