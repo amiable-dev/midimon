@@ -3,15 +3,14 @@ name = "Mikro"
 auto_connect = true
 
 [[global_mappings]]
-# Example global mapping (add your own as needed)
-# description = "Global Action Example"
-# [trigger]
-# type = "Note"
-# note = 0
-# [action]
-# type = "Keystroke"
-# keys = "a"
-# modifiers = ["cmd"]
+description = "Global Action Example"
+[global_mappings.trigger]
+type = "Note"
+note = 0
+[global_mappings.action]
+type = "Keystroke"
+keys = "a"
+modifiers = ["cmd"]
 
 [[modes]]
 name = "Test"
