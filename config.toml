@@ -16,11 +16,11 @@ modifiers = ["cmd"]
 name = "Test"
 
 [[modes.mappings]]
-description = "Test Action - Open Spotlight"
+description = "Show Mission Control (Control-Up)"
 [modes.mappings.trigger]
 type = "Note"
 note = 12  # The pad you pressed
 [modes.mappings.action]
 type = "Keystroke"
-keys = "fn"
-modifiers = ["cmd"]
+keys = "up"
+modifiers = ["ctrl"]
