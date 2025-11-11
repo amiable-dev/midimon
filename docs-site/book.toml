@@ -1,0 +1,42 @@
+[book]
+title = "MIDIMon Documentation"
+authors = ["Amiable Dev"]
+language = "en"
+multilingual = false
+src = "src"
+description = "Transform MIDI controllers into advanced macro pads with RGB feedback and timing-based triggers"
+
+[build]
+build-dir = "book"
+create-missing = true
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/amiable-dev/midimon"
+git-repository-icon = "fa-github"
+edit-url-template = "https://github.com/amiable-dev/midimon/edit/main/docs-site/src/{path}"
+site-url = "/midimon/"
+cname = ""
+
+[output.html.fold]
+enable = true
+level = 0
+
+[output.html.search]
+enable = true
+limit-results = 30
+teaser-word-count = 30
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 1
+boost-paragraph = 1
+expand = true
+heading-split-level = 3
+
+[output.html.playground]
+editable = false
+copyable = true
+copy-js = true
+line-numbers = false
+runnable = false
