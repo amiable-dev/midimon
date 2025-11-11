@@ -38,7 +38,7 @@ fn test_sequence_action_ordering() {
     // Test that actions in a sequence execute in order
     let execution_log = Arc::new(Mutex::new(Vec::new()));
 
-    let actions = vec!["action1", "action2", "action3"];
+    let actions = ["action1", "action2", "action3"];
 
     for (i, action) in actions.iter().enumerate() {
         let log = Arc::clone(&execution_log);
@@ -69,6 +69,7 @@ fn test_sequence_empty() {
     // Simulate empty sequence
     let actions: Vec<String> = vec![];
 
+    #[allow(clippy::never_loop)]
     for _ in actions {
         // Should not iterate
         panic!("Empty sequence should not execute any actions");
@@ -121,7 +122,7 @@ fn test_sequence_error_propagation() {
     // Test that errors in a sequence are handled gracefully
     let execution_count = Arc::new(Mutex::new(0));
 
-    let actions = vec![Ok("action1"), Err("error in action2"), Ok("action3")];
+    let actions = [Ok("action1"), Err("error in action2"), Ok("action3")];
 
     for action in actions {
         match action {
@@ -220,7 +221,7 @@ fn test_delay_timing_precision() {
     let avg = durations.iter().sum::<u64>() / durations.len() as u64;
 
     assert!(
-        avg >= 90 && avg <= 110,
+        (90..=110).contains(&avg),
         "Average delay should be close to 100ms, got {}ms",
         avg
     );
@@ -495,11 +496,8 @@ fn test_conditional_time_outside_range() {
     };
 
     // This might be true or false depending on time of day
-    // Just verify the logic works
-    assert!(
-        should_execute || !should_execute,
-        "Time range logic should work"
-    );
+    // Just verify the logic works - it should always be either true or false
+    let _ = should_execute; // Suppress unused variable warning
 }
 
 #[test]

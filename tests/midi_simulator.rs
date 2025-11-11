@@ -9,10 +9,11 @@
 
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 /// Represents a simulated MIDI event with precise timing control
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum SimulatorEvent {
     /// Note On with note number, velocity, and optional delay before sending
     NoteOn {
@@ -36,6 +37,7 @@ pub enum SimulatorEvent {
 
 /// High-level gestures that simulate complex user interactions
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum Gesture {
     /// Simple note press and release with configurable velocity and duration
     SimpleTap {
@@ -80,6 +82,7 @@ pub enum Gesture {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(dead_code)]
 pub enum EncoderDirection {
     Clockwise,
     CounterClockwise,
@@ -97,6 +100,7 @@ pub struct MidiSimulator {
     debug: bool,
 }
 
+#[allow(dead_code)]
 impl MidiSimulator {
     /// Create a new MIDI simulator on the specified channel (0-15)
     pub fn new(channel: u8) -> Self {
@@ -344,10 +348,18 @@ impl MidiSimulator {
 }
 
 /// Builder for creating test scenarios
+#[allow(dead_code)]
 pub struct ScenarioBuilder {
     events: Vec<SimulatorEvent>,
 }
 
+impl Default for ScenarioBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[allow(dead_code)]
 impl ScenarioBuilder {
     pub fn new() -> Self {
         Self { events: Vec::new() }

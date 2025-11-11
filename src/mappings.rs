@@ -21,7 +21,10 @@ struct CompiledMapping {
 enum CompiledTrigger {
     Note { note: u8, velocity_min: u8 },
     CC { cc: u8, value_min: u8 },
-    NoteChord { notes: Vec<u8> },
+    NoteChord {
+        #[allow(dead_code)]
+        notes: Vec<u8>,
+    },
 }
 
 impl MappingEngine {
@@ -75,9 +78,7 @@ impl MappingEngine {
     pub fn get_action(&self, event: &MidiEvent, mode: u8) -> Option<Action> {
         // Check mode-specific mappings first
         if let Some(mode_mappings) = self.mode_mappings.get(&mode) {
-            if let Some(action) = self.find_matching_action(event, mode_mappings) {
-                return Some(action);
-            }
+            return self.find_matching_action(event, mode_mappings);
         }
 
         // Check global mappings

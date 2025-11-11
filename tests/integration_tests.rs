@@ -12,7 +12,6 @@ use midi_simulator::{EncoderDirection, Gesture, MidiSimulator, ScenarioBuilder};
 use std::time::{Duration, Instant};
 
 // Mock the event processor types for testing
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 enum VelocityLevel {

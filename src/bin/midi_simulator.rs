@@ -15,7 +15,7 @@ use std::time::Duration;
 #[path = "../../tests/midi_simulator.rs"]
 mod midi_simulator;
 
-use midi_simulator::{EncoderDirection, Gesture, MidiSimulator, ScenarioBuilder, SimulatorEvent};
+use midi_simulator::{EncoderDirection, Gesture, MidiSimulator};
 
 fn main() {
     println!("╔══════════════════════════════════════════════════════════════╗");

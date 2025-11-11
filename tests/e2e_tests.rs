@@ -12,13 +12,11 @@
 
 mod midi_simulator;
 
-use midi_simulator::{EncoderDirection, Gesture, MidiSimulator, ScenarioBuilder};
-use std::collections::HashMap;
+use midi_simulator::{EncoderDirection, Gesture, MidiSimulator};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 // Re-use types from the main crate for testing
-use midimon::config::{ActionConfig, Config, DeviceConfig, Mapping, Mode, Trigger};
 use midimon::event_processor::{
     EncoderDirection as MidiDirection, EventProcessor, MidiEvent, ProcessedEvent, VelocityLevel,
 };
@@ -30,6 +28,7 @@ struct MockActionExecutor {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 enum ExecutedAction {
     Keystroke {
         keys: String,
@@ -131,7 +130,7 @@ impl E2ETestHarness {
 
     fn simulate_and_process(&mut self, gesture: Gesture) -> Vec<ProcessedEvent> {
         // Clone the gesture to inspect timing
-        let base_time = Instant::now();
+        let _base_time = Instant::now();
 
         match gesture {
             Gesture::SimpleTap {
@@ -274,10 +273,9 @@ fn test_e2e_simple_pad_press_to_keystroke() {
             velocity_level,
             ..
         } = e
+            && *note == 60
         {
-            if *note == 60 {
-                return Some(*velocity_level);
-            }
+            return Some(*velocity_level);
         }
         None
     });
@@ -737,7 +735,7 @@ fn test_e2e_sequence_execution_order() {
 fn test_e2e_sequence_with_timing() {
     let mut harness = E2ETestHarness::new();
 
-    let start = Instant::now();
+    let _start = Instant::now();
 
     // Simulate sequence with delays
     harness.executor.execute(ExecutedAction::Sequence(vec![
@@ -853,10 +851,10 @@ fn test_e2e_encoder_volume_up() {
 
             // For each encoder turn event, simulate volume up
             for event in processed {
-                if let ProcessedEvent::EncoderTurned { direction, .. } = event {
-                    if matches!(direction, MidiDirection::Clockwise) {
-                        harness.executor.execute(ExecutedAction::VolumeUp);
-                    }
+                if let ProcessedEvent::EncoderTurned { direction, .. } = event
+                    && matches!(direction, MidiDirection::Clockwise)
+                {
+                    harness.executor.execute(ExecutedAction::VolumeUp);
                 }
             }
         }
@@ -896,10 +894,10 @@ fn test_e2e_encoder_volume_down() {
             let processed = harness.processor.process(midi_event);
 
             for event in processed {
-                if let ProcessedEvent::EncoderTurned { direction, .. } = event {
-                    if matches!(direction, MidiDirection::CounterClockwise) {
-                        harness.executor.execute(ExecutedAction::VolumeDown);
-                    }
+                if let ProcessedEvent::EncoderTurned { direction, .. } = event
+                    && matches!(direction, MidiDirection::CounterClockwise)
+                {
+                    harness.executor.execute(ExecutedAction::VolumeDown);
                 }
             }
         }
@@ -1027,5 +1025,4 @@ fn test_e2e_memory_stability_sustained_load() {
     }
 
     // If we got here without panic, memory handling is stable
-    assert!(true);
 }

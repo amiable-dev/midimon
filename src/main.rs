@@ -29,7 +29,9 @@ pub enum MidiEvent {
 pub struct MidiMacroPad {
     config: Config,
     midi_connection: Option<MidiInputConnection<()>>,
+    #[allow(dead_code)]
     action_executor: ActionExecutor,
+    #[allow(dead_code)]
     mapping_engine: MappingEngine,
     current_mode: Arc<AtomicU8>,
     running: Arc<AtomicBool>,

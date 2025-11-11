@@ -18,7 +18,7 @@ use std::fs;
 use std::path::PathBuf;
 
 // Re-export config types for testing
-use midimon::config::{ActionConfig, Config, Mapping, Mode, Trigger};
+use midimon::config::{ActionConfig, Config, Trigger};
 
 /// Test ID: CFG-001
 /// Basic config.toml loads without errors

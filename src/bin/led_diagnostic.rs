@@ -190,7 +190,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         println!("\n\nResults so far:");
         println!("─────────────────────────────────────");
-        for (note, _) in &results {
+        for note in results.keys() {
             println!("  Note {}: LED address found", note);
         }
 

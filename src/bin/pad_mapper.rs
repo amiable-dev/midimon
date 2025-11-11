@@ -103,36 +103,35 @@ fn main() -> Result<(), Box<dyn Error>> {
     thread::spawn(move || {
         let mut buffer = [0u8; 256];
         loop {
-            if let Ok(device) = hid_device_clone.lock() {
-                if let Ok(size) = device.read_timeout(&mut buffer, 10) {
-                    if size > 0 {
-                        eprintln!(
-                            "HID Report: ID=0x{:02X}, size={}, data={:02X?}",
-                            buffer[0],
-                            size,
-                            &buffer[0..size.min(16)]
-                        );
+            if let Ok(device) = hid_device_clone.lock()
+                && let Ok(size) = device.read_timeout(&mut buffer, 10)
+                && size > 0
+            {
+                eprintln!(
+                    "HID Report: ID=0x{:02X}, size={}, data={:02X?}",
+                    buffer[0],
+                    size,
+                    &buffer[0..size.min(16)]
+                );
 
-                        // MK3 might use different report format - check all reports
-                        if buffer[0] == 0x20 || buffer[0] == 0x01 {
-                            // Try to extract pad index from report
-                            for idx in (0..32).step_by(2) {
-                                if idx + 1 < buffer.len() {
-                                    let high_byte = buffer[idx + 1];
-                                    let pad_idx = (high_byte & 0xF0) >> 4;
-                                    let low_byte = buffer[idx];
-                                    let value =
-                                        (((high_byte & 0x0F) as u16) << 8) | low_byte as u16;
+                // MK3 might use different report format - check all reports
+                if buffer[0] == 0x20 || buffer[0] == 0x01 {
+                    // Try to extract pad index from report
+                    for idx in (0..32).step_by(2) {
+                        if idx + 1 < buffer.len() {
+                            let high_byte = buffer[idx + 1];
+                            let pad_idx = (high_byte & 0xF0) >> 4;
+                            let low_byte = buffer[idx];
+                            let value =
+                                (((high_byte & 0x0F) as u16) << 8) | low_byte as u16;
 
-                                    if value > 512 {
-                                        eprintln!(
-                                            "  -> Detected pad index: 0x{:02X} (value={})",
-                                            pad_idx, value
-                                        );
-                                        *captured_hid_clone.lock().unwrap() = Some(pad_idx);
-                                        break;
-                                    }
-                                }
+                            if value > 512 {
+                                eprintln!(
+                                    "  -> Detected pad index: 0x{:02X} (value={})",
+                                    pad_idx, value
+                                );
+                                *captured_hid_clone.lock().unwrap() = Some(pad_idx);
+                                break;
                             }
                         }
                     }
@@ -189,12 +188,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 break;
             }
 
-            let midi_data = captured_midi.lock().unwrap().clone();
-            let hid_data = captured_hid.lock().unwrap().clone();
+            let midi_data = *captured_midi.lock().unwrap();
+            let hid_data = *captured_hid.lock().unwrap();
 
-            if midi_data.is_some() && hid_data.is_some() {
-                let (note, vel) = midi_data.unwrap();
-                let hid_idx = hid_data.unwrap();
+            if let (Some((note, vel)), Some(hid_idx)) = (midi_data, hid_data) {
 
                 println!("✓");
                 println!("  MIDI: Note {} velocity {}", note, vel);

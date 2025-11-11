@@ -6,7 +6,6 @@
 //! Tests for Launch Application (F12) and Volume Control (F14) actions
 
 use std::env;
-use std::path::PathBuf;
 use std::process::Command;
 
 /// Mock application path for testing
@@ -119,7 +118,7 @@ fn test_launch_action_process_spawning() {
     let result = if cfg!(unix) {
         Command::new("echo").arg("test").output()
     } else {
-        Command::new("cmd").args(&["/C", "echo", "test"]).output()
+        Command::new("cmd").args(["/C", "echo", "test"]).output()
     };
 
     assert!(result.is_ok(), "Should be able to spawn echo process");
@@ -165,10 +164,8 @@ fn test_launch_action_error_handling_permission_denied() {
                         !output.status.success(),
                         "Should fail to execute file without exec permissions"
                     );
-                } else {
-                    // Error occurred during spawn, which is expected
-                    assert!(true);
                 }
+                // Error occurred during spawn, which is expected
             }
         }
     }
@@ -330,7 +327,7 @@ fn test_mock_volume_control_execution() {
     let result = if cfg!(unix) {
         Command::new("sh").arg("-c").arg(mock_cmd).output()
     } else {
-        Command::new("cmd").args(&["/C", mock_cmd]).output()
+        Command::new("cmd").args(["/C", mock_cmd]).output()
     };
 
     assert!(result.is_ok(), "Mock volume command should execute");
@@ -376,7 +373,7 @@ fn test_shell_command_escaping() {
             .output()
     } else {
         Command::new("cmd")
-            .args(&["/C", "echo", test_string])
+            .args(["/C", "echo", test_string])
             .output()
     };
 
@@ -402,7 +399,7 @@ fn test_concurrent_process_spawning() {
             let result = if cfg!(unix) {
                 Command::new("echo").arg("test").output()
             } else {
-                Command::new("cmd").args(&["/C", "echo", "test"]).output()
+                Command::new("cmd").args(["/C", "echo", "test"]).output()
             };
 
             if result.is_ok() {
