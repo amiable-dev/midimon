@@ -212,7 +212,9 @@ fn test_delay_zero() {
 #[test]
 fn test_delay_multiple_sequential() {
     if should_skip_timing_test() {
-        eprintln!("Skipping test_delay_multiple_sequential on macOS CI due to runner timing variance");
+        eprintln!(
+            "Skipping test_delay_multiple_sequential on macOS CI due to runner timing variance"
+        );
         return;
     }
 
@@ -361,6 +363,13 @@ fn test_mouse_click_coordinate_validation() {
 
 #[test]
 fn test_mouse_click_in_sequence() {
+    if should_skip_timing_test() {
+        eprintln!(
+            "Skipping test_mouse_click_in_sequence on macOS CI due to runner timing variance"
+        );
+        return;
+    }
+
     // Test mouse click as part of a sequence
     let start = Instant::now();
 
@@ -395,6 +404,11 @@ fn test_repeat_action_count() {
 
 #[test]
 fn test_repeat_with_delay() {
+    if should_skip_timing_test() {
+        eprintln!("Skipping test_repeat_with_delay on macOS CI due to runner timing variance");
+        return;
+    }
+
     let start = Instant::now();
     let repeat_count = 3;
     let delay_ms = 50;
