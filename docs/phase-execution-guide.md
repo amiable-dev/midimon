@@ -66,7 +66,9 @@ Then copy the entire content and use it as your prompt to Claude Code.
    - **Acceptance Criteria**: All acceptance criteria from Linear issue are met
    - **Success Criteria**: All success criteria checkboxes are completed
    - **Deliverables**: All required deliverables are created and committed
-   - **Testing**: Tests pass (if code changes)
+   - **Testing**: Tests pass locally (if code changes)
+   - **Test Coverage**: Minimum 80% code coverage, 100% tests passing (if code changes)
+   - **GitHub Actions**: All CI/CD checks pass (build, lint, test, security, docs)
    - **Documentation**: docs-site/ updated per Documentation Site Update Policy
    - **Review**: Code/content reviewed (self-review minimum, PR review ideal)
    - **Quality**: No known critical bugs or incomplete implementations

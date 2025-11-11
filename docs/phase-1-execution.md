@@ -140,16 +140,27 @@ Before marking any issue as "Done" in Linear, MUST validate:
 1. **Acceptance Criteria**: All acceptance criteria from Linear issue are met
 2. **Success Criteria**: All success criteria checkboxes are completed
 3. **Deliverables**: All required deliverables are created and committed
-4. **Testing**: Tests pass (if code changes)
-5. **Documentation**: docs-site/ updated per Documentation Site Update Policy
-6. **Review**: Code/content reviewed (self-review minimum, PR review ideal)
-7. **Quality**: No known critical bugs or incomplete implementations
-8. **Validation**: Manually verify the implementation works as specified
+4. **Testing**: Tests pass locally (if code changes)
+5. **Test Coverage**: Minimum 80% code coverage, 100% tests passing (if code changes)
+6. **GitHub Actions**: All CI/CD checks pass (build, lint, test, security)
+   - Build successful on all target platforms
+   - `cargo fmt --check` passes (no formatting issues)
+   - `cargo clippy` passes with no warnings
+   - `cargo test` passes with 100% success rate
+   - `cargo audit` passes with no vulnerabilities
+   - Documentation builds successfully
+7. **Documentation**: docs-site/ updated per Documentation Site Update Policy
+8. **Review**: Code/content reviewed (self-review minimum, PR review ideal)
+9. **Quality**: No known critical bugs or incomplete implementations
+10. **Validation**: Manually verify the implementation works as specified
 
 **Validation Process**:
 - Read the complete Linear issue description
 - Check off each acceptance criteria item
 - Verify all task breakdown checkboxes are complete
+- Run tests locally and verify 80%+ coverage
+- Push changes and verify all GitHub Actions pass
+- Review GitHub Actions logs for any warnings or issues
 - Test the implementation manually
 - Only then mark issue as "Done"
 

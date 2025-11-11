@@ -117,7 +117,10 @@ For each issue in dependency order:
    - [ ] All acceptance criteria from Linear issue are met
    - [ ] All success criteria checkboxes are completed
    - [ ] All required deliverables are created and committed
-   - [ ] Tests pass (if code changes)
+   - [ ] Tests pass locally (if code changes)
+   - [ ] Test coverage ≥80% with 100% tests passing (if code changes)
+   - [ ] All GitHub Actions pass (build, lint, test, security, docs)
+   - [ ] Reviewed GitHub Actions logs for warnings or issues
    - [ ] Documentation site updated per policy
    - [ ] Code/content reviewed (self-review minimum, PR review ideal)
    - [ ] No known critical bugs or incomplete implementations
