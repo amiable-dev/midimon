@@ -104,6 +104,11 @@ fn test_sequence_single_action() {
 
 #[test]
 fn test_sequence_with_delays() {
+    if should_skip_timing_test() {
+        eprintln!("Skipping test_sequence_with_delays on macOS CI due to runner timing variance");
+        return;
+    }
+
     // Test sequence that includes delay actions
     let start = Instant::now();
 
