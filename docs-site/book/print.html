@@ -1,0 +1,4007 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>MIDIMon Documentation</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Transform MIDI controllers into advanced macro pads with RGB feedback and timing-based triggers">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">MIDIMon Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/amiable-dev/midimon" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p><strong>Transform any MIDI controller into an advanced, context-aware macro pad with professional-grade feedback and timing-based triggers.</strong></p>
+<p>MIDIMon is a powerful Rust-based MIDI controller mapping system that goes beyond simple note-to-key bindings. It provides velocity sensitivity, long press detection, double-tap, chord recognition, and full RGB LED feedback for modern workflows.</p>
+<h2 id="key-features"><a class="header" href="#key-features">Key Features</a></h2>
+<h3 id="core-capabilities"><a class="header" href="#core-capabilities">Core Capabilities</a></h3>
+<ul>
+<li><strong>4 Core Triggers</strong>: Note, Velocity Range, Encoder, Control Change</li>
+<li><strong>5 Advanced Triggers</strong>: Long Press, Double-Tap, Chord, Aftertouch, Pitch Bend</li>
+<li><strong>10 Action Types</strong>: Keystroke, Text, Launch, Shell, Volume Control, and more</li>
+<li><strong>10 LED Schemes</strong>: Reactive, Rainbow, Pulse, Breathing, and custom patterns</li>
+<li><strong>Multi-Mode System</strong>: Switch between mapping sets on the fly</li>
+<li><strong>Device Profile Support</strong>: Load Native Instruments Controller Editor configurations</li>
+</ul>
+<h3 id="performance"><a class="header" href="#performance">Performance</a></h3>
+<ul>
+<li>Response latency: <strong>&lt;1ms</strong> typical</li>
+<li>Memory footprint: <strong>5-10MB</strong></li>
+<li>CPU usage: <strong>&lt;1%</strong> idle, <strong>&lt;5%</strong> active</li>
+<li>Binary size: <strong>3-5MB</strong> (optimized)</li>
+</ul>
+<h2 id="who-is-midimon-for"><a class="header" href="#who-is-midimon-for">Who is MIDIMon For?</a></h2>
+<h3 id="music-producers"><a class="header" href="#music-producers">Music Producers</a></h3>
+<p>Control DAWs, plugins, and effects with velocity-sensitive, multi-layer mappings.</p>
+<h3 id="software-developers"><a class="header" href="#software-developers">Software Developers</a></h3>
+<p>Streamline coding workflows with mode-based hotkey systems and build tool shortcuts.</p>
+<h3 id="content-creators"><a class="header" href="#content-creators">Content Creators</a></h3>
+<p>Manage streaming, recording, and editing with physical MIDI controls.</p>
+<h3 id="power-users"><a class="header" href="#power-users">Power Users</a></h3>
+<p>Replace expensive macro pads with affordable MIDI controllers that do more.</p>
+<h2 id="why-midimon"><a class="header" href="#why-midimon">Why MIDIMon?</a></h2>
+<p>Unlike existing MIDI mapping tools, MIDIMon provides:</p>
+<ul>
+<li><strong>Advanced Timing</strong>: Long press, double-tap, chord detection out of the box</li>
+<li><strong>Velocity Sensitivity</strong>: Different actions for soft/medium/hard pad hits</li>
+<li><strong>Full RGB Feedback</strong>: Not just on/off LEDs, but animated schemes and reactive color</li>
+<li><strong>Modern Architecture</strong>: Fast Rust core, hot-reload config (coming soon), cross-platform</li>
+<li><strong>Open Source</strong>: Fully customizable, extensible, community-driven</li>
+</ul>
+<h2 id="quick-example"><a class="header" href="#quick-example">Quick Example</a></h2>
+<pre><code class="language-toml"># Press pad lightly for copy, hard for paste
+[[modes.mappings]]
+trigger = { type = "VelocityRange", note = 36 }
+soft = { action = { type = "Keystroke", key = "C", modifiers = ["Cmd"] } }
+hard = { action = { type = "Keystroke", key = "V", modifiers = ["Cmd"] } }
+
+# Hold for 2 seconds to open terminal
+[[modes.mappings]]
+trigger = { type = "LongPress", note = 37, duration_ms = 2000 }
+action = { type = "Launch", path = "/Applications/Utilities/Terminal.app" }
+</code></pre>
+<h2 id="platform-support"><a class="header" href="#platform-support">Platform Support</a></h2>
+<ul>
+<li><strong>macOS</strong>: Full support (11+ Big Sur, Apple Silicon + Intel)</li>
+<li><strong>Linux</strong>: Planned for Phase 4 (Q4 2025)</li>
+<li><strong>Windows</strong>: Planned for Phase 4 (Q4 2025)</li>
+</ul>
+<h2 id="device-compatibility"><a class="header" href="#device-compatibility">Device Compatibility</a></h2>
+<ul>
+<li><strong>Fully Supported</strong>: Native Instruments Maschine Mikro MK3 (RGB LEDs, HID access)</li>
+<li><strong>MIDI-Only Support</strong>: Any USB MIDI controller with basic LED feedback</li>
+<li><strong>Coming Soon</strong>: Launchpad, APC Mini, Korg nanoKontrol, and more</li>
+</ul>
+<h2 id="get-started"><a class="header" href="#get-started">Get Started</a></h2>
+<p>Ready to dive in? Check out the <a href="getting-started/quick-start.html">Quick Start Guide</a> or <a href="installation/macos.html">Installation Instructions</a>.</p>
+<h2 id="project-status"><a class="header" href="#project-status">Project Status</a></h2>
+<p>MIDIMon is currently at <strong>v0.1.0-monolithic</strong> (pre-1.0 software). The core features are stable and production-ready, but the API may change before v1.0.0.</p>
+<p>See the <a href="resources/roadmap.html">Roadmap</a> for planned features and timeline.</p>
+<h2 id="community"><a class="header" href="#community">Community</a></h2>
+<ul>
+<li><strong>GitHub</strong>: <a href="https://github.com/amiable-dev/midimon">https://github.com/amiable-dev/midimon</a></li>
+<li><strong>Discussions</strong>: <a href="https://github.com/amiable-dev/midimon/discussions">https://github.com/amiable-dev/midimon/discussions</a></li>
+<li><strong>Issues</strong>: <a href="https://github.com/amiable-dev/midimon/issues">https://github.com/amiable-dev/midimon/issues</a></li>
+</ul>
+<h2 id="license"><a class="header" href="#license">License</a></h2>
+<p>MIDIMon is open source software licensed under the <strong>MIT License</strong>. See <a href="https://github.com/amiable-dev/midimon/blob/main/LICENSE">LICENSE</a> for details.</p>
+<hr />
+<p><strong>Next</strong>: <a href="installation/macos.html">Install MIDIMon</a> | <a href="getting-started/quick-start.html">Quick Start</a></p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="macos-installation"><a class="header" href="#macos-installation">macOS Installation</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon"><a class="header" href="#coming-soon">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="installation/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="linux-installation"><a class="header" href="#linux-installation">Linux Installation</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-1"><a class="header" href="#coming-soon-1">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="installation/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="windows-installation"><a class="header" href="#windows-installation">Windows Installation</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-2"><a class="header" href="#coming-soon-2">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="installation/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="building-from-source"><a class="header" href="#building-from-source">Building from Source</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-3"><a class="header" href="#coming-soon-3">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="installation/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-4"><a class="header" href="#coming-soon-4">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="getting-started/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="your-first-mapping"><a class="header" href="#your-first-mapping">Your First Mapping</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-5"><a class="header" href="#coming-soon-5">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="getting-started/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="midi-learn"><a class="header" href="#midi-learn">MIDI Learn</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-6"><a class="header" href="#coming-soon-6">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="getting-started/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="understanding-modes"><a class="header" href="#understanding-modes">Understanding Modes</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-7"><a class="header" href="#coming-soon-7">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="getting-started/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-overview"><a class="header" href="#configuration-overview">Configuration Overview</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-8"><a class="header" href="#coming-soon-8">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="configuration/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="triggers-reference"><a class="header" href="#triggers-reference">Triggers Reference</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-9"><a class="header" href="#coming-soon-9">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="configuration/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="actions-reference"><a class="header" href="#actions-reference">Actions Reference</a></h1>
+<p>Actions define what happens when a trigger condition is met. MIDIMon supports a rich set of action types that can be composed in powerful ways.</p>
+<h2 id="quick-reference"><a class="header" href="#quick-reference">Quick Reference</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Action Type</th><th>Description</th><th>Complexity</th></tr></thead><tbody>
+<tr><td><a href="configuration/actions.html#keystroke">Keystroke</a></td><td>Send keyboard shortcuts</td><td>Simple</td></tr>
+<tr><td><a href="configuration/actions.html#text">Text</a></td><td>Type text strings</td><td>Simple</td></tr>
+<tr><td><a href="configuration/actions.html#launch">Launch</a></td><td>Open applications</td><td>Simple</td></tr>
+<tr><td><a href="configuration/actions.html#shell">Shell</a></td><td>Execute shell commands</td><td>Simple</td></tr>
+<tr><td><a href="configuration/actions.html#sequence">Sequence</a></td><td>Chain multiple actions</td><td>Moderate</td></tr>
+<tr><td><a href="configuration/actions.html#delay">Delay</a></td><td>Add timing control</td><td>Simple</td></tr>
+<tr><td><a href="configuration/actions.html#mouseclickcode%3E">MouseClick</a></td><td>Simulate mouse clicks</td><td>Simple</td></tr>
+<tr><td><a href="configuration/actions.html#repeat">Repeat</a></td><td>Repeat actions N times</td><td>Moderate</td></tr>
+<tr><td><a href="configuration/actions.html#conditional">Conditional</a></td><td>Conditional execution</td><td>Advanced</td></tr>
+</tbody></table>
+</div>
+<h2 id="simple-actions"><a class="header" href="#simple-actions">Simple Actions</a></h2>
+<h3 id="keystroke"><a class="header" href="#keystroke">Keystroke</a></h3>
+<p>Send keyboard shortcuts with modifiers. The most common action type for productivity workflows.</p>
+<pre><code class="language-toml"># Single key
+[modes.mappings.action]
+type = "Keystroke"
+keys = "space"
+
+# With modifiers
+[modes.mappings.action]
+type = "Keystroke"
+keys = "c"
+modifiers = ["cmd"]  # Cmd+C
+
+# Multiple modifiers
+[modes.mappings.action]
+type = "Keystroke"
+keys = "t"
+modifiers = ["cmd", "shift"]  # Cmd+Shift+T
+</code></pre>
+<p><strong>Available Modifiers</strong>:</p>
+<ul>
+<li><code>cmd</code> / <code>command</code> / <code>meta</code> - Command key (macOS) / Windows key</li>
+<li><code>ctrl</code> / <code>control</code> - Control key</li>
+<li><code>alt</code> / <code>option</code> - Alt/Option key</li>
+<li><code>shift</code> - Shift key</li>
+</ul>
+<p><strong>Special Keys</strong>:</p>
+<ul>
+<li>Navigation: <code>up</code>, <code>down</code>, <code>left</code>, <code>right</code>, <code>home</code>, <code>end</code>, <code>pageup</code>, <code>pagedown</code></li>
+<li>Editing: <code>backspace</code>, <code>delete</code>, <code>tab</code>, <code>return</code>, <code>enter</code>, <code>escape</code>, <code>esc</code></li>
+<li>Function: <code>f1</code> through <code>f12</code></li>
+<li>Other: <code>space</code></li>
+</ul>
+<h3 id="text"><a class="header" href="#text">Text</a></h3>
+<p>Type arbitrary text strings with full Unicode support. Uses keyboard simulation to type character-by-character, making it reliable for Unicode and complex text.</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Text"
+text = "Hello, World!"
+</code></pre>
+<p><strong>Use Cases</strong>:</p>
+<ul>
+<li>Email signatures and contact information</li>
+<li>Code snippets and boilerplate</li>
+<li>Commonly used phrases and templates</li>
+<li>Form auto-fill with saved data</li>
+<li>Multi-language text input</li>
+<li>Text expansion (abbreviation → full text)</li>
+</ul>
+<p><strong>Advanced Examples</strong>:</p>
+<p><strong>Multi-line Code Snippet</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Text"
+text = """
+fn main() {
+    println!(\"Hello, World!\");
+}
+"""
+</code></pre>
+<p><strong>Email Signature</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Text"
+text = """
+Best regards,
+John Doe
+Senior Developer
+john@example.com
+"""
+</code></pre>
+<p><strong>Unicode and Emoji</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Text"
+text = "✅ Task completed! 🎉"
+</code></pre>
+<p><strong>Special Characters</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Text"
+text = "!@#$%^&amp;*()_+-=[]{}|;':\",./&lt;&gt;?"
+</code></pre>
+<p><strong>Slow Typing for Laggy UIs</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Sequence"
+actions = [
+    { type = "Text", text = "user" },
+    { type = "Delay", ms = 100 },
+    { type = "Text", text = "name" },
+    { type = "Delay", ms = 100 },
+    { type = "Text", text = "123" }
+]
+</code></pre>
+<p><strong>TOML String Escaping Tips</strong>:</p>
+<ul>
+<li>Escape quotes: <code>"He said \"hello\""</code></li>
+<li>Multiline strings: <code>"""Line 1\nLine 2"""</code></li>
+<li>Literal strings (no escaping): <code>'C:\Users\file.txt'</code></li>
+<li>Backslashes: Double them <code>\\</code> or use literal strings</li>
+</ul>
+<p><strong>Platform Behavior</strong>:</p>
+<ul>
+<li>Does NOT use clipboard (leaves clipboard unchanged)</li>
+<li>Types character-by-character via keyboard simulation</li>
+<li>Respects active keyboard layout</li>
+<li>Requires text input focus in target app</li>
+</ul>
+<p><strong>Troubleshooting</strong>:</p>
+<ul>
+<li>If text doesn't type: Ensure app has input focus</li>
+<li>If Unicode fails: Check app supports UTF-8</li>
+<li>If too fast: Use Sequence with Delay actions</li>
+<li>If wrong characters: Check keyboard layout or escape TOML strings</li>
+</ul>
+<h3 id="launch"><a class="header" href="#launch">Launch</a></h3>
+<p>Open applications by name or path. Simple, cross-platform application launcher.</p>
+<p><strong>Basic Usage</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Launch"
+app = "Terminal"  # macOS application name
+</code></pre>
+<p><strong>Full Path</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Launch"
+app = "/Applications/Utilities/Terminal.app"
+</code></pre>
+<p><strong>Script Execution</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Launch"
+app = "/Users/username/scripts/backup.sh"  # Must have execute permissions (chmod +x)
+</code></pre>
+<p><strong>Multiple Apps (Streaming Setup)</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Sequence"
+actions = [
+    { type = "Launch", app = "OBS" },
+    { type = "Delay", ms = 2000 },  # Wait for OBS to load
+    { type = "Launch", app = "Discord" },
+    { type = "Delay", ms = 1000 },
+    { type = "Launch", app = "Spotify" }
+]
+</code></pre>
+<p><strong>Development Environment</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Sequence"
+actions = [
+    { type = "Launch", app = "Visual Studio Code" },
+    { type = "Delay", ms = 1500 },
+    { type = "Launch", app = "Terminal" },
+    { type = "Delay", ms = 500 },
+    { type = "Launch", app = "Safari" }
+]
+</code></pre>
+<p><strong>Platform Behavior</strong>:</p>
+<ul>
+<li><strong>macOS</strong>: Uses <code>open -a</code> command
+<ul>
+<li>App names: "Safari", "Visual Studio Code", "Logic Pro"</li>
+<li>Full paths: "/Applications/Safari.app"</li>
+<li>If running, brings to front (doesn't launch duplicate)</li>
+</ul>
+</li>
+<li><strong>Linux</strong>: Direct executable launch
+<ul>
+<li>Requires full path or executable in $PATH</li>
+<li>Typically launches new instance even if running</li>
+</ul>
+</li>
+<li><strong>Windows</strong>: Uses <code>cmd /C start</code> command
+<ul>
+<li>Accepts app names or paths</li>
+<li>Uses file associations</li>
+</ul>
+</li>
+</ul>
+<p><strong>Troubleshooting</strong>:</p>
+<ul>
+<li>Test manually: <code>open -a "App Name"</code> (macOS) or <code>which app-name</code> (Linux)</li>
+<li>Enable debug logging: <code>DEBUG=1 cargo run --release 2</code></li>
+<li>Use full paths if app names don't work</li>
+<li>Ensure scripts have execute permissions: <code>chmod +x script.sh</code></li>
+</ul>
+<h3 id="shell"><a class="header" href="#shell">Shell</a></h3>
+<p>Execute arbitrary shell commands. Provides full system access.</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Shell"
+command = "git status"
+</code></pre>
+<p><strong>Common Examples</strong>:</p>
+<pre><code class="language-toml"># Git operations
+command = "git add . &amp;&amp; git commit -m 'quick save'"
+
+# System info
+command = "system_profiler SPUSBDataType | grep -i mikro"
+
+# File operations
+command = "open ~/Downloads"
+
+# AppleScript (macOS)
+command = "osascript -e 'display notification \"MIDI triggered!\"'"
+</code></pre>
+<h2 id="timing--flow-control"><a class="header" href="#timing--flow-control">Timing &amp; Flow Control</a></h2>
+<h3 id="delay"><a class="header" href="#delay">Delay</a></h3>
+<p>Add pauses between actions in sequences.</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Delay"
+ms = 500  # 500 milliseconds
+</code></pre>
+<p><strong>Typical Uses</strong>:</p>
+<ul>
+<li>Wait for UI to load</li>
+<li>Slow down rapid automation</li>
+<li>Add deliberate pacing to sequences</li>
+</ul>
+<h3 id="sequence"><a class="header" href="#sequence">Sequence</a></h3>
+<p>Execute multiple actions in order. Automatic 50ms delay between actions.</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Sequence"
+actions = [
+    { type = "Keystroke", keys = "space", modifiers = ["cmd"] },  # Spotlight
+    { type = "Delay", ms = 200 },  # Wait for Spotlight
+    { type = "Text", text = "Terminal" },
+    { type = "Keystroke", keys = "return" }  # Launch
+]
+</code></pre>
+<p><strong>Design Patterns</strong>:</p>
+<p><strong>1. Application Launcher</strong>:</p>
+<pre><code class="language-toml">type = "Sequence"
+actions = [
+    { type = "Keystroke", keys = "space", modifiers = ["cmd"] },
+    { type = "Delay", ms = 100 },
+    { type = "Text", text = "VS Code" },
+    { type = "Keystroke", keys = "return" }
+]
+</code></pre>
+<p><strong>2. File Workflow</strong>:</p>
+<pre><code class="language-toml">type = "Sequence"
+actions = [
+    { type = "Keystroke", keys = "s", modifiers = ["cmd"] },  # Save
+    { type = "Delay", ms = 100 },
+    { type = "Keystroke", keys = "w", modifiers = ["cmd"] },  # Close
+    { type = "Delay", ms = 50 },
+    { type = "Keystroke", keys = "down" },  # Next file
+    { type = "Keystroke", keys = "return" }  # Open
+]
+</code></pre>
+<p><strong>3. Git Workflow</strong>:</p>
+<pre><code class="language-toml">type = "Sequence"
+actions = [
+    { type = "Shell", command = "git add -A" },
+    { type = "Delay", ms = 100 },
+    { type = "Shell", command = "git commit -m 'quick save'" },
+    { type = "Delay", ms = 100 },
+    { type = "Shell", command = "git push" }
+]
+</code></pre>
+<h3 id="repeat"><a class="header" href="#repeat">Repeat</a></h3>
+<p>Repeat an action (or sequence) multiple times.</p>
+<pre><code class="language-toml"># Simple repeat: scroll down 10 times
+[modes.mappings.action]
+type = "Repeat"
+count = 10
+action = { type = "Keystroke", keys = "down" }
+</code></pre>
+<p><strong>With Delay Between Iterations</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Repeat"
+count = 5
+delay_between_ms = 200  # 200ms between each press
+action = { type = "Keystroke", keys = "down" }
+</code></pre>
+<p><strong>Repeat a Sequence</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Repeat"
+count = 3
+delay_between_ms = 1000
+action = {
+    type = "Sequence",
+    actions = [
+        { type = "Keystroke", keys = "down" },  # Select next item
+        { type = "Delay", ms = 100 },
+        { type = "Keystroke", keys = "return" },  # Open
+        { type = "Delay", ms = 500 },
+        { type = "Keystroke", keys = "w", modifiers = ["cmd"] }  # Close
+    ]
+}
+</code></pre>
+<p><strong>Error Handling</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Repeat"
+count = 3
+delay_between_ms = 2000
+stop_on_error = true  # Stop if any iteration fails
+action = { type = "Launch", app = "Xcode" }
+</code></pre>
+<p><strong>Parameters</strong>:</p>
+<ul>
+<li><code>count</code> (required): Number of repetitions (0 = no-op, 1 = run once)</li>
+<li><code>action</code> (required): Action to repeat</li>
+<li><code>delay_between_ms</code> (optional): Delay between iterations (not after last)</li>
+<li><code>stop_on_error</code> (optional): Stop on first failure (default: false)</li>
+</ul>
+<p><strong>Edge Cases</strong>:</p>
+<ul>
+<li><code>count = 0</code> is valid (no-op)</li>
+<li><code>count = 1</code> executes once with no delay</li>
+<li>Nested repeats multiply: 10 outer × 5 inner = 50 total</li>
+<li>Large counts (&gt;1000) may appear as hang</li>
+<li>Blocking operation - cannot interrupt</li>
+</ul>
+<p><strong>Use Cases</strong>:</p>
+<ol>
+<li><strong>Pagination</strong>: Scroll through long lists</li>
+<li><strong>Batch Processing</strong>: Repeat workflow on multiple items</li>
+<li><strong>Velocity Mapping</strong>: Different repeat counts for soft/medium/hard presses</li>
+<li><strong>Retry Logic</strong>: Try launching app multiple times</li>
+</ol>
+<h2 id="mouse-actions"><a class="header" href="#mouse-actions">Mouse Actions</a></h2>
+<h3 id="mouseclick"><a class="header" href="#mouseclick">MouseClick</a></h3>
+<p>Simulate mouse clicks with optional positioning.</p>
+<pre><code class="language-toml"># Click at current cursor position
+[modes.mappings.action]
+type = "MouseClick"
+button = "Left"
+
+# Click at specific coordinates
+[modes.mappings.action]
+type = "MouseClick"
+button = "Right"
+x = 500
+y = 300
+</code></pre>
+<p><strong>Button Options</strong>: <code>Left</code>, <code>Right</code>, <code>Middle</code></p>
+<p><strong>Use Cases</strong>:</p>
+<ul>
+<li>Click UI elements at fixed positions</li>
+<li>Context menu automation</li>
+<li>Drag-and-drop workflows (with sequences)</li>
+</ul>
+<h2 id="advanced-actions"><a class="header" href="#advanced-actions">Advanced Actions</a></h2>
+<h3 id="conditional"><a class="header" href="#conditional">Conditional</a></h3>
+<p>Execute actions based on runtime conditions (app state, time, modifiers).</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Conditional"
+conditions = [
+    { type = "AppRunning", bundle_id = "com.apple.Logic" }
+]
+operator = "And"
+then_action = { type = "Keystroke", keys = "space" }
+else_action = { type = "Launch", app = "Logic Pro" }
+</code></pre>
+<p><strong>Parameters</strong>:</p>
+<ul>
+<li><code>conditions</code> (array): Array of condition objects</li>
+<li><code>operator</code> (string, optional): "And" or "Or" (default: "And")</li>
+<li><code>then_action</code> (object): Action when conditions are true</li>
+<li><code>else_action</code> (object, optional): Action when conditions are false</li>
+</ul>
+<p><strong>Condition Types</strong>:</p>
+<p><strong>AppRunning / AppNotRunning</strong> - Check if app is running:</p>
+<pre><code class="language-toml">{ type = "AppRunning", bundle_id = "com.spotify.client" }
+{ type = "AppNotRunning", bundle_id = "com.microsoft.VSCode" }
+</code></pre>
+<p><strong>TimeRange</strong> - Check current time:</p>
+<pre><code class="language-toml">{ type = "TimeRange", start = "09:00", end = "17:00" }  # 24-hour format
+</code></pre>
+<p><strong>DayOfWeek</strong> - Check day of week:</p>
+<pre><code class="language-toml">{ type = "DayOfWeek", days = ["Mon", "Tue", "Wed", "Thu", "Fri"] }
+</code></pre>
+<p><strong>ModifierPressed</strong> - Check if modifier key is held:</p>
+<pre><code class="language-toml">{ type = "ModifierPressed", modifier = "Shift" }  # Shift, Ctrl, Cmd, Alt
+</code></pre>
+<p><strong>ModeActive</strong> - Check active mode:</p>
+<pre><code class="language-toml">{ type = "ModeActive", mode = 1 }  # Zero-based index
+</code></pre>
+<p><strong>Example - Time-based launcher</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Conditional"
+conditions = [
+    { type = "TimeRange", start = "09:00", end = "17:00" },
+    { type = "DayOfWeek", days = ["Mon", "Tue", "Wed", "Thu", "Fri"] }
+]
+operator = "And"
+then_action = { type = "Launch", app = "Slack" }  # Work app
+else_action = { type = "Launch", app = "Discord" }  # Personal app
+</code></pre>
+<p><strong>Example - Nested conditionals</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Conditional"
+conditions = [{ type = "TimeRange", start = "09:00", end = "17:00" }]
+then_action = {
+    type = "Conditional",
+    conditions = [{ type = "AppRunning", bundle_id = "com.microsoft.VSCode" }],
+    then_action = { type = "Keystroke", keys = "b", modifiers = ["cmd", "shift"] },
+    else_action = { type = "Launch", app = "Visual Studio Code" }
+}
+else_action = { type = "Launch", app = "Spotify" }
+</code></pre>
+<h2 id="action-composition-patterns"><a class="header" href="#action-composition-patterns">Action Composition Patterns</a></h2>
+<h3 id="1-velocity-based-repeat-count"><a class="header" href="#1-velocity-based-repeat-count">1. Velocity-Based Repeat Count</a></h3>
+<p>Different repeat counts based on how hard you hit the pad:</p>
+<pre><code class="language-toml">[modes.mappings.trigger]
+type = "VelocityRange"
+note = 10
+ranges = [
+    # Soft: repeat 3 times
+    { min = 0, max = 40, action = {
+        type = "Repeat",
+        count = 3,
+        action = { type = "Keystroke", keys = "down" }
+    }},
+    # Medium: repeat 5 times
+    { min = 41, max = 80, action = {
+        type = "Repeat",
+        count = 5,
+        action = { type = "Keystroke", keys = "down" }
+    }},
+    # Hard: repeat 10 times
+    { min = 81, max = 127, action = {
+        type = "Repeat",
+        count = 10,
+        action = { type = "Keystroke", keys = "down" }
+    }}
+]
+</code></pre>
+<h3 id="2-nested-repeats"><a class="header" href="#2-nested-repeats">2. Nested Repeats</a></h3>
+<p>Multiply effect (use with caution!):</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Repeat"
+count = 3  # Outer loop
+action = {
+    type = "Repeat",
+    count = 5,  # Inner loop → 3 × 5 = 15 total
+    action = { type = "Keystroke", keys = "down" }
+}
+</code></pre>
+<h3 id="3-complex-automation-workflow"><a class="header" href="#3-complex-automation-workflow">3. Complex Automation Workflow</a></h3>
+<p>Combine sequences, repeats, and delays:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Sequence"
+actions = [
+    # Open file browser
+    { type = "Keystroke", keys = "o", modifiers = ["cmd"] },
+    { type = "Delay", ms = 500 },
+
+    # Navigate to folder
+    { type = "Keystroke", keys = "g", modifiers = ["cmd", "shift"] },
+    { type = "Delay", ms = 200 },
+    { type = "Text", text = "~/Downloads" },
+    { type = "Keystroke", keys = "return" },
+    { type = "Delay", ms = 500 },
+
+    # Process first 3 files
+    { type = "Repeat", count = 3, delay_between_ms = 1000, action = {
+        type = "Sequence",
+        actions = [
+            { type = "Keystroke", keys = "return" },  # Open file
+            { type = "Delay", ms = 800 },
+            { type = "Keystroke", keys = "e", modifiers = ["cmd"] },  # Export
+            { type = "Delay", ms = 500 },
+            { type = "Keystroke", keys = "return" },  # Confirm
+            { type = "Delay", ms = 1000 },
+            { type = "Keystroke", keys = "w", modifiers = ["cmd"] },  # Close
+            { type = "Delay", ms = 200 },
+            { type = "Keystroke", keys = "down" }  # Next file
+        ]
+    }}
+]
+</code></pre>
+<h2 id="performance--best-practices"><a class="header" href="#performance--best-practices">Performance &amp; Best Practices</a></h2>
+<h3 id="timing-guidelines"><a class="header" href="#timing-guidelines">Timing Guidelines</a></h3>
+<ul>
+<li><strong>Keystroke</strong>: Instant (&lt;1ms)</li>
+<li><strong>Text</strong>: ~10ms per character</li>
+<li><strong>Launch</strong>: 100-2000ms (app dependent)</li>
+<li><strong>Shell</strong>: Variable (command dependent)</li>
+<li><strong>Sequence</strong>: 50ms auto-delay between actions</li>
+<li><strong>Delay</strong>: As specified</li>
+<li><strong>MouseClick</strong>: &lt;5ms</li>
+<li><strong>Repeat</strong>: count × (action time + delay_between_ms)</li>
+</ul>
+<h3 id="optimization-tips"><a class="header" href="#optimization-tips">Optimization Tips</a></h3>
+<ol>
+<li><strong>Minimize Delays</strong>: Only add delays where needed (UI loading, animations)</li>
+<li><strong>Batch Operations</strong>: Use Sequence instead of multiple mappings</li>
+<li><strong>Avoid High-Frequency Repeats</strong>: Add <code>delay_between_ms</code> for rapid repeats</li>
+<li><strong>Test Incrementally</strong>: Start with count=1, then increase</li>
+<li><strong>Consider User Experience</strong>: Long-running actions should have feedback</li>
+</ol>
+<h3 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common Pitfalls</a></h3>
+<ol>
+<li><strong>Blocking Operations</strong>: Repeats and sequences block - cannot interrupt</li>
+<li><strong>Timing Fragility</strong>: UI timing varies by system load</li>
+<li><strong>Nested Explosions</strong>: 10 × 10 nested repeat = 100 executions</li>
+<li><strong>Error Swallowing</strong>: <code>stop_on_error = false</code> continues silently</li>
+</ol>
+<h3 id="debugging-actions"><a class="header" href="#debugging-actions">Debugging Actions</a></h3>
+<p>Enable debug mode to see action execution:</p>
+<pre><code class="language-bash">DEBUG=1 cargo run --release 2
+</code></pre>
+<p>Watch for:</p>
+<ul>
+<li>Action start/completion logs</li>
+<li>Timing between actions</li>
+<li>Error messages</li>
+<li>Repeat iteration counts</li>
+</ul>
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
+<ul>
+<li><a href="configuration/../reference/action-types.html">Action Types Reference</a> - Complete technical specifications</li>
+<li><a href="configuration/examples.html">Configuration Examples</a> - Real-world configuration patterns</li>
+<li><a href="configuration/../reference/trigger-types.html">Trigger Types</a> - Trigger configuration reference</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="modes-system"><a class="header" href="#modes-system">Modes System</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-10"><a class="header" href="#coming-soon-10">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="configuration/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="led-feedback-configuration"><a class="header" href="#led-feedback-configuration">LED Feedback Configuration</a></h1>
+<p>MIDIMon provides rich LED feedback for MIDI controllers with comprehensive support for RGB control (HID devices) and basic on/off control (MIDI devices).</p>
+<h2 id="quick-start-1"><a class="header" href="#quick-start-1">Quick Start</a></h2>
+<h3 id="command-line-usage"><a class="header" href="#command-line-usage">Command-Line Usage</a></h3>
+<p>The fastest way to enable LED feedback is via command-line flags:</p>
+<pre><code class="language-bash"># Start with reactive velocity feedback (recommended)
+cargo run --release 2 --led reactive
+
+# Try different schemes
+cargo run --release 2 --led rainbow
+cargo run --release 2 --led static
+cargo run --release 2 --led off
+</code></pre>
+<h3 id="available-schemes"><a class="header" href="#available-schemes">Available Schemes</a></h3>
+<p>Choose from 10 built-in lighting schemes:</p>
+<ul>
+<li><strong>off</strong> - All LEDs disabled</li>
+<li><strong>static</strong> - Solid color based on current mode</li>
+<li><strong>breathing</strong> - Slow 2-second breathing effect</li>
+<li><strong>pulse</strong> - Fast 500ms pulse</li>
+<li><strong>rainbow</strong> - Rainbow cycle across pads</li>
+<li><strong>wave</strong> - Wave pattern animation</li>
+<li><strong>sparkle</strong> - Random sparkles</li>
+<li><strong>reactive</strong> - Velocity-based colors (green/yellow/red)</li>
+<li><strong>vumeter</strong> - VU meter style (bottom-up)</li>
+<li><strong>spiral</strong> - Spiral pattern animation</li>
+</ul>
+<h2 id="configuration-file"><a class="header" href="#configuration-file">Configuration File</a></h2>
+<h3 id="basic-setup"><a class="header" href="#basic-setup">Basic Setup</a></h3>
+<p>Add LED settings to your <code>config.toml</code>:</p>
+<pre><code class="language-toml">[device]
+name = "Mikro"
+led_feedback = true  # Enable LED control
+
+[led_settings]
+scheme = "reactive"  # Default scheme
+brightness = 255     # Full brightness (0-255)
+</code></pre>
+<h3 id="reactive-scheme-velocity-feedback"><a class="header" href="#reactive-scheme-velocity-feedback">Reactive Scheme (Velocity Feedback)</a></h3>
+<p>The most commonly used scheme, providing color-coded velocity feedback:</p>
+<pre><code class="language-toml">[led_settings]
+scheme = "reactive"
+
+[led_settings.reactive]
+# Velocity ranges and colors
+soft_color = { r = 0, g = 255, b = 0 }      # Green (0-40)
+medium_color = { r = 255, g = 255, b = 0 }  # Yellow (41-80)
+hard_color = { r = 255, g = 0, b = 0 }      # Red (81-127)
+
+# Fade behavior
+fade_duration_ms = 1000  # Wait 1s before fading
+fade_steps = 10          # Number of fade steps (smoother = more steps)
+</code></pre>
+<p><strong>Visual Example:</strong></p>
+<ul>
+<li>Soft tap → 🟢 Green LED</li>
+<li>Medium tap → 🟡 Yellow LED</li>
+<li>Hard hit → 🔴 Red LED</li>
+<li>After 1 second → Smooth fade to mode color</li>
+</ul>
+<h3 id="mode-based-colors"><a class="header" href="#mode-based-colors">Mode-Based Colors</a></h3>
+<p>Each mode can have its own color scheme:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Default"
+color = "blue"
+led_idle_brightness = 20      # Dim when idle
+led_active_brightness = 255   # Full when pressed
+
+[[modes]]
+name = "Development"
+color = "green"
+led_idle_brightness = 30
+led_active_brightness = 255
+
+[[modes]]
+name = "Media"
+color = "purple"
+led_idle_brightness = 15
+led_active_brightness = 200
+</code></pre>
+<p><strong>Supported Colors:</strong></p>
+<ul>
+<li><code>"blue"</code> - (0, 100, 255)</li>
+<li><code>"green"</code> - (0, 255, 0)</li>
+<li><code>"red"</code> - (255, 0, 0)</li>
+<li><code>"purple"</code> - (200, 0, 255)</li>
+<li><code>"yellow"</code> - (255, 255, 0)</li>
+<li><code>"cyan"</code> - (0, 255, 255)</li>
+<li><code>"white"</code> - (255, 255, 255)</li>
+<li>Custom: <code>{ r = 128, g = 64, b = 200 }</code></li>
+</ul>
+<h3 id="mode-transition-effects"><a class="header" href="#mode-transition-effects">Mode Transition Effects</a></h3>
+<p>Add visual effects when switching modes:</p>
+<pre><code class="language-toml">[[global_mappings]]
+description = "Next Mode with Sweep Effect"
+[global_mappings.trigger]
+type = "EncoderTurn"
+cc = 1
+direction = "Clockwise"
+[global_mappings.action]
+type = "ModeChange"
+mode = 1
+relative = true
+transition_effect = "Sweep"
+</code></pre>
+<p><strong>Transition Effects:</strong></p>
+<pre><code class="language-toml">[led_settings.transitions]
+enable_effects = true
+flash_duration_ms = 150   # Flash effect (white → off → new color)
+sweep_delay_ms = 30       # Sweep effect (left-to-right wave)
+fadeout_steps = 10        # FadeOut effect (smooth color transition)
+spiral_delay_ms = 15      # Spiral effect (center-outward)
+</code></pre>
+<p><strong>Available Effects:</strong></p>
+<ul>
+<li><strong>Flash</strong> - Quick white flash (150ms) - fast mode switching</li>
+<li><strong>Sweep</strong> - Left-to-right wave (120ms) - smooth sweep</li>
+<li><strong>FadeOut</strong> - Fade old to new color (200ms) - smooth transition</li>
+<li><strong>Spiral</strong> - Center-outward spiral (240ms) - artistic</li>
+<li><strong>None</strong> - Instant change (0ms) - no animation</li>
+</ul>
+<h3 id="mode-indicator-pads"><a class="header" href="#mode-indicator-pads">Mode Indicator Pads</a></h3>
+<p>Dedicate specific pads to show the current mode:</p>
+<pre><code class="language-toml">[led_settings]
+mode_indicator_pads = [13, 14, 15, 16]  # Bottom row
+# Pad 13 = Mode 0 indicator
+# Pad 14 = Mode 1 indicator
+# Pad 15 = Mode 2 indicator
+# Pad 16 = Mode 3 indicator
+</code></pre>
+<p>When in Mode 1, pad 14 will light up in green while others remain dim.</p>
+<h2 id="advanced-configuration"><a class="header" href="#advanced-configuration">Advanced Configuration</a></h2>
+<h3 id="animation-settings"><a class="header" href="#animation-settings">Animation Settings</a></h3>
+<p>Fine-tune animation parameters for each scheme:</p>
+<pre><code class="language-toml">[led_settings.breathing]
+cycle_duration_ms = 2000  # 2-second breathing cycle
+min_brightness = 0        # Fully off at minimum
+max_brightness = 255      # Full brightness at peak
+
+[led_settings.rainbow]
+speed = 60           # Degrees per second
+saturation = 255     # Full saturation
+brightness = 255     # Full brightness
+hue_spacing = 22.5   # Degrees between pads
+
+[led_settings.sparkle]
+spawn_rate_ms = 100  # New sparkle every 100ms
+fade_duration_ms = 200  # Sparkle fades in 200ms
+max_active = 4       # Max 4 sparkles at once
+</code></pre>
+<h3 id="hid-specific-settings-mikro-mk3"><a class="header" href="#hid-specific-settings-mikro-mk3">HID-Specific Settings (Mikro MK3)</a></h3>
+<pre><code class="language-toml">[device]
+name = "Mikro"
+led_feedback = true
+use_hid = true  # Force HID mode
+
+[led_settings.hid]
+shared_device = true  # Allow NI Controller Editor access
+vendor_id = 0x17cc    # Native Instruments
+product_id = 0x1700   # Maschine Mikro MK3
+</code></pre>
+<h3 id="midi-feedback-settings"><a class="header" href="#midi-feedback-settings">MIDI Feedback Settings</a></h3>
+<p>For standard MIDI controllers:</p>
+<pre><code class="language-toml">[device]
+name = "Launchpad Mini"
+led_feedback = true
+
+[led_settings.midi]
+note_offset = 36  # C1 (MIDI note 36) = Pad 1
+channel = 0       # MIDI channel 0-15
+on_velocity = 127 # Velocity for "LED on"
+off_velocity = 0  # Velocity for "LED off"
+</code></pre>
+<h2 id="platform-specific-notes"><a class="header" href="#platform-specific-notes">Platform-Specific Notes</a></h2>
+<h3 id="macos"><a class="header" href="#macos">macOS</a></h3>
+<p><strong>HID devices require Input Monitoring permission:</strong></p>
+<ol>
+<li>Open System Settings → Privacy &amp; Security</li>
+<li>Select "Input Monitoring"</li>
+<li>Enable permission for Terminal or your IDE</li>
+</ol>
+<p><strong>Shared device mode:</strong></p>
+<pre><code class="language-toml">[led_settings.hid]
+shared_device = true  # Works alongside NI Controller Editor
+</code></pre>
+<h3 id="linux"><a class="header" href="#linux">Linux</a></h3>
+<p><strong>HID devices may require udev rules:</strong></p>
+<pre><code class="language-bash"># Create udev rule for Mikro MK3
+sudo nano /etc/udev/rules.d/99-maschine-mikro-mk3.rules
+
+# Add this line:
+SUBSYSTEM=="usb", ATTRS{idVendor}=="17cc", ATTRS{idProduct}=="1700", MODE="0666"
+
+# Reload rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+</code></pre>
+<h3 id="windows"><a class="header" href="#windows">Windows</a></h3>
+<p><strong>HID devices work out of the box, but may require:</strong></p>
+<ul>
+<li>Native Instruments drivers installed</li>
+<li>USB device permissions (Windows 10+)</li>
+</ul>
+<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
+<h3 id="performancelive-use"><a class="header" href="#performancelive-use">Performance/Live Use</a></h3>
+<pre><code class="language-toml">[led_settings]
+scheme = "reactive"  # Immediate velocity feedback
+brightness = 255     # Full brightness for stage visibility
+</code></pre>
+<h3 id="studioproduction"><a class="header" href="#studioproduction">Studio/Production</a></h3>
+<pre><code class="language-toml">[led_settings]
+scheme = "static"    # Subtle, non-distracting
+brightness = 50      # Dim for low-light studio
+</code></pre>
+<h3 id="creativevisual"><a class="header" href="#creativevisual">Creative/Visual</a></h3>
+<pre><code class="language-toml">[led_settings]
+scheme = "rainbow"   # Eye-catching animations
+brightness = 200     # Bright but not overwhelming
+</code></pre>
+<h3 id="focused-work"><a class="header" href="#focused-work">Focused Work</a></h3>
+<pre><code class="language-toml">[led_settings]
+scheme = "off"       # No distractions
+</code></pre>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="leds-not-responding"><a class="header" href="#leds-not-responding">LEDs Not Responding</a></h3>
+<ol>
+<li>
+<p><strong>Check device connection:</strong></p>
+<pre><code class="language-bash">DEBUG=1 cargo run --release 2 --led reactive
+# Look for: "✓ Connected to Mikro MK3 LED interface"
+</code></pre>
+</li>
+<li>
+<p><strong>Verify permissions</strong> (macOS HID):</p>
+<ul>
+<li>System Settings → Privacy → Input Monitoring</li>
+</ul>
+</li>
+<li>
+<p><strong>Try MIDI fallback:</strong></p>
+<pre><code class="language-toml">[device]
+led_feedback = true
+use_hid = false  # Force MIDI mode
+</code></pre>
+</li>
+</ol>
+<h3 id="wrong-colors"><a class="header" href="#wrong-colors">Wrong Colors</a></h3>
+<ul>
+<li><strong>Issue</strong>: Colors don't match expected RGB values</li>
+<li><strong>Cause</strong>: LED manufacturing variance (±10%)</li>
+<li><strong>Solution</strong>: Normal behavior, slight color variations expected</li>
+</ul>
+<h3 id="flickering"><a class="header" href="#flickering">Flickering</a></h3>
+<ul>
+<li><strong>Issue</strong>: LEDs flicker or strobe</li>
+<li><strong>Cause</strong>: Update rate too high or USB bandwidth saturation</li>
+<li><strong>Solution</strong>: Use simpler scheme (<code>reactive</code> or <code>static</code>)</li>
+</ul>
+<h3 id="mode-colors-not-showing"><a class="header" href="#mode-colors-not-showing">Mode Colors Not Showing</a></h3>
+<ul>
+<li><strong>Issue</strong>: All pads same color regardless of mode</li>
+<li><strong>Cause</strong>: Using non-mode-aware scheme</li>
+<li><strong>Solution</strong>: Use <code>static</code> or <code>reactive</code> scheme</li>
+</ul>
+<h3 id="performance-impact"><a class="header" href="#performance-impact">Performance Impact</a></h3>
+<ul>
+<li><strong>Issue</strong>: High CPU usage</li>
+<li><strong>Cause</strong>: Complex animation scheme</li>
+<li><strong>Solution</strong>: Switch to <code>reactive</code> or <code>static</code> (&lt;1% CPU)</li>
+</ul>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<h3 id="example-1-simple-reactive-setup"><a class="header" href="#example-1-simple-reactive-setup">Example 1: Simple Reactive Setup</a></h3>
+<pre><code class="language-toml">[device]
+name = "Mikro"
+led_feedback = true
+
+[led_settings]
+scheme = "reactive"
+
+[[modes]]
+name = "Default"
+color = "blue"
+
+[[modes]]
+name = "Development"
+color = "green"
+</code></pre>
+<h3 id="example-2-advanced-multi-mode-with-transitions"><a class="header" href="#example-2-advanced-multi-mode-with-transitions">Example 2: Advanced Multi-Mode with Transitions</a></h3>
+<pre><code class="language-toml">[device]
+name = "Mikro"
+led_feedback = true
+
+[led_settings]
+scheme = "reactive"
+brightness = 255
+
+[led_settings.transitions]
+enable_effects = true
+flash_duration_ms = 150
+
+[[modes]]
+name = "Default"
+color = "blue"
+led_idle_brightness = 20
+led_active_brightness = 255
+
+[[modes]]
+name = "Development"
+color = "green"
+led_idle_brightness = 30
+led_active_brightness = 255
+
+[[modes]]
+name = "Media"
+color = "purple"
+led_idle_brightness = 15
+led_active_brightness = 200
+
+[[global_mappings]]
+description = "Next Mode with Flash"
+[global_mappings.trigger]
+type = "EncoderTurn"
+cc = 1
+direction = "Clockwise"
+[global_mappings.action]
+type = "ModeChange"
+mode = 1
+relative = true
+transition_effect = "Flash"
+</code></pre>
+<h3 id="example-3-studio-mode-with-indicators"><a class="header" href="#example-3-studio-mode-with-indicators">Example 3: Studio Mode with Indicators</a></h3>
+<pre><code class="language-toml">[device]
+name = "Mikro"
+led_feedback = true
+
+[led_settings]
+scheme = "static"
+brightness = 50
+mode_indicator_pads = [13, 14, 15, 16]
+
+[[modes]]
+name = "Recording"
+color = "red"
+led_idle_brightness = 10
+
+[[modes]]
+name = "Editing"
+color = "green"
+led_idle_brightness = 10
+
+[[modes]]
+name = "Mixing"
+color = "blue"
+led_idle_brightness = 10
+</code></pre>
+<h2 id="performance-1"><a class="header" href="#performance-1">Performance</a></h2>
+<h3 id="cpu-usage-by-scheme"><a class="header" href="#cpu-usage-by-scheme">CPU Usage by Scheme</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Scheme</th><th>CPU (Idle)</th><th>CPU (Active)</th></tr></thead><tbody>
+<tr><td>off</td><td>0%</td><td>0%</td></tr>
+<tr><td>static</td><td>&lt;1%</td><td>&lt;1%</td></tr>
+<tr><td>reactive</td><td>&lt;1%</td><td>~1%</td></tr>
+<tr><td>breathing</td><td>~1%</td><td>~1%</td></tr>
+<tr><td>rainbow</td><td>~2%</td><td>~2%</td></tr>
+<tr><td>sparkle</td><td>~3%</td><td>~3%</td></tr>
+</tbody></table>
+</div>
+<h3 id="memory"><a class="header" href="#memory">Memory</a></h3>
+<ul>
+<li><strong>Static schemes</strong>: &lt;1MB</li>
+<li><strong>Animated schemes</strong>: &lt;1MB</li>
+<li><strong>Per-pad state</strong>: ~50 bytes per pad</li>
+</ul>
+<h3 id="update-rate"><a class="header" href="#update-rate">Update Rate</a></h3>
+<ul>
+<li><strong>HID devices</strong>: 10fps (100ms per frame)</li>
+<li><strong>MIDI devices</strong>: Event-driven (no polling)</li>
+</ul>
+<h2 id="see-also-1"><a class="header" href="#see-also-1">See Also</a></h2>
+<ul>
+<li><a href="configuration/../reference/led-system.html">Reference → LED System</a> - Complete LED feature reference</li>
+<li><a href="configuration/../reference/action-types.html">Reference → Action Types</a> - ModeChange action</li>
+<li><a href="configuration/../devices/mikro-mk3.html">Device Support → Maschine Mikro MK3</a> - HID device details</li>
+<li><a href="configuration/modes.html">Configuration → Modes</a> - Mode system configuration</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="device-profiles"><a class="header" href="#device-profiles">Device Profiles</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-11"><a class="header" href="#coming-soon-11">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="configuration/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-examples"><a class="header" href="#configuration-examples">Configuration Examples</a></h1>
+<p>Real-world configuration patterns for common use cases. Each example is production-ready and can be adapted to your workflow.</p>
+<h2 id="table-of-contents"><a class="header" href="#table-of-contents">Table of Contents</a></h2>
+<ol>
+<li><a href="configuration/examples.html#basic-workflows">Basic Workflows</a></li>
+<li><a href="configuration/examples.html#developer-productivity">Developer Productivity</a></li>
+<li><a href="configuration/examples.html#content-creation">Content Creation</a></li>
+<li><a href="configuration/examples.html#repetition--automation">Repetition &amp; Automation</a></li>
+<li><a href="configuration/examples.html#advanced-patterns">Advanced Patterns</a></li>
+</ol>
+<h2 id="basic-workflows"><a class="header" href="#basic-workflows">Basic Workflows</a></h2>
+<h3 id="application-launcher"><a class="header" href="#application-launcher">Application Launcher</a></h3>
+<p>Quick launch frequently used applications:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Launcher"
+color = "blue"
+
+[[modes.mappings]]
+description = "Open Terminal"
+[modes.mappings.trigger]
+type = "Note"
+note = 60
+[modes.mappings.action]
+type = "Launch"
+app = "Terminal"
+
+[[modes.mappings]]
+description = "Open VS Code"
+[modes.mappings.trigger]
+type = "Note"
+note = 61
+[modes.mappings.action]
+type = "Launch"
+app = "Visual Studio Code"
+
+[[modes.mappings]]
+description = "Open Browser"
+[modes.mappings.trigger]
+type = "Note"
+note = 62
+[modes.mappings.action]
+type = "Launch"
+app = "Google Chrome"
+</code></pre>
+<h3 id="text-snippets"><a class="header" href="#text-snippets">Text Snippets</a></h3>
+<p>Common text expansions for email and documentation:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Email signature"
+[modes.mappings.trigger]
+type = "Note"
+note = 70
+[modes.mappings.action]
+type = "Text"
+text = """
+Best regards,
+Chris Joseph
+Software Engineer
+chris@amiable.dev
+"""
+
+[[modes.mappings]]
+description = "Code review template"
+[modes.mappings.trigger]
+type = "Note"
+note = 71
+[modes.mappings.action]
+type = "Text"
+text = """
+## Review Checklist
+- [ ] Code follows style guide
+- [ ] Tests are passing
+- [ ] Documentation updated
+- [ ] No obvious security issues
+"""
+</code></pre>
+<h2 id="developer-productivity"><a class="header" href="#developer-productivity">Developer Productivity</a></h2>
+<h3 id="git-workflow"><a class="header" href="#git-workflow">Git Workflow</a></h3>
+<p>Common git operations on a single pad:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Git"
+color = "green"
+
+# Soft press: git status
+[[modes.mappings]]
+description = "Git status (soft)"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 60
+ranges = [{ min = 0, max = 40 }]
+[modes.mappings.action]
+type = "Shell"
+command = "git status"
+
+# Medium press: git add &amp; commit
+[[modes.mappings]]
+description = "Quick commit (medium)"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 60
+ranges = [{ min = 41, max = 80 }]
+[modes.mappings.action]
+type = "Sequence"
+actions = [
+    { type = "Shell", command = "git add -A" },
+    { type = "Delay", ms = 100 },
+    { type = "Shell", command = "git commit -m 'quick save'" }
+]
+
+# Hard press: commit and push
+[[modes.mappings]]
+description = "Commit and push (hard)"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 60
+ranges = [{ min = 81, max = 127 }]
+[modes.mappings.action]
+type = "Sequence"
+actions = [
+    { type = "Shell", command = "git add -A" },
+    { type = "Delay", ms = 100 },
+    { type = "Shell", command = "git commit -m 'quick save'" },
+    { type = "Delay", ms = 100 },
+    { type = "Shell", command = "git push" }
+]
+</code></pre>
+<h3 id="code-navigation"><a class="header" href="#code-navigation">Code Navigation</a></h3>
+<p>Navigate code with velocity-based jumps:</p>
+<pre><code class="language-toml"># Jump lines based on velocity
+[[modes.mappings]]
+description = "Jump down (velocity-based)"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 65
+ranges = [
+    { min = 0, max = 40, action = { type = "Keystroke", keys = "down" } },
+    { min = 41, max = 80, action = { type = "Repeat", count = 5, action = { type = "Keystroke", keys = "down" } } },
+    { min = 81, max = 127, action = { type = "Repeat", count = 10, action = { type = "Keystroke", keys = "down" } } }
+]
+
+# Navigate between functions
+[[modes.mappings]]
+description = "Next function"
+[modes.mappings.trigger]
+type = "Note"
+note = 66
+[modes.mappings.action]
+type = "Keystroke"
+keys = "down"
+modifiers = ["cmd", "shift"]
+</code></pre>
+<h2 id="content-creation"><a class="header" href="#content-creation">Content Creation</a></h2>
+<h3 id="video-editing"><a class="header" href="#video-editing">Video Editing</a></h3>
+<p>Timeline navigation and editing:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Video"
+color = "purple"
+
+# Play/Pause
+[[modes.mappings]]
+description = "Play/Pause"
+[modes.mappings.trigger]
+type = "Note"
+note = 60
+[modes.mappings.action]
+type = "Keystroke"
+keys = "space"
+
+# Frame-by-frame navigation
+[[modes.mappings]]
+description = "Previous frame"
+[modes.mappings.trigger]
+type = "Note"
+note = 61
+[modes.mappings.action]
+type = "Keystroke"
+keys = "left"
+
+[[modes.mappings]]
+description = "Next frame"
+[modes.mappings.trigger]
+type = "Note"
+note = 62
+[modes.mappings.action]
+type = "Keystroke"
+keys = "right"
+
+# Jump 10 frames
+[[modes.mappings]]
+description = "Jump forward 10 frames"
+[modes.mappings.trigger]
+type = "Note"
+note = 63
+[modes.mappings.action]
+type = "Repeat"
+count = 10
+action = { type = "Keystroke", keys = "right" }
+</code></pre>
+<h3 id="document-formatting"><a class="header" href="#document-formatting">Document Formatting</a></h3>
+<p>Batch formatting operations:</p>
+<pre><code class="language-toml"># Apply heading and next line
+[[modes.mappings]]
+description = "Apply heading 2"
+[modes.mappings.trigger]
+type = "Note"
+note = 70
+[modes.mappings.action]
+type = "Sequence"
+actions = [
+    { type = "Keystroke", keys = "home" },  # Start of line
+    { type = "Text", text = "## " },
+    { type = "Keystroke", keys = "end" },  # End of line
+    { type = "Keystroke", keys = "return" },  # New line
+]
+</code></pre>
+<h2 id="repetition--automation"><a class="header" href="#repetition--automation">Repetition &amp; Automation</a></h2>
+<h3 id="simple-repeats"><a class="header" href="#simple-repeats">Simple Repeats</a></h3>
+<p>Scroll through long lists or documents:</p>
+<pre><code class="language-toml"># Scroll down 10 lines
+[[modes.mappings]]
+description = "Scroll down 10 lines"
+[modes.mappings.trigger]
+type = "Note"
+note = 80
+[modes.mappings.action]
+type = "Repeat"
+count = 10
+action = { type = "Keystroke", keys = "down" }
+
+# Slow scroll (with delay)
+[[modes.mappings]]
+description = "Slow scroll down"
+[modes.mappings.trigger]
+type = "Note"
+note = 81
+[modes.mappings.action]
+type = "Repeat"
+count = 5
+delay_between_ms = 200
+action = { type = "Keystroke", keys = "down" }
+
+# Page down 5 times
+[[modes.mappings]]
+description = "Jump 5 pages down"
+[modes.mappings.trigger]
+type = "Note"
+note = 82
+[modes.mappings.action]
+type = "Repeat"
+count = 5
+delay_between_ms = 300
+action = { type = "Keystroke", keys = "pagedown" }
+</code></pre>
+<h3 id="batch-file-processing"><a class="header" href="#batch-file-processing">Batch File Processing</a></h3>
+<p>Process multiple files with a repeated sequence:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Batch process 3 files"
+[modes.mappings.trigger]
+type = "LongPress"
+note = 85
+hold_duration_ms = 1500
+[modes.mappings.action]
+type = "Repeat"
+count = 3
+delay_between_ms = 1000
+action = {
+    type = "Sequence",
+    actions = [
+        { type = "Keystroke", keys = "return" },  # Open file
+        { type = "Delay", ms = 800 },  # Wait for file to load
+        { type = "Keystroke", keys = "e", modifiers = ["cmd"] },  # Export
+        { type = "Delay", ms = 500 },
+        { type = "Keystroke", keys = "return" },  # Confirm export
+        { type = "Delay", ms = 1000 },  # Wait for export
+        { type = "Keystroke", keys = "w", modifiers = ["cmd"] },  # Close file
+        { type = "Delay", ms = 200 },
+        { type = "Keystroke", keys = "down" }  # Next file
+    ]
+}
+</code></pre>
+<h3 id="velocity-based-repeats"><a class="header" href="#velocity-based-repeats">Velocity-Based Repeats</a></h3>
+<p>Different repeat counts based on pad pressure:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Variable repeat based on velocity"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 90
+ranges = [
+    # Soft: repeat 3 times
+    { min = 0, max = 40, action = {
+        type = "Repeat",
+        count = 3,
+        action = { type = "Keystroke", keys = "down" }
+    }},
+    # Medium: repeat 5 times
+    { min = 41, max = 80, action = {
+        type = "Repeat",
+        count = 5,
+        delay_between_ms = 100,
+        action = { type = "Keystroke", keys = "down" }
+    }},
+    # Hard: repeat 10 times
+    { min = 81, max = 127, action = {
+        type = "Repeat",
+        count = 10,
+        delay_between_ms = 50,
+        action = { type = "Keystroke", keys = "down" }
+    }}
+]
+</code></pre>
+<h3 id="nested-repeats"><a class="header" href="#nested-repeats">Nested Repeats</a></h3>
+<p>Multiply effect for grid or matrix operations:</p>
+<pre><code class="language-toml"># Navigate a 3x5 grid (15 total moves)
+[[modes.mappings]]
+description = "Navigate 3x5 grid"
+[modes.mappings.trigger]
+type = "DoubleTap"
+note = 95
+max_interval_ms = 300
+[modes.mappings.action]
+type = "Repeat"
+count = 3  # 3 rows
+delay_between_ms = 500
+action = {
+    type = "Sequence",
+    actions = [
+        # Move right 5 times
+        { type = "Repeat", count = 5, delay_between_ms = 100, action = { type = "Keystroke", keys = "right" } },
+        # Move down 1
+        { type = "Delay", ms = 200 },
+        { type = "Keystroke", keys = "down" },
+        # Return to start of row
+        { type = "Repeat", count = 5, action = { type = "Keystroke", keys = "left" } }
+    ]
+}
+</code></pre>
+<h3 id="retry-logic"><a class="header" href="#retry-logic">Retry Logic</a></h3>
+<p>Attempt operations with error tolerance:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Launch Xcode (retry 3 times)"
+[modes.mappings.trigger]
+type = "Note"
+note = 100
+[modes.mappings.action]
+type = "Repeat"
+count = 3
+delay_between_ms = 2000
+stop_on_error = false  # Continue even if already running
+action = { type = "Launch", app = "Xcode" }
+
+[[modes.mappings]]
+description = "Network test (stop on first failure)"
+[modes.mappings.trigger]
+type = "Note"
+note = 101
+[modes.mappings.action]
+type = "Repeat"
+count = 5
+delay_between_ms = 1000
+stop_on_error = true  # Stop if ping fails
+action = { type = "Shell", command = "ping -c 1 8.8.8.8" }
+</code></pre>
+<h2 id="advanced-patterns"><a class="header" href="#advanced-patterns">Advanced Patterns</a></h2>
+<h3 id="spotlight-launcher"><a class="header" href="#spotlight-launcher">Spotlight Launcher</a></h3>
+<p>Use Spotlight for precise app launching:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Spotlight launcher for Terminal"
+[modes.mappings.trigger]
+type = "Note"
+note = 110
+[modes.mappings.action]
+type = "Sequence"
+actions = [
+    { type = "Keystroke", keys = "space", modifiers = ["cmd"] },  # Open Spotlight
+    { type = "Delay", ms = 200 },  # Wait for Spotlight
+    { type = "Text", text = "Terminal" },
+    { type = "Delay", ms = 100 },
+    { type = "Keystroke", keys = "return" }
+]
+</code></pre>
+<h3 id="form-automation"><a class="header" href="#form-automation">Form Automation</a></h3>
+<p>Fill complex forms with timing:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Fill registration form"
+[modes.mappings.trigger]
+type = "LongPress"
+note = 115
+hold_duration_ms = 2000
+[modes.mappings.action]
+type = "Sequence"
+actions = [
+    # First name
+    { type = "Text", text = "Chris" },
+    { type = "Delay", ms = 100 },
+    { type = "Keystroke", keys = "tab" },
+    { type = "Delay", ms = 100 },
+
+    # Last name
+    { type = "Text", text = "Joseph" },
+    { type = "Delay", ms = 100 },
+    { type = "Keystroke", keys = "tab" },
+    { type = "Delay", ms = 100 },
+
+    # Email
+    { type = "Text", text = "chris@amiable.dev" },
+    { type = "Delay", ms = 100 },
+    { type = "Keystroke", keys = "tab" },
+    { type = "Delay", ms = 100 },
+
+    # Phone
+    { type = "Text", text = "+1-555-123-4567" },
+    { type = "Delay", ms = 200 },
+
+    # Submit
+    { type = "Keystroke", keys = "return" }
+]
+</code></pre>
+<h3 id="multi-click-automation"><a class="header" href="#multi-click-automation">Multi-Click Automation</a></h3>
+<p>Repeat mouse clicks at intervals:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Click button 5 times"
+[modes.mappings.trigger]
+type = "DoubleTap"
+note = 120
+max_interval_ms = 300
+[modes.mappings.action]
+type = "Repeat"
+count = 5
+delay_between_ms = 500
+action = { type = "MouseClick", button = "Left" }
+
+# Click at specific location repeatedly
+[[modes.mappings]]
+description = "Click refresh button"
+[modes.mappings.trigger]
+type = "Note"
+note = 121
+[modes.mappings.action]
+type = "Repeat"
+count = 3
+delay_between_ms = 2000
+action = { type = "MouseClick", button = "Left", x = 1200, y = 100 }
+</code></pre>
+<h3 id="macro-pad-layout"><a class="header" href="#macro-pad-layout">Macro Pad Layout</a></h3>
+<p>Complete 16-pad layout for development:</p>
+<pre><code class="language-toml">[device]
+name = "Mikro"
+auto_connect = true
+
+[[modes]]
+name = "Development"
+color = "green"
+
+# Row 1: Git operations
+[[modes.mappings]]
+description = "Git status"
+[modes.mappings.trigger]
+type = "Note"
+note = 60
+[modes.mappings.action]
+type = "Shell"
+command = "git status"
+
+[[modes.mappings]]
+description = "Git diff"
+[modes.mappings.trigger]
+type = "Note"
+note = 61
+[modes.mappings.action]
+type = "Shell"
+command = "git diff"
+
+[[modes.mappings]]
+description = "Quick commit"
+[modes.mappings.trigger]
+type = "Note"
+note = 62
+[modes.mappings.action]
+type = "Sequence"
+actions = [
+    { type = "Shell", command = "git add -A" },
+    { type = "Delay", ms = 100 },
+    { type = "Shell", command = "git commit -m 'quick save'" }
+]
+
+[[modes.mappings]]
+description = "Git push"
+[modes.mappings.trigger]
+type = "Note"
+note = 63
+[modes.mappings.action]
+type = "Shell"
+command = "git push"
+
+# Row 2: Build &amp; test
+[[modes.mappings]]
+description = "Build project"
+[modes.mappings.trigger]
+type = "Note"
+note = 64
+[modes.mappings.action]
+type = "Shell"
+command = "cargo build"
+
+[[modes.mappings]]
+description = "Run tests"
+[modes.mappings.trigger]
+type = "Note"
+note = 65
+[modes.mappings.action]
+type = "Shell"
+command = "cargo test"
+
+[[modes.mappings]]
+description = "Run app"
+[modes.mappings.trigger]
+type = "Note"
+note = 66
+[modes.mappings.action]
+type = "Shell"
+command = "cargo run"
+
+[[modes.mappings]]
+description = "Format code"
+[modes.mappings.trigger]
+type = "Note"
+note = 67
+[modes.mappings.action]
+type = "Shell"
+command = "cargo fmt"
+
+# Row 3: Navigation
+[[modes.mappings]]
+description = "Jump down (velocity)"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 68
+ranges = [
+    { min = 0, max = 40, action = { type = "Keystroke", keys = "down" } },
+    { min = 41, max = 80, action = { type = "Repeat", count = 5, action = { type = "Keystroke", keys = "down" } } },
+    { min = 81, max = 127, action = { type = "Repeat", count = 10, action = { type = "Keystroke", keys = "down" } } }
+]
+
+[[modes.mappings]]
+description = "Jump up (velocity)"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 69
+ranges = [
+    { min = 0, max = 40, action = { type = "Keystroke", keys = "up" } },
+    { min = 41, max = 80, action = { type = "Repeat", count = 5, action = { type = "Keystroke", keys = "up" } } },
+    { min = 81, max = 127, action = { type = "Repeat", count = 10, action = { type = "Keystroke", keys = "up" } } }
+]
+
+# Row 4: Utilities
+[[modes.mappings]]
+description = "Open Terminal"
+[modes.mappings.trigger]
+type = "Note"
+note = 72
+[modes.mappings.action]
+type = "Launch"
+app = "Terminal"
+
+[[modes.mappings]]
+description = "Open VS Code"
+[modes.mappings.trigger]
+type = "Note"
+note = 73
+[modes.mappings.action]
+type = "Launch"
+app = "Visual Studio Code"
+
+[[modes.mappings]]
+description = "Open Browser"
+[modes.mappings.trigger]
+type = "Note"
+note = 74
+[modes.mappings.action]
+type = "Launch"
+app = "Google Chrome"
+</code></pre>
+<h3 id="context-aware-actions-conditional"><a class="header" href="#context-aware-actions-conditional">Context-Aware Actions (Conditional)</a></h3>
+<p>Execute different actions based on runtime conditions like active app, time of day, or system state.</p>
+<h4 id="app-based-conditional"><a class="header" href="#app-based-conditional">App-Based Conditional</a></h4>
+<p>Different behavior when specific apps are running:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Context-aware play/pause"
+[modes.mappings.trigger]
+type = "Note"
+note = 130
+[modes.mappings.action]
+type = "Conditional"
+conditions = [
+    { type = "AppRunning", bundle_id = "com.apple.Logic" }
+]
+then_action = { type = "Keystroke", keys = "space" }  # Logic: Space to play/pause
+else_action = { type = "Keystroke", keys = "space", modifiers = ["cmd"] }  # System: Media play/pause
+</code></pre>
+<h4 id="time-based-automation"><a class="header" href="#time-based-automation">Time-Based Automation</a></h4>
+<p>Launch different apps based on work hours:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Time-aware launcher"
+[modes.mappings.trigger]
+type = "Note"
+note = 131
+[modes.mappings.action]
+type = "Conditional"
+conditions = [
+    { type = "TimeRange", start = "09:00", end = "17:00" },
+    { type = "DayOfWeek", days = ["Mon", "Tue", "Wed", "Thu", "Fri"] }
+]
+operator = "And"
+then_action = { type = "Launch", app = "Slack" }  # Work app during work hours
+else_action = { type = "Launch", app = "Discord" }  # Personal app otherwise
+</code></pre>
+<h4 id="multiple-conditions-or-logic"><a class="header" href="#multiple-conditions-or-logic">Multiple Conditions (OR Logic)</a></h4>
+<p>Launch file if any IDE is running:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Open project in active IDE"
+[modes.mappings.trigger]
+type = "Note"
+note = 132
+[modes.mappings.action]
+type = "Conditional"
+conditions = [
+    { type = "AppRunning", bundle_id = "com.microsoft.VSCode" },
+    { type = "AppRunning", bundle_id = "com.jetbrains.IntelliJ" },
+    { type = "AppRunning", bundle_id = "com.sublimetext.4" }
+]
+operator = "Or"  # Any one IDE is enough
+then_action = { type = "Keystroke", keys = "o", modifiers = ["cmd"] }  # Cmd+O to open file
+else_action = { type = "Launch", app = "Visual Studio Code" }  # Launch IDE if none running
+</code></pre>
+<h4 id="modifier-based-conditional"><a class="header" href="#modifier-based-conditional">Modifier-Based Conditional</a></h4>
+<p>Hold Shift for alternative behavior:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Delete or force-delete"
+[modes.mappings.trigger]
+type = "Note"
+note = 133
+[modes.mappings.action]
+type = "Conditional"
+conditions = [
+    { type = "ModifierPressed", modifier = "Shift" }
+]
+then_action = { type = "Keystroke", keys = "delete", modifiers = ["cmd", "option"] }  # Force delete
+else_action = { type = "Keystroke", keys = "delete", modifiers = ["cmd"] }  # Normal delete
+</code></pre>
+<h4 id="nested-conditionals"><a class="header" href="#nested-conditionals">Nested Conditionals</a></h4>
+<p>Complex decision trees with multiple levels:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Smart launcher with time and app detection"
+[modes.mappings.trigger]
+type = "LongPress"
+note = 135
+hold_duration_ms = 1000
+[modes.mappings.action]
+type = "Conditional"
+conditions = [
+    { type = "TimeRange", start = "09:00", end = "17:00" }
+]
+then_action = {
+    type = "Conditional",
+    conditions = [
+        { type = "AppRunning", bundle_id = "com.apple.Logic" }
+    ],
+    then_action = { type = "Keystroke", keys = "n", modifiers = ["cmd"] },  # New Logic project
+    else_action = { type = "Launch", app = "Logic Pro" }  # Launch Logic
+}
+else_action = {
+    type = "Conditional",
+    conditions = [
+        { type = "DayOfWeek", days = ["Sat", "Sun"] }
+    ],
+    then_action = { type = "Launch", app = "Spotify" },  # Weekend music
+    else_action = { type = "Launch", app = "Safari" }  # Evening browsing
+}
+</code></pre>
+<h4 id="launch-only-if-not-running"><a class="header" href="#launch-only-if-not-running">Launch Only if Not Running</a></h4>
+<p>Avoid duplicate app launches:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Launch Spotify or play/pause if running"
+[modes.mappings.trigger]
+type = "Note"
+note = 136
+[modes.mappings.action]
+type = "Conditional"
+conditions = [
+    { type = "AppNotRunning", bundle_id = "com.spotify.client" }
+]
+then_action = { type = "Launch", app = "Spotify" }
+else_action = { type = "Keystroke", keys = "space" }  # Already running, just play/pause
+</code></pre>
+<h4 id="mode-aware-shortcuts"><a class="header" href="#mode-aware-shortcuts">Mode-Aware Shortcuts</a></h4>
+<p>Different actions per mode using global mappings:</p>
+<pre><code class="language-toml">[[global_mappings]]
+description = "Mode-aware F5 key"
+[global_mappings.trigger]
+type = "Note"
+note = 137
+[global_mappings.action]
+type = "Conditional"
+conditions = [
+    { type = "ModeActive", mode = 1 }  # Development mode
+]
+then_action = { type = "Shell", command = "npm test" }  # Run tests in dev mode
+else_action = { type = "Keystroke", keys = "f5" }  # Refresh in other modes
+</code></pre>
+<h4 id="weekend-vs-weekday-behavior"><a class="header" href="#weekend-vs-weekday-behavior">Weekend vs Weekday Behavior</a></h4>
+<p>Different workflows based on day of week:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Morning routine launcher"
+[modes.mappings.trigger]
+type = "Note"
+note = 138
+[modes.mappings.action]
+type = "Conditional"
+conditions = [
+    { type = "DayOfWeek", days = ["Sat", "Sun"] },
+    { type = "TimeRange", start = "08:00", end = "12:00" }
+]
+operator = "And"
+then_action = {
+    type = "Sequence",
+    actions = [
+        { type = "Launch", app = "Apple Music" },
+        { type = "Delay", ms = 1000 },
+        { type = "Launch", app = "Mail" }
+    ]
+}
+else_action = {
+    type = "Sequence",
+    actions = [
+        { type = "Launch", app = "Slack" },
+        { type = "Delay", ms = 1000 },
+        { type = "Launch", app = "Calendar" },
+        { type = "Delay", ms = 500 },
+        { type = "Launch", app = "Visual Studio Code" }
+    ]
+}
+</code></pre>
+<h2 id="performance-tips"><a class="header" href="#performance-tips">Performance Tips</a></h2>
+<h3 id="timing-best-practices"><a class="header" href="#timing-best-practices">Timing Best Practices</a></h3>
+<ol>
+<li><strong>Application Launch</strong>: Wait 1000-2000ms after launching apps</li>
+<li><strong>UI Navigation</strong>: Use 100-200ms between UI interactions</li>
+<li><strong>Form Fills</strong>: 100ms delay between field navigation</li>
+<li><strong>File Operations</strong>: 500-1000ms for save/load operations</li>
+<li><strong>Network Operations</strong>: 2000ms+ for remote operations</li>
+</ol>
+<h3 id="repeat-guidelines"><a class="header" href="#repeat-guidelines">Repeat Guidelines</a></h3>
+<ol>
+<li><strong>Start Small</strong>: Begin with count=1, increase gradually</li>
+<li><strong>Add Delays</strong>: Use <code>delay_between_ms</code> for counts &gt;5</li>
+<li><strong>Test Incrementally</strong>: Verify each step before combining</li>
+<li><strong>Consider UX</strong>: Counts &gt;100 may appear as hang</li>
+<li><strong>Monitor Performance</strong>: Watch CPU/memory with large counts</li>
+</ol>
+<h3 id="debugging"><a class="header" href="#debugging">Debugging</a></h3>
+<p>Enable debug mode to see action execution:</p>
+<pre><code class="language-bash">DEBUG=1 cargo run --release 2
+</code></pre>
+<p>Common issues:</p>
+<ul>
+<li><strong>Timing too tight</strong>: Increase <code>delay_between_ms</code></li>
+<li><strong>Actions not executing</strong>: Check application focus</li>
+<li><strong>Repeats stopping early</strong>: Check <code>stop_on_error</code> setting</li>
+<li><strong>Slow performance</strong>: Reduce repeat counts or add delays</li>
+</ul>
+<h2 id="see-also-2"><a class="header" href="#see-also-2">See Also</a></h2>
+<ul>
+<li><a href="configuration/actions.html">Actions Reference</a> - Complete action type documentation</li>
+<li><a href="configuration/../reference/action-types.html">Action Types Reference</a> - Technical specifications</li>
+<li><a href="configuration/../reference/trigger-types.html">Trigger Types</a> - Trigger configuration</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="trigger-types"><a class="header" href="#trigger-types">Trigger Types</a></h1>
+<p>Triggers define when an action should execute. MIDIMon supports a wide range of trigger types from simple note presses to complex patterns like chords and long presses.</p>
+<h2 id="core-triggers"><a class="header" href="#core-triggers">Core Triggers</a></h2>
+<h3 id="note"><a class="header" href="#note">Note</a></h3>
+<p>Basic MIDI note on/off detection.</p>
+<pre><code class="language-toml">[trigger]
+type = "Note"
+note = 60  # Middle C
+velocity_min = 1  # Optional: minimum velocity (default 1)
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>note</code> (integer): MIDI note number (0-127)</li>
+<li><code>velocity_min</code> (integer, optional): Minimum velocity to trigger (default 1)</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Simple pad presses</li>
+<li>Piano key detection</li>
+<li>Basic button mapping</li>
+</ul>
+<h3 id="velocityrange"><a class="header" href="#velocityrange">VelocityRange</a></h3>
+<p>Different actions based on how hard you press.</p>
+<pre><code class="language-toml">[trigger]
+type = "VelocityRange"
+note = 60
+min_velocity = 80
+max_velocity = 127
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>note</code> (integer): MIDI note number</li>
+<li><code>min_velocity</code> (integer): Minimum velocity (0-127)</li>
+<li><code>max_velocity</code> (integer): Maximum velocity (0-127)</li>
+</ul>
+<p><strong>Velocity Levels:</strong></p>
+<ul>
+<li><strong>Soft</strong>: 0-40</li>
+<li><strong>Medium</strong>: 41-80</li>
+<li><strong>Hard</strong>: 81-127</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Soft press for play, hard press for stop</li>
+<li>Different shortcuts based on press intensity</li>
+<li>Expressive control mappings</li>
+</ul>
+<h3 id="longpress"><a class="header" href="#longpress">LongPress</a></h3>
+<p>Detect when a pad is held for a duration.</p>
+<pre><code class="language-toml">[trigger]
+type = "LongPress"
+note = 60
+min_duration_ms = 1000  # Hold for 1 second
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>note</code> (integer): MIDI note number</li>
+<li><code>min_duration_ms</code> (integer): Minimum hold duration in milliseconds (default 2000)</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Hold for 2s to quit app (prevent accidental quits)</li>
+<li>Short tap for screenshot, long press for screen recording</li>
+<li>Confirmation for destructive actions</li>
+</ul>
+<h3 id="doubletap"><a class="header" href="#doubletap">DoubleTap</a></h3>
+<p>Detect quick double presses.</p>
+<pre><code class="language-toml">[trigger]
+type = "DoubleTap"
+note = 60
+max_interval_ms = 300  # Optional: max time between taps
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>note</code> (integer): MIDI note number</li>
+<li><code>max_interval_ms</code> (integer, optional): Maximum interval between taps (default 300ms)</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Double-tap to toggle fullscreen</li>
+<li>Quick double-tap for emergency actions</li>
+<li>Gesture-based shortcuts</li>
+</ul>
+<h3 id="notechord"><a class="header" href="#notechord">NoteChord</a></h3>
+<p>Multiple notes pressed simultaneously.</p>
+<pre><code class="language-toml">[trigger]
+type = "NoteChord"
+notes = [60, 64, 67]  # C major chord
+max_interval_ms = 100  # Optional
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>notes</code> (array): List of MIDI note numbers</li>
+<li><code>max_interval_ms</code> (integer, optional): Maximum time between first and last note (default 100ms)</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Emergency exit (press 3 corners simultaneously)</li>
+<li>Complex shortcuts requiring multiple pads</li>
+<li>Safety mechanisms for important actions</li>
+</ul>
+<h3 id="cc-control-change"><a class="header" href="#cc-control-change">CC (Control Change)</a></h3>
+<p>Continuous controller messages.</p>
+<pre><code class="language-toml">[trigger]
+type = "CC"
+cc = 1  # Modulation wheel
+value_min = 64  # Optional: trigger only when value &gt;= 64
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>cc</code> (integer): Control change number (0-127)</li>
+<li><code>value_min</code> (integer, optional): Minimum value to trigger</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Button presses sending CC messages</li>
+<li>Threshold-based triggers</li>
+<li>Binary on/off switches</li>
+</ul>
+<h3 id="encoderturn"><a class="header" href="#encoderturn">EncoderTurn</a></h3>
+<p>Encoder rotation with direction detection.</p>
+<pre><code class="language-toml">[trigger]
+type = "EncoderTurn"
+cc = 2
+direction = "Clockwise"  # or "CounterClockwise"
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>cc</code> (integer): Control change number</li>
+<li><code>direction</code> (string): "Clockwise" or "CounterClockwise"</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Volume control with encoder</li>
+<li>Mode switching (clockwise = next, counter-clockwise = previous)</li>
+<li>Parameter adjustment</li>
+</ul>
+<h2 id="advanced-triggers"><a class="header" href="#advanced-triggers">Advanced Triggers</a></h2>
+<h3 id="aftertouch"><a class="header" href="#aftertouch">Aftertouch</a></h3>
+<p>Channel pressure sensitivity (pressure after initial press).</p>
+<pre><code class="language-toml">[trigger]
+type = "Aftertouch"
+note = 1  # Optional: specific pad (omit for channel aftertouch)
+min_pressure = 64  # Optional: minimum pressure
+max_pressure = 127  # Optional: maximum pressure
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>note</code> (integer, optional): Specific pad for polyphonic aftertouch (omit for channel aftertouch)</li>
+<li><code>min_pressure</code> (integer, optional): Minimum pressure value (0-127)</li>
+<li><code>max_pressure</code> (integer, optional): Maximum pressure value (0-127)</li>
+</ul>
+<p><strong>Aftertouch Types:</strong></p>
+<ul>
+<li><strong>Polyphonic (0xA0)</strong>: Per-pad pressure (Maschine Mikro MK3, Launchpad Pro)</li>
+<li><strong>Channel (0xD0)</strong>: Global pressure for entire device (most MIDI keyboards)</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Apply pressure to modulate effects</li>
+<li>Pressure-sensitive volume control</li>
+<li>Expression control without additional hardware</li>
+</ul>
+<p><strong>Device Compatibility:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Device</th><th>Support</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td>Maschine Mikro MK3</td><td>✅</td><td>Polyphonic</td><td>Excellent sensitivity</td></tr>
+<tr><td>Akai MPD Series</td><td>✅</td><td>Polyphonic</td><td>Requires firmware 1.5+</td></tr>
+<tr><td>Novation Launchpad Pro</td><td>✅</td><td>Polyphonic</td><td>Excellent sensitivity</td></tr>
+<tr><td>Launchpad Mini</td><td>❌</td><td>None</td><td>No aftertouch</td></tr>
+<tr><td>Generic MIDI Keyboard</td><td>⚠️</td><td>Channel</td><td>Global only</td></tr>
+</tbody></table>
+</div>
+<p><strong>Configuration Examples:</strong></p>
+<pre><code class="language-toml"># Basic aftertouch trigger
+[[modes.mappings]]
+description = "Effect intensity via pressure"
+[modes.mappings.trigger]
+type = "Aftertouch"
+note = 1
+min_pressure = 64
+[modes.mappings.action]
+type = "Shell"
+command = "osascript -e 'set volume 50'"
+
+# Pressure ranges for different actions
+[[modes.mappings]]
+description = "Soft pressure"
+[modes.mappings.trigger]
+type = "Aftertouch"
+note = 2
+min_pressure = 1
+max_pressure = 64
+[modes.mappings.action]
+type = "Keystroke"
+keys = "1"
+
+[[modes.mappings]]
+description = "Hard pressure"
+[modes.mappings.trigger]
+type = "Aftertouch"
+note = 2
+min_pressure = 65
+max_pressure = 127
+[modes.mappings.action]
+type = "Keystroke"
+keys = "2"
+</code></pre>
+<p><strong>Throttling Options:</strong></p>
+<p>Aftertouch generates continuous messages. Use throttling to control message rate:</p>
+<pre><code class="language-toml">[advanced_settings.aftertouch]
+throttle_ms = 50        # Max 20 messages/sec
+delta_threshold = 5     # Only trigger on ±5 pressure change
+hysteresis_gap = 10     # Prevent zone oscillation
+</code></pre>
+<h3 id="pitchbend"><a class="header" href="#pitchbend">PitchBend</a></h3>
+<p>Touch strip or pitch wheel control (14-bit precision).</p>
+<pre><code class="language-toml">[trigger]
+type = "PitchBend"
+min_value = 8192   # Center
+max_value = 16383  # Max up
+center_deadzone = 100  # Optional: ignore small movements near center
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>min_value</code> (integer): Minimum bend value (0-16383)</li>
+<li><code>max_value</code> (integer): Maximum bend value (0-16383)</li>
+<li><code>center_deadzone</code> (integer, optional): Deadzone size around center (8192)</li>
+</ul>
+<p><strong>Value Range:</strong></p>
+<ul>
+<li><strong>Full Range</strong>: 0-16383 (14-bit resolution)</li>
+<li><strong>Center</strong>: 8192</li>
+<li><strong>Down</strong>: 0-8191</li>
+<li><strong>Up</strong>: 8193-16383</li>
+<li><strong>Normalized</strong>: -1.0 to +1.0</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Touch strip for volume control</li>
+<li>Timeline scrubbing in DAWs</li>
+<li>Smooth parameter sweeps</li>
+<li>Multi-zone selection (divide strip into regions)</li>
+</ul>
+<p><strong>Configuration Examples:</strong></p>
+<pre><code class="language-toml"># Volume control with touch strip
+[[global_mappings]]
+description = "Volume up via touch strip"
+[global_mappings.trigger]
+type = "PitchBend"
+min_value = 8192  # Center
+max_value = 16383  # Max up
+center_deadzone = 100
+[global_mappings.action]
+type = "VolumeControl"
+operation = "Up"
+
+# Multi-zone mapping (divide strip into 5 zones)
+[[modes.mappings]]
+description = "Zone 1: Far Left"
+[modes.mappings.trigger]
+type = "PitchBend"
+min_value = 0
+max_value = 3276  # 20% of range
+[modes.mappings.action]
+type = "Keystroke"
+keys = "1"
+
+[[modes.mappings]]
+description = "Zone 2: Left"
+[modes.mappings.trigger]
+type = "PitchBend"
+min_value = 3277
+max_value = 6553  # 40% of range
+[modes.mappings.action]
+type = "Keystroke"
+keys = "2"
+
+# Center detection
+[[modes.mappings]]
+description = "Reset on center touch"
+[modes.mappings.trigger]
+type = "PitchBend"
+min_value = 8092  # Center - 100
+max_value = 8292  # Center + 100
+[modes.mappings.action]
+type = "Keystroke"
+keys = "r"
+modifiers = ["cmd"]
+</code></pre>
+<p><strong>Throttling Options:</strong></p>
+<p>Pitch bend generates 100-1000+ messages/sec. Use throttling:</p>
+<pre><code class="language-toml">[advanced_settings.pitch_bend]
+throttle_ms = 50         # Max 20 messages/sec
+delta_threshold = 100    # Trigger only on ±100 change
+use_zones = true         # Zone-based triggering
+num_zones = 16           # 16 discrete zones
+</code></pre>
+<p><strong>Spring-Back Behavior:</strong></p>
+<p>Many controllers (Maschine Mikro MK3, MIDI keyboards) auto-return to center:</p>
+<ul>
+<li>Returns to 8192 when released</li>
+<li>Not suitable for persistent state/toggles</li>
+<li>Use for momentary effects only</li>
+<li>Spring-back generates message flood on release</li>
+</ul>
+<p><strong>Platform Notes:</strong></p>
+<ul>
+<li><strong>macOS</strong>: Full 14-bit support, no special handling</li>
+<li><strong>Linux</strong>: Some ALSA drivers may reverse MSB/LSB byte order</li>
+<li><strong>Windows</strong>: Supported, but some USB MIDI drivers have 10-50ms latency</li>
+</ul>
+<h2 id="trigger-composition"><a class="header" href="#trigger-composition">Trigger Composition</a></h2>
+<p>Triggers can work together for complex behaviors:</p>
+<p><strong>Example: Conditional Trigger</strong></p>
+<pre><code class="language-toml"># Only trigger during specific time range
+[[modes.mappings]]
+[modes.mappings.trigger]
+type = "Note"
+note = 60
+[modes.mappings.action]
+type = "Conditional"
+conditions = [{ type = "TimeRange", start = "09:00", end = "17:00" }]
+then_action = { type = "Shell", command = "work-task" }
+else_action = { type = "Shell", command = "personal-task" }
+</code></pre>
+<h2 id="performance-notes"><a class="header" href="#performance-notes">Performance Notes</a></h2>
+<ul>
+<li><strong>Note/CC</strong>: &lt;0.1ms detection latency</li>
+<li><strong>LongPress</strong>: Checked every 50ms</li>
+<li><strong>DoubleTap</strong>: 300ms window (configurable)</li>
+<li><strong>Chord</strong>: 100ms window (configurable)</li>
+<li><strong>Aftertouch</strong>: Continuous messages, use throttling</li>
+<li><strong>PitchBend</strong>: Continuous messages, 14-bit precision</li>
+</ul>
+<h2 id="troubleshooting-1"><a class="header" href="#troubleshooting-1">Troubleshooting</a></h2>
+<h3 id="trigger-not-firing"><a class="header" href="#trigger-not-firing">Trigger Not Firing</a></h3>
+<ul>
+<li>Use <code>midi_diagnostic</code> tool to verify MIDI messages:
+<pre><code class="language-bash">cargo run --bin midi_diagnostic 2
+</code></pre>
+</li>
+<li>Check note numbers match MIDI output</li>
+<li>Verify velocity thresholds</li>
+<li>Enable debug logging: <code>DEBUG=1 cargo run</code></li>
+</ul>
+<h3 id="aftertouch-not-working"><a class="header" href="#aftertouch-not-working">Aftertouch Not Working</a></h3>
+<ul>
+<li>Check device compatibility (not all controllers support aftertouch)</li>
+<li>Verify polyphonic vs channel aftertouch</li>
+<li>Test with <code>midi_diagnostic</code> tool</li>
+<li>Adjust pressure thresholds</li>
+</ul>
+<h3 id="pitchbend-jittery"><a class="header" href="#pitchbend-jittery">PitchBend Jittery</a></h3>
+<ul>
+<li>Increase <code>center_deadzone</code> value</li>
+<li>Enable throttling in <code>advanced_settings</code></li>
+<li>Use <code>delta_threshold</code> for change-based triggering</li>
+<li>Consider zone-based triggering instead of continuous</li>
+</ul>
+<h3 id="chord-not-detected"><a class="header" href="#chord-not-detected">Chord Not Detected</a></h3>
+<ul>
+<li>Increase <code>max_interval_ms</code> (default 100ms)</li>
+<li>Press pads more simultaneously</li>
+<li>Check with <code>midi_diagnostic</code> for timing</li>
+<li>Verify all note numbers correct</li>
+</ul>
+<h2 id="see-also-3"><a class="header" href="#see-also-3">See Also</a></h2>
+<ul>
+<li><a href="reference/action-types.html">Action Types</a></li>
+<li><a href="reference/../configuration/examples.html">Configuration Examples</a></li>
+<li><a href="reference/../configuration/modes.html">Modes and Mappings</a></li>
+<li><a href="reference/../configuration/overview.html">Advanced Settings</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="action-types"><a class="header" href="#action-types">Action Types</a></h1>
+<p>Actions are what MIDIMon executes when a trigger is detected. This page documents all available action types and their configuration.</p>
+<h2 id="core-actions"><a class="header" href="#core-actions">Core Actions</a></h2>
+<h3 id="keystroke-1"><a class="header" href="#keystroke-1">Keystroke</a></h3>
+<p>Simulates keyboard input with optional modifiers.</p>
+<pre><code class="language-toml">[action]
+type = "Keystroke"
+keys = "c"
+modifiers = ["cmd"]
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>keys</code> (string): Key(s) to press (e.g., "space", "return", "f1")</li>
+<li><code>modifiers</code> (array): Optional modifiers: "cmd", "ctrl", "alt", "shift"</li>
+</ul>
+<p><strong>Supported Keys:</strong></p>
+<ul>
+<li>Letters: <code>a-z</code></li>
+<li>Numbers: <code>0-9</code></li>
+<li>Special: <code>space</code>, <code>return</code>, <code>tab</code>, <code>escape</code>, <code>backspace</code>, <code>delete</code></li>
+<li>Arrows: <code>up</code>, <code>down</code>, <code>left</code>, <code>right</code></li>
+<li>Function: <code>f1</code> through <code>f12</code></li>
+<li>Navigation: <code>home</code>, <code>end</code>, <code>pageup</code>, <code>pagedown</code></li>
+</ul>
+<h3 id="text-1"><a class="header" href="#text-1">Text</a></h3>
+<p>Types arbitrary text strings with full Unicode support. Uses keyboard simulation to type character-by-character.</p>
+<pre><code class="language-toml">[action]
+type = "Text"
+text = "Hello, World!"
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>text</code> (string): Text to type (supports Unicode, emoji, multi-line)</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Text snippets and templates</li>
+<li>Email signatures and contact information</li>
+<li>Code boilerplate and common patterns</li>
+<li>Form auto-fill</li>
+<li>Multi-language text input</li>
+</ul>
+<p><strong>Configuration Examples:</strong></p>
+<p><strong>Simple Text:</strong></p>
+<pre><code class="language-toml">[action]
+type = "Text"
+text = "user@example.com"
+</code></pre>
+<p><strong>Multi-line Code Snippet:</strong></p>
+<pre><code class="language-toml">[action]
+type = "Text"
+text = """
+fn main() {
+    println!(\"Hello, World!\");
+}
+"""
+</code></pre>
+<p><strong>Unicode and Emoji:</strong></p>
+<pre><code class="language-toml">[action]
+type = "Text"
+text = "✅ Task completed! 🎉"
+</code></pre>
+<p><strong>Special Characters:</strong></p>
+<pre><code class="language-toml">[action]
+type = "Text"
+text = "!@#$%^&amp;*()_+-=[]{}|;':\",./&lt;&gt;?"
+</code></pre>
+<p><strong>Text with Delay (using Sequence):</strong></p>
+<pre><code class="language-toml">[action]
+type = "Sequence"
+actions = [
+    { type = "Text", text = "username" },
+    { type = "Delay", ms = 100 },
+    { type = "Text", text = "@company.com" }
+]
+</code></pre>
+<p><strong>TOML String Escaping:</strong></p>
+<pre><code class="language-toml"># Escape quotes in basic strings
+text = "He said \"hello\""
+
+# Use multiline strings for complex text
+text = """
+Line 1
+Line 2 with "quotes"
+"""
+
+# Use literal strings to avoid escaping backslashes
+text = 'C:\Users\Documents\file.txt'
+</code></pre>
+<p><strong>Platform Support:</strong></p>
+<ul>
+<li>macOS: Accessibility APIs</li>
+<li>Linux: X11/Wayland</li>
+<li>Windows: Windows API</li>
+</ul>
+<p><strong>Behavior:</strong></p>
+<ul>
+<li>Types character-by-character (no clipboard)</li>
+<li>Respects active keyboard layout</li>
+<li>Typing speed controlled by OS</li>
+<li>Requires text input focus</li>
+</ul>
+<p><strong>Troubleshooting:</strong></p>
+<ul>
+<li>Ensure target app has input focus</li>
+<li>Check Input Monitoring permissions (macOS)</li>
+<li>For slow UIs, use Sequence with Delay actions</li>
+<li>For special keys (Enter, Tab, Ctrl), use Keystroke action instead</li>
+</ul>
+<h3 id="launch-1"><a class="header" href="#launch-1">Launch</a></h3>
+<p>Opens an application by name or path using platform-specific system commands.</p>
+<pre><code class="language-toml">[action]
+type = "Launch"
+app = "Safari"
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>app</code> (string): Application name or full path to executable/bundle</li>
+</ul>
+<p><strong>Platform Behavior:</strong></p>
+<p><strong>macOS:</strong></p>
+<ul>
+<li>Uses <code>open -a</code> command</li>
+<li>Accepts app names: "Safari", "Visual Studio Code", "Logic Pro"</li>
+<li>Accepts full paths: "/Applications/Safari.app"</li>
+<li>If app already running, brings to front</li>
+<li>Searches standard paths: /Applications, ~/Applications, /System/Applications</li>
+</ul>
+<p><strong>Linux:</strong></p>
+<ul>
+<li>Direct executable launch via <code>Command::spawn()</code></li>
+<li>Requires full path or executable in $PATH</li>
+<li>No automatic .desktop file resolution</li>
+<li>Typically launches new instance even if already running</li>
+</ul>
+<p><strong>Windows:</strong></p>
+<ul>
+<li>Uses <code>cmd /C start</code> command</li>
+<li>Accepts app names or paths</li>
+<li>Uses Windows file associations</li>
+<li>Behavior varies by app's single-instance implementation</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-toml"># Launch by app name (macOS)
+[action]
+type = "Launch"
+app = "Terminal"
+
+# Launch by full path
+[action]
+type = "Launch"
+app = "/Applications/Utilities/Terminal.app"
+
+# Launch script with full path
+[action]
+type = "Launch"
+app = "/Users/username/scripts/backup.sh"
+
+# Launch multiple apps in sequence
+[action]
+type = "Sequence"
+actions = [
+    { type = "Launch", app = "VS Code" },
+    { type = "Delay", ms = 1000 },
+    { type = "Launch", app = "Terminal" }
+]
+</code></pre>
+<p><strong>Troubleshooting:</strong></p>
+<ul>
+<li><strong>App not found</strong>: Use full path instead of app name</li>
+<li><strong>macOS test</strong>: Run <code>open -a "App Name"</code> in Terminal</li>
+<li><strong>Linux test</strong>: Run <code>which app-name</code> or use full path</li>
+<li><strong>Silent failures</strong>: Enable debug mode with <code>DEBUG=1</code></li>
+<li><strong>Permissions</strong>: Ensure execute permissions on scripts (<code>chmod +x</code>)</li>
+</ul>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>Launch is non-blocking (returns immediately)</li>
+<li>No validation that app exists before launch attempt</li>
+<li>Errors fail silently (check debug logs)</li>
+<li>App names with spaces are automatically handled</li>
+<li>Launch time varies: 100ms (small apps) to 10s (large IDEs/DAWs)</li>
+</ul>
+<h3 id="shell-1"><a class="header" href="#shell-1">Shell</a></h3>
+<p>Executes a shell command.</p>
+<pre><code class="language-toml">[action]
+type = "Shell"
+command = "npm test"
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>command</code> (string): Shell command to execute</li>
+</ul>
+<p><strong>Platform Notes:</strong></p>
+<ul>
+<li>Unix/macOS: Uses <code>sh -c</code></li>
+<li>Windows: Uses <code>cmd /C</code></li>
+</ul>
+<p><strong>Security Warning:</strong> Be cautious with user input in shell commands.</p>
+<h2 id="system-actions"><a class="header" href="#system-actions">System Actions</a></h2>
+<h3 id="volumecontrol"><a class="header" href="#volumecontrol">VolumeControl</a></h3>
+<p>Controls system volume with cross-platform support for increase, decrease, mute/unmute, and absolute level setting.</p>
+<pre><code class="language-toml">[action]
+type = "VolumeControl"
+operation = "Up"
+amount = 5  # Optional: volume increment (default 5)
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>operation</code> (string): Volume operation to perform</li>
+<li><code>amount</code> (integer, optional):
+<ul>
+<li>For <code>Up</code>/<code>Down</code>: Increment amount 0-100 (default 5)</li>
+<li>For <code>Set</code>: Absolute level 0-100</li>
+</ul>
+</li>
+</ul>
+<p><strong>Operations:</strong></p>
+<ul>
+<li><code>Up</code>: Increase volume by amount</li>
+<li><code>Down</code>: Decrease volume by amount</li>
+<li><code>Mute</code>: Mute audio output</li>
+<li><code>Unmute</code>: Unmute audio output</li>
+<li><code>Toggle</code>: Toggle mute state</li>
+<li><code>Set</code>: Set to specific level (requires <code>amount</code> parameter)</li>
+</ul>
+<p><strong>Platform Support:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Platform</th><th>Method</th><th>Latency</th><th>Dependencies</th></tr></thead><tbody>
+<tr><td>macOS</td><td>AppleScript</td><td>50-100ms</td><td>None (built-in)</td></tr>
+<tr><td>Linux (PulseAudio)</td><td>pactl</td><td>10-30ms</td><td>pulseaudio-utils</td></tr>
+<tr><td>Linux (Pipewire)</td><td>wpctl</td><td>5-15ms</td><td>wireplumber</td></tr>
+<tr><td>Linux (ALSA)</td><td>amixer</td><td>15-40ms</td><td>alsa-utils</td></tr>
+<tr><td>Windows</td><td>nircmd</td><td>20-50ms</td><td>nircmd.exe</td></tr>
+<tr><td>Windows</td><td>COM API</td><td>5-10ms</td><td>None (built-in)</td></tr>
+</tbody></table>
+</div>
+<p><strong>Configuration Examples:</strong></p>
+<pre><code class="language-toml"># Encoder volume control
+[[global_mappings]]
+description = "Volume Up"
+[global_mappings.trigger]
+type = "EncoderTurn"
+cc = 2
+direction = "Clockwise"
+[global_mappings.action]
+type = "VolumeControl"
+operation = "Up"
+amount = 2  # Small increments for smooth control
+
+[[global_mappings]]
+description = "Volume Down"
+[global_mappings.trigger]
+type = "EncoderTurn"
+cc = 2
+direction = "CounterClockwise"
+[global_mappings.action]
+type = "VolumeControl"
+operation = "Down"
+amount = 2
+
+# Mute toggle
+[[global_mappings]]
+description = "Mute/Unmute"
+[global_mappings.trigger]
+type = "Note"
+note = 16
+[global_mappings.action]
+type = "VolumeControl"
+operation = "Toggle"
+
+# Set to specific level
+[[modes.mappings]]
+description = "Set volume to 50%"
+[modes.mappings.trigger]
+type = "Note"
+note = 8
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Set"
+amount = 50
+
+# Velocity-based volume (multiple mappings)
+[[modes.mappings]]
+description = "Soft press = 25%"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 9
+min_velocity = 0
+max_velocity = 40
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Set"
+amount = 25
+
+[[modes.mappings]]
+description = "Medium press = 50%"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 9
+min_velocity = 41
+max_velocity = 80
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Set"
+amount = 50
+
+[[modes.mappings]]
+description = "Hard press = 75%"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 9
+min_velocity = 81
+max_velocity = 127
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Set"
+amount = 75
+</code></pre>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li><strong>Producer</strong>: Encoder for smooth volume adjustment while mixing</li>
+<li><strong>Developer</strong>: Quick mute during video calls, volume presets for different activities</li>
+<li><strong>Streamer</strong>: Real-time volume balancing during streams, emergency mute</li>
+<li><strong>Presenter</strong>: Volume control without touching laptop during presentations</li>
+</ul>
+<p><strong>Troubleshooting:</strong></p>
+<p><em><strong>macOS:</strong></em></p>
+<ul>
+<li>No dependencies required</li>
+<li>AppleScript latency ~50-100ms is normal</li>
+<li>Requires no special permissions</li>
+</ul>
+<p><em><strong>Linux:</strong></em></p>
+<ul>
+<li>Install dependencies:
+<pre><code class="language-bash"># PulseAudio (most common)
+sudo apt install pulseaudio-utils
+
+# Pipewire (modern, fastest)
+sudo apt install pipewire wireplumber
+
+# ALSA (minimal systems)
+sudo apt install alsa-utils
+</code></pre>
+</li>
+<li>MIDIMon auto-detects available backend</li>
+<li>User must be in <code>audio</code> group</li>
+</ul>
+<p><em><strong>Windows:</strong></em></p>
+<ul>
+<li>Download nircmd.exe from https://www.nirsoft.net/utils/nircmd.html</li>
+<li>Add to PATH or place in MIDIMon directory</li>
+<li>COM API fallback requires no dependencies</li>
+</ul>
+<p><strong>Performance Notes:</strong></p>
+<ul>
+<li>Volume commands are non-blocking</li>
+<li>State changes typically take 5-100ms depending on platform</li>
+<li>Multiple rapid commands may queue on slower platforms (macOS AppleScript)</li>
+</ul>
+<h3 id="modechange"><a class="header" href="#modechange">ModeChange</a></h3>
+<p>Switches between different mapping modes with optional LED transition effects and relative navigation.</p>
+<pre><code class="language-toml">[action]
+type = "ModeChange"
+mode = 1  # Switch to mode index 1
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>mode</code> (integer): Zero-based mode index or offset (if <code>relative = true</code>)</li>
+<li><code>relative</code> (boolean, optional): If true, <code>mode</code> is offset from current mode (default false)</li>
+<li><code>transition_effect</code> (string, optional): Visual transition effect: "Flash", "Sweep", "FadeOut", "Spiral", "None"</li>
+</ul>
+<p><strong>Mode Indexing:</strong></p>
+<ul>
+<li>Modes are zero-based: Mode 0, Mode 1, Mode 2, etc.</li>
+<li>Mode 0 is typically the default mode on startup</li>
+<li>Invalid mode indices are clamped to valid range</li>
+</ul>
+<p><strong>Absolute vs Relative Mode Changes:</strong></p>
+<p><em><strong>Absolute (direct jump):</strong></em></p>
+<pre><code class="language-toml">[action]
+type = "ModeChange"
+mode = 2  # Jump directly to Mode 2
+transition_effect = "Flash"
+</code></pre>
+<p><em><strong>Relative (navigation):</strong></em></p>
+<pre><code class="language-toml"># Next mode (with wrapping)
+[action]
+type = "ModeChange"
+mode = 1  # +1 offset
+relative = true
+transition_effect = "Sweep"
+
+# Previous mode (with wrapping)
+[action]
+type = "ModeChange"
+mode = -1  # -1 offset
+relative = true
+</code></pre>
+<p><strong>Transition Effects:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Effect</th><th>Duration</th><th>Description</th></tr></thead><tbody>
+<tr><td>Flash</td><td>150ms</td><td>Quick white flash</td></tr>
+<tr><td>Sweep</td><td>120ms</td><td>Left-to-right wave</td></tr>
+<tr><td>FadeOut</td><td>200ms</td><td>Fade out old, fade in new</td></tr>
+<tr><td>Spiral</td><td>240ms</td><td>Center-outward spiral</td></tr>
+<tr><td>None</td><td>0ms</td><td>Instant switch</td></tr>
+</tbody></table>
+</div>
+<p><strong>Configuration Examples:</strong></p>
+<pre><code class="language-toml"># Encoder for mode cycling
+[[global_mappings]]
+description = "Next Mode"
+[global_mappings.trigger]
+type = "EncoderTurn"
+cc = 1
+direction = "Clockwise"
+[global_mappings.action]
+type = "ModeChange"
+mode = 1  # +1 offset
+relative = true
+transition_effect = "Sweep"
+
+[[global_mappings]]
+description = "Previous Mode"
+[global_mappings.trigger]
+type = "EncoderTurn"
+cc = 1
+direction = "CounterClockwise"
+[global_mappings.action]
+type = "ModeChange"
+mode = -1  # -1 offset (wraps backward)
+relative = true
+transition_effect = "Sweep"
+
+# Direct mode selection with chords
+[[global_mappings]]
+description = "Jump to Default Mode"
+[global_mappings.trigger]
+type = "NoteChord"
+notes = [1, 9]  # Top-left corners
+[global_mappings.action]
+type = "ModeChange"
+mode = 0
+transition_effect = "Flash"
+
+[[global_mappings]]
+description = "Jump to Development Mode"
+[global_mappings.trigger]
+type = "NoteChord"
+notes = [2, 10]
+[global_mappings.action]
+type = "ModeChange"
+mode = 1
+transition_effect = "Flash"
+
+[[global_mappings]]
+description = "Jump to Media Mode"
+[global_mappings.trigger]
+type = "NoteChord"
+notes = [3, 11]
+[global_mappings.action]
+type = "ModeChange"
+mode = 2
+transition_effect = "FadeOut"
+
+# Conditional mode change
+[[modes.mappings]]
+description = "Switch to Media mode if Spotify running"
+[modes.mappings.trigger]
+type = "Note"
+note = 8
+[modes.mappings.action]
+type = "Conditional"
+conditions = [{ type = "AppRunning", bundle_id = "com.spotify.client" }]
+then_action = { type = "ModeChange", mode = 2, transition_effect = "FadeOut" }
+else_action = { type = "Launch", app = "Spotify" }
+</code></pre>
+<p><strong>Mode Configuration:</strong></p>
+<p>Modes are defined in your config.toml with names and LED colors:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Default"
+color = "blue"             # LED color for this mode
+led_idle_brightness = 20   # Brightness when pad not pressed
+led_active_brightness = 255 # Brightness when pad pressed
+mappings = [...]
+
+[[modes]]
+name = "Development"
+color = "green"
+led_idle_brightness = 30
+led_active_brightness = 255
+mappings = [...]
+
+[[modes]]
+name = "Media"
+color = "purple"
+led_idle_brightness = 15
+led_active_brightness = 200
+mappings = [...]
+</code></pre>
+<p><strong>LED Feedback Integration:</strong></p>
+<ul>
+<li>Mode colors automatically update LEDs on mode change</li>
+<li>Transition effects provide visual feedback</li>
+<li>Optional mode indicator pads (e.g., bottom row shows active mode)</li>
+<li>Idle/active brightness levels per mode</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<p><em><strong>Developer (Sam) - Context Switching:</strong></em></p>
+<ul>
+<li><strong>Mode 0</strong>: General productivity shortcuts</li>
+<li><strong>Mode 1</strong>: IDE shortcuts (build, test, debug)</li>
+<li><strong>Mode 2</strong>: Media controls</li>
+<li>Encoder rotation for quick mode cycling</li>
+</ul>
+<p><em><strong>Producer (Alex) - Production Workflow:</strong></em></p>
+<ul>
+<li><strong>Mode 0</strong>: Recording (transport, record arm)</li>
+<li><strong>Mode 1</strong>: Mixing (volume, mute/solo, effects)</li>
+<li><strong>Mode 2</strong>: Mastering (compressor, EQ, limiter)</li>
+<li>Chord combinations for instant mode jumps</li>
+</ul>
+<p><em><strong>Streamer (Jordan) - Live Streaming:</strong></em></p>
+<ul>
+<li><strong>Mode 0</strong>: Pre-Stream (setup checks, app launching)</li>
+<li><strong>Mode 1</strong>: Live (scene switching, alerts)</li>
+<li><strong>Mode 2</strong>: BRB (limited controls, auto-mute)</li>
+<li><strong>Mode 3</strong>: Post-Stream (save, shutdown sequence)</li>
+</ul>
+<p><em><strong>Designer (Taylor) - Creative Workflows:</strong></em></p>
+<ul>
+<li><strong>Mode 0</strong>: Sketch (drawing tools, layers)</li>
+<li><strong>Mode 1</strong>: Edit (selection, transform, filters)</li>
+<li><strong>Mode 2</strong>: Export (save presets, formats)</li>
+<li>Visual LED feedback shows current mode</li>
+</ul>
+<p><strong>Circular Mode Navigation:</strong></p>
+<p>With <code>relative = true</code>, modes wrap around:</p>
+<ul>
+<li>Mode 0 → +1 → Mode 1</li>
+<li>Mode 1 → +1 → Mode 2</li>
+<li>Mode 2 → +1 → Mode 0 (wraps to beginning)</li>
+<li>Mode 0 → -1 → Mode 2 (wraps to end)</li>
+</ul>
+<p><strong>Troubleshooting:</strong></p>
+<p><em><strong>Mode Not Switching:</strong></em></p>
+<ul>
+<li>Verify mode index is within range (0 to num_modes-1)</li>
+<li>Check that modes are defined in config.toml</li>
+<li>Enable debug logging: <code>DEBUG=1 cargo run</code></li>
+<li>Ensure mode change mapping is in <code>global_mappings</code> to work from all modes</li>
+</ul>
+<p><em><strong>LEDs Not Updating:</strong></em></p>
+<ul>
+<li>Verify <code>color</code> is set for each mode</li>
+<li>Check device supports RGB LED feedback</li>
+<li>Ensure LED feedback is enabled</li>
+<li>Test with different transition effects</li>
+</ul>
+<p><em><strong>Transition Effects Not Working:</strong></em></p>
+<ul>
+<li>Only works with devices supporting RGB LEDs (Maschine Mikro MK3, etc.)</li>
+<li>MIDI-only devices show instant switches</li>
+<li>Check transition timing isn't too fast to notice</li>
+</ul>
+<p><strong>Performance Notes:</strong></p>
+<ul>
+<li>Mode switches are near-instant (&lt;1ms)</li>
+<li>Transition effects add 0-240ms visual delay</li>
+<li>LED updates are non-blocking</li>
+<li>Rapid mode changes are queued and handled gracefully</li>
+</ul>
+<h2 id="advanced-actions-1"><a class="header" href="#advanced-actions-1">Advanced Actions</a></h2>
+<h3 id="sequence-1"><a class="header" href="#sequence-1">Sequence</a></h3>
+<p>Executes multiple actions in order.</p>
+<pre><code class="language-toml">[action]
+type = "Sequence"
+actions = [
+    { type = "Keystroke", keys = "n", modifiers = ["cmd"] },
+    { type = "Delay", ms = 500 },
+    { type = "Text", text = "New Document" }
+]
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>actions</code> (array): Array of action configurations</li>
+</ul>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>Actions execute sequentially</li>
+<li>Default 50ms delay between actions</li>
+<li>Use <code>Delay</code> action for longer pauses</li>
+</ul>
+<h3 id="delay-1"><a class="header" href="#delay-1">Delay</a></h3>
+<p>Pauses execution.</p>
+<pre><code class="language-toml">[action]
+type = "Delay"
+ms = 1000  # Wait 1 second
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>ms</code> (integer): Milliseconds to wait</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Wait for app to launch</li>
+<li>Timing between keystrokes</li>
+<li>Synchronization in sequences</li>
+</ul>
+<h3 id="repeat-1"><a class="header" href="#repeat-1">Repeat</a></h3>
+<p>Repeats an action multiple times.</p>
+<pre><code class="language-toml">[action]
+type = "Repeat"
+count = 10
+delay_between_ms = 100
+action = { type = "Keystroke", keys = "right" }
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>action</code> (object): Action to repeat</li>
+<li><code>count</code> (integer): Number of repetitions</li>
+<li><code>delay_between_ms</code> (integer, optional): Delay between repetitions in milliseconds</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Navigate through items</li>
+<li>Rapid-fire actions</li>
+<li>Automation tasks</li>
+</ul>
+<h3 id="mouseclick-1"><a class="header" href="#mouseclick-1">MouseClick</a></h3>
+<p>Simulates mouse clicks.</p>
+<pre><code class="language-toml">[action]
+type = "MouseClick"
+button = "left"
+x = 100
+y = 200
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>button</code> (string): "left", "right", or "middle"</li>
+<li><code>x</code> (integer, optional): X coordinate (absolute)</li>
+<li><code>y</code> (integer, optional): Y coordinate (absolute)</li>
+</ul>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>If <code>x</code> and <code>y</code> are omitted, clicks at current cursor position</li>
+<li>Coordinates are screen-absolute</li>
+</ul>
+<h3 id="conditional-1"><a class="header" href="#conditional-1">Conditional</a></h3>
+<p>Executes actions based on conditions.</p>
+<pre><code class="language-toml">[action]
+type = "Conditional"
+conditions = [
+    { type = "AppRunning", bundle_id = "com.apple.Logic" }
+]
+operator = "And"
+then_action = { type = "Keystroke", keys = "space" }
+else_action = { type = "Launch", app = "Logic Pro" }
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>conditions</code> (array): Array of condition objects</li>
+<li><code>operator</code> (string, optional): "And" or "Or" (default: "And")</li>
+<li><code>then_action</code> (object): Action when conditions are true</li>
+<li><code>else_action</code> (object, optional): Action when conditions are false</li>
+</ul>
+<p><strong>Condition Types:</strong></p>
+<h4 id="apprunning"><a class="header" href="#apprunning">AppRunning</a></h4>
+<p>Check if an application is running.</p>
+<pre><code class="language-toml">{ type = "AppRunning", bundle_id = "com.spotify.client" }
+</code></pre>
+<h4 id="appnotrunning"><a class="header" href="#appnotrunning">AppNotRunning</a></h4>
+<p>Check if an application is not running.</p>
+<pre><code class="language-toml">{ type = "AppNotRunning", bundle_id = "com.spotify.client" }
+</code></pre>
+<h4 id="timerange"><a class="header" href="#timerange">TimeRange</a></h4>
+<p>Check if current time is within a range.</p>
+<pre><code class="language-toml">{ type = "TimeRange", start = "09:00", end = "17:00" }
+</code></pre>
+<p><strong>Format:</strong> HH:MM in 24-hour format
+<strong>Note:</strong> Uses local system time</p>
+<h4 id="dayofweek"><a class="header" href="#dayofweek">DayOfWeek</a></h4>
+<p>Check if today matches specified days.</p>
+<pre><code class="language-toml">{ type = "DayOfWeek", days = ["Mon", "Tue", "Wed", "Thu", "Fri"] }
+</code></pre>
+<p><strong>Valid Days:</strong> "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"</p>
+<h4 id="modifierpressed"><a class="header" href="#modifierpressed">ModifierPressed</a></h4>
+<p>Check if a modifier key is held.</p>
+<pre><code class="language-toml">{ type = "ModifierPressed", modifier = "Shift" }
+</code></pre>
+<p><strong>Valid Modifiers:</strong> "Shift", "Ctrl", "Cmd", "Alt", "Option"</p>
+<h4 id="modeactive"><a class="header" href="#modeactive">ModeActive</a></h4>
+<p>Check if a specific mode is active.</p>
+<pre><code class="language-toml">{ type = "ModeActive", mode = 1 }
+</code></pre>
+<p><strong>Parameter:</strong> <code>mode</code> (integer): Zero-based mode index</p>
+<p><strong>Operators:</strong></p>
+<ul>
+<li><code>And</code>: All conditions must be true</li>
+<li><code>Or</code>: At least one condition must be true</li>
+</ul>
+<p><strong>Nested Conditionals:</strong>
+You can nest conditionals for complex decision trees:</p>
+<pre><code class="language-toml">[action]
+type = "Conditional"
+conditions = [{ type = "TimeRange", start = "09:00", end = "17:00" }]
+then_action = {
+    type = "Conditional",
+    conditions = [{ type = "AppRunning", bundle_id = "com.microsoft.VSCode" }],
+    then_action = { type = "Keystroke", keys = "b", modifiers = ["cmd", "shift"] },
+    else_action = { type = "Launch", app = "Visual Studio Code" }
+}
+else_action = { type = "Launch", app = "Spotify" }
+</code></pre>
+<h2 id="action-composition"><a class="header" href="#action-composition">Action Composition</a></h2>
+<p>Actions can be combined in powerful ways:</p>
+<p><strong>Example: Complex Workflow</strong></p>
+<pre><code class="language-toml">[action]
+type = "Sequence"
+actions = [
+    { type = "Launch", app = "Terminal" },
+    { type = "Delay", ms = 1000 },
+    { type = "Text", text = "cd ~/projects &amp;&amp; npm test" },
+    { type = "Keystroke", keys = "return" }
+]
+</code></pre>
+<p><strong>Example: Conditional with Repeat</strong></p>
+<pre><code class="language-toml">[action]
+type = "Conditional"
+conditions = [{ type = "ModifierPressed", modifier = "Shift" }]
+then_action = {
+    type = "Repeat",
+    count = 5,
+    delay_between_ms = 200,
+    action = { type = "Keystroke", keys = "right" }
+}
+else_action = { type = "Keystroke", keys = "right" }
+</code></pre>
+<h2 id="performance-notes-1"><a class="header" href="#performance-notes-1">Performance Notes</a></h2>
+<ul>
+<li><strong>Keystroke</strong>: &lt;1ms execution time</li>
+<li><strong>Shell</strong>: Asynchronous, non-blocking</li>
+<li><strong>Launch</strong>: Platform-dependent, typically 100-500ms</li>
+<li><strong>Conditional</strong>: 10-50ms per condition evaluation</li>
+<li><strong>Sequence</strong>: Sum of individual action times + delays</li>
+</ul>
+<h2 id="troubleshooting-2"><a class="header" href="#troubleshooting-2">Troubleshooting</a></h2>
+<h3 id="keystroke-not-working"><a class="header" href="#keystroke-not-working">Keystroke Not Working</a></h3>
+<ul>
+<li>Verify key name spelling</li>
+<li>Check modifier syntax</li>
+<li>Ensure app has input focus</li>
+</ul>
+<h3 id="shell-command-fails-silently"><a class="header" href="#shell-command-fails-silently">Shell Command Fails Silently</a></h3>
+<ul>
+<li>Test command in terminal first</li>
+<li>Check environment variables</li>
+<li>Enable debug logging: <code>DEBUG=1 cargo run</code></li>
+</ul>
+<h3 id="conditional-not-triggering"><a class="header" href="#conditional-not-triggering">Conditional Not Triggering</a></h3>
+<ul>
+<li>Verify bundle ID format (macOS): <code>osascript -e 'id of app "AppName"'</code></li>
+<li>Check time format (24-hour: "09:00", not "9:00 AM")</li>
+<li>Verify day names match exactly</li>
+</ul>
+<h3 id="launch-app-not-found"><a class="header" href="#launch-app-not-found">Launch App Not Found</a></h3>
+<ul>
+<li>Use exact app name as it appears in Applications folder</li>
+<li>On Linux, use full executable path if not in PATH</li>
+<li>Check permissions for app execution</li>
+</ul>
+<h2 id="see-also-4"><a class="header" href="#see-also-4">See Also</a></h2>
+<ul>
+<li><a href="reference/../configuration/examples.html">Configuration Examples</a></li>
+<li><a href="reference/trigger-types.html">Trigger Types</a></li>
+<li><a href="reference/../configuration/modes.html">Modes and Mappings</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="led-system-reference"><a class="header" href="#led-system-reference">LED System Reference</a></h1>
+<p>MIDIMon provides comprehensive LED feedback for supported MIDI controllers, with full RGB control for HID devices (Native Instruments Maschine Mikro MK3) and basic on/off control for standard MIDI devices.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>The LED system consists of four main features:</p>
+<ol>
+<li><strong>F23: LED Lighting Schemes</strong> - 10 pre-defined animation patterns</li>
+<li><strong>F24: LED Velocity Feedback</strong> - Color-coded response based on pad velocity</li>
+<li><strong>F25: LED Mode Indicators</strong> - Visual feedback for active mode</li>
+<li><strong>F26: LED Fade Effects</strong> - Smooth transitions and fade-out animations</li>
+</ol>
+<h2 id="feature-f23-led-lighting-schemes"><a class="header" href="#feature-f23-led-lighting-schemes">Feature F23: LED Lighting Schemes</a></h2>
+<p>MIDIMon supports 10 distinct lighting schemes that can be selected at startup or configured in your config file.</p>
+<h3 id="available-schemes-1"><a class="header" href="#available-schemes-1">Available Schemes</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Scheme</th><th>Description</th><th>Use Case</th><th>CPU Impact</th></tr></thead><tbody>
+<tr><td><code>off</code></td><td>All LEDs disabled</td><td>Power saving, minimal distraction</td><td>0%</td></tr>
+<tr><td><code>static</code></td><td>Solid color based on current mode</td><td>Clear mode indication</td><td>&lt;1%</td></tr>
+<tr><td><code>breathing</code></td><td>Slow 2-second breathing effect</td><td>Ambient, relaxed workflow</td><td>~1%</td></tr>
+<tr><td><code>pulse</code></td><td>Fast 500ms pulse</td><td>High-energy, performance</td><td>~1%</td></tr>
+<tr><td><code>rainbow</code></td><td>Rainbow cycle across pads</td><td>Creative sessions, visual appeal</td><td>~2%</td></tr>
+<tr><td><code>wave</code></td><td>Wave animation pattern</td><td>Dynamic feedback</td><td>~2%</td></tr>
+<tr><td><code>sparkle</code></td><td>Random sparkles</td><td>Playful, attention-grabbing</td><td>~3%</td></tr>
+<tr><td><code>reactive</code></td><td>Velocity-based colors (most common)</td><td>Precise feedback, performance</td><td>~1%</td></tr>
+<tr><td><code>vumeter</code></td><td>VU meter style (bottom-up)</td><td>Audio visualization</td><td>~2%</td></tr>
+<tr><td><code>spiral</code></td><td>Spiral pattern animation</td><td>Artistic, mesmerizing</td><td>~2%</td></tr>
+</tbody></table>
+</div>
+<h3 id="command-line-usage-1"><a class="header" href="#command-line-usage-1">Command-Line Usage</a></h3>
+<pre><code class="language-bash"># Start with reactive scheme (recommended)
+cargo run --release 2 --led reactive
+
+# Rainbow animation
+cargo run --release 2 --led rainbow
+
+# Disable LEDs
+cargo run --release 2 --led off
+
+# Static mode colors
+cargo run --release 2 --led static
+</code></pre>
+<h3 id="configuration"><a class="header" href="#configuration">Configuration</a></h3>
+<pre><code class="language-toml">[led_settings]
+scheme = "reactive"  # Default scheme on startup
+</code></pre>
+<h3 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h3>
+<ul>
+<li><strong>Update Rate</strong>: 10fps (100ms per frame) to maintain low CPU usage</li>
+<li><strong>HID Devices</strong>: Full RGB control with 16.7 million colors</li>
+<li><strong>MIDI Devices</strong>: Schemes degrade gracefully to on/off</li>
+<li><strong>Performance</strong>: All schemes designed for &lt;3% CPU usage</li>
+</ul>
+<hr />
+<h2 id="feature-f24-led-velocity-feedback"><a class="header" href="#feature-f24-led-velocity-feedback">Feature F24: LED Velocity Feedback</a></h2>
+<p>Reactive LED feedback provides immediate visual confirmation of pad velocity, using color-coded responses.</p>
+<h3 id="velocity-color-mapping"><a class="header" href="#velocity-color-mapping">Velocity Color Mapping</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Velocity Range</th><th>Color</th><th>Visual</th><th>Meaning</th></tr></thead><tbody>
+<tr><td>0-40</td><td>Green</td><td>🟢</td><td>Soft press</td></tr>
+<tr><td>41-80</td><td>Yellow</td><td>🟡</td><td>Medium press</td></tr>
+<tr><td>81-127</td><td>Red</td><td>🔴</td><td>Hard press</td></tr>
+</tbody></table>
+</div>
+<h3 id="behavior"><a class="header" href="#behavior">Behavior</a></h3>
+<p><strong>On Press:</strong></p>
+<ul>
+<li>Pad immediately lights up in velocity-appropriate color</li>
+<li>Brightness scales with velocity (40% base + 60% velocity-based)</li>
+<li>Color change happens within &lt;1ms for responsive feedback</li>
+</ul>
+<p><strong>On Release:</strong></p>
+<ul>
+<li>Fade-out begins after 1 second</li>
+<li>Fade duration: 200ms (configurable in future versions)</li>
+<li>Pad returns to mode color or off state</li>
+</ul>
+<h3 id="configuration-example"><a class="header" href="#configuration-example">Configuration Example</a></h3>
+<pre><code class="language-toml">[led_settings]
+scheme = "reactive"
+
+# Future: Velocity threshold customization
+[led_settings.reactive]
+soft_color = { r = 0, g = 255, b = 0 }      # Green
+medium_color = { r = 255, g = 255, b = 0 }  # Yellow
+hard_color = { r = 255, g = 0, b = 0 }      # Red
+fade_duration_ms = 1000
+</code></pre>
+<h3 id="use-cases-1"><a class="header" href="#use-cases-1">Use Cases</a></h3>
+<ul>
+<li><strong>Performance</strong>: Immediate feedback on hit strength for drum pads</li>
+<li><strong>Practice</strong>: Visual metronome or timing reference</li>
+<li><strong>Recording</strong>: Confirm input without audio monitoring</li>
+<li><strong>Accessibility</strong>: Visual alternative to audio feedback</li>
+</ul>
+<hr />
+<h2 id="feature-f25-led-mode-indicators"><a class="header" href="#feature-f25-led-mode-indicators">Feature F25: LED Mode Indicators</a></h2>
+<p>Visual feedback showing the currently active mode, helping users stay oriented when switching contexts.</p>
+<h3 id="mode-color-scheme"><a class="header" href="#mode-color-scheme">Mode Color Scheme</a></h3>
+<p>Each mode has an associated color that LEDs display when using <code>static</code> or <code>reactive</code> schemes:</p>
+<div class="table-wrapper"><table><thead><tr><th>Mode</th><th>Default Color</th><th>RGB Values</th><th>Visual</th></tr></thead><tbody>
+<tr><td>Mode 0 (Default)</td><td>Blue</td><td>(0, 100, 255)</td><td>🔵</td></tr>
+<tr><td>Mode 1 (Development)</td><td>Green</td><td>(0, 255, 0)</td><td>🟢</td></tr>
+<tr><td>Mode 2 (Media)</td><td>Purple</td><td>(200, 0, 255)</td><td>🟣</td></tr>
+</tbody></table>
+</div>
+<h3 id="configuration-1"><a class="header" href="#configuration-1">Configuration</a></h3>
+<pre><code class="language-toml">[[modes]]
+name = "Default"
+color = "blue"
+led_idle_brightness = 20      # Brightness when idle (0-255)
+led_active_brightness = 255   # Brightness when pressed
+
+[[modes]]
+name = "Development"
+color = "green"
+led_idle_brightness = 30
+led_active_brightness = 255
+
+[[modes]]
+name = "Media"
+color = "purple"
+led_idle_brightness = 15
+led_active_brightness = 200
+</code></pre>
+<h3 id="mode-transition-effects-1"><a class="header" href="#mode-transition-effects-1">Mode Transition Effects</a></h3>
+<p>When switching modes, you can apply visual transition effects:</p>
+<pre><code class="language-toml">[[global_mappings]]
+description = "Next Mode with Flash"
+[global_mappings.trigger]
+type = "EncoderTurn"
+cc = 1
+direction = "Clockwise"
+[global_mappings.action]
+type = "ModeChange"
+mode = 1
+relative = true
+transition_effect = "Flash"  # Options: Flash, Sweep, FadeOut, Spiral, None
+</code></pre>
+<p><strong>Transition Effects:</strong></p>
+<ul>
+<li><strong>Flash</strong>: Quick white flash (150ms) - best for rapid mode switching</li>
+<li><strong>Sweep</strong>: Left-to-right wave (120ms) - smooth visual sweep</li>
+<li><strong>FadeOut</strong>: Fade old color to new (200ms) - smooth transition</li>
+<li><strong>Spiral</strong>: Center-outward spiral (240ms) - artistic transition</li>
+</ul>
+<h3 id="optional-mode-indicator-pads"><a class="header" href="#optional-mode-indicator-pads">Optional Mode Indicator Pads</a></h3>
+<p>You can dedicate specific pads to always show the current mode:</p>
+<pre><code class="language-toml">[led_settings]
+mode_indicator_pads = [13, 14, 15, 16]  # Bottom row shows mode
+# Pad 13 lights up for Mode 0
+# Pad 14 lights up for Mode 1
+# Pad 15 lights up for Mode 2
+# Pad 16 lights up for Mode 3
+</code></pre>
+<hr />
+<h2 id="feature-f26-led-fade-effects"><a class="header" href="#feature-f26-led-fade-effects">Feature F26: LED Fade Effects</a></h2>
+<p>Smooth transitions and fade animations provide polished visual feedback.</p>
+<h3 id="fade-out-on-release"><a class="header" href="#fade-out-on-release">Fade-Out on Release</a></h3>
+<p>After pressing a pad, the LED fades out gracefully instead of turning off instantly:</p>
+<p><strong>Default Behavior:</strong></p>
+<ol>
+<li>Pad pressed → Immediate color change (velocity-based)</li>
+<li>Pad released → Wait 1 second</li>
+<li>Fade begins → 200ms smooth fade to mode color or off</li>
+</ol>
+<p><strong>Timeline:</strong></p>
+<pre><code>Press    Release            Fade Start         Complete
+  |---------|-------------------|-----------------|
+  0ms    Variable            +1000ms          +1200ms
+  ↑                              ↑                 ↑
+  Full brightness          Start fade         Dark/Mode color
+</code></pre>
+<h3 id="configurable-fade-parameters"><a class="header" href="#configurable-fade-parameters">Configurable Fade Parameters</a></h3>
+<pre><code class="language-toml">[led_settings.fade]
+delay_after_release_ms = 1000  # How long to wait before fading
+fade_duration_ms = 200         # How long the fade takes
+steps = 10                     # Number of discrete fade steps
+</code></pre>
+<h3 id="fade-applications"><a class="header" href="#fade-applications">Fade Applications</a></h3>
+<p><strong>Reactive Scheme:</strong></p>
+<pre><code class="language-rust">// Pseudo-code for reactive fade
+on_pad_press(pad, velocity) {
+    color = velocity_to_color(velocity)
+    set_pad_color(pad, color)
+    schedule_fade(pad, delay=1000ms, duration=200ms)
+}</code></pre>
+<p><strong>Mode Transition:</strong></p>
+<pre><code class="language-rust">// Pseudo-code for mode transition fade
+on_mode_change(old_mode, new_mode) {
+    // FadeOut transition effect
+    for brightness in (100% down_to 0%).step_by(10%) {
+        set_all_pads(old_mode_color * brightness)
+        wait(10ms)
+    }
+    for brightness in (0% up_to 100%).step_by(10%) {
+        set_all_pads(new_mode_color * brightness)
+        wait(10ms)
+    }
+}</code></pre>
+<hr />
+<h2 id="device-support"><a class="header" href="#device-support">Device Support</a></h2>
+<h3 id="hid-devices-full-rgb-control"><a class="header" href="#hid-devices-full-rgb-control">HID Devices (Full RGB Control)</a></h3>
+<p><strong>Native Instruments Maschine Mikro MK3:</strong></p>
+<ul>
+<li>✅ All 10 lighting schemes</li>
+<li>✅ Full RGB color spectrum (16.7M colors)</li>
+<li>✅ Velocity-based colors</li>
+<li>✅ Smooth fades and transitions</li>
+<li>✅ Shared device mode (works alongside NI Controller Editor)</li>
+</ul>
+<p><strong>Requirements:</strong></p>
+<ul>
+<li>macOS: Input Monitoring permission</li>
+<li>USB connection: Direct HID communication</li>
+<li>Drivers: Native Instruments drivers installed</li>
+</ul>
+<h3 id="midi-devices-onoff-only"><a class="header" href="#midi-devices-onoff-only">MIDI Devices (On/Off Only)</a></h3>
+<p><strong>Supported Controllers:</strong></p>
+<ul>
+<li>Novation Launchpad Mini/Pro</li>
+<li>Akai APC Mini/40</li>
+<li>Generic MIDI pad controllers</li>
+</ul>
+<p><strong>Limitations:</strong></p>
+<ul>
+<li>❌ RGB colors (on/off only)</li>
+<li>❌ Smooth fades (instant on/off)</li>
+<li>✅ Reactive feedback (on when pressed, off after delay)</li>
+<li>✅ Mode indicators (basic)</li>
+</ul>
+<p><strong>Note Range:</strong> MIDI LEDs typically respond to notes C1-D#2 (36-51) for 16 pads</p>
+<hr />
+<h2 id="configuration-examples-1"><a class="header" href="#configuration-examples-1">Configuration Examples</a></h2>
+<h3 id="minimal-configuration"><a class="header" href="#minimal-configuration">Minimal Configuration</a></h3>
+<pre><code class="language-toml">[device]
+name = "Mikro"
+led_feedback = true
+
+[led_settings]
+scheme = "reactive"
+</code></pre>
+<h3 id="advanced-configuration-1"><a class="header" href="#advanced-configuration-1">Advanced Configuration</a></h3>
+<pre><code class="language-toml">[device]
+name = "Mikro"
+led_feedback = true
+
+[led_settings]
+scheme = "reactive"
+brightness = 255
+
+[led_settings.reactive]
+soft_color = { r = 0, g = 255, b = 0 }
+medium_color = { r = 255, g = 255, b = 0 }
+hard_color = { r = 255, g = 0, b = 0 }
+fade_duration_ms = 1000
+
+[led_settings.transitions]
+enable_effects = true
+flash_duration_ms = 150
+sweep_delay_ms = 30
+fadeout_steps = 10
+spiral_delay_ms = 15
+
+[[modes]]
+name = "Default"
+color = "blue"
+led_idle_brightness = 20
+led_active_brightness = 255
+
+[[modes]]
+name = "Development"
+color = "green"
+led_idle_brightness = 30
+led_active_brightness = 255
+</code></pre>
+<hr />
+<h2 id="troubleshooting-3"><a class="header" href="#troubleshooting-3">Troubleshooting</a></h2>
+<h3 id="leds-not-working-mikro-mk3"><a class="header" href="#leds-not-working-mikro-mk3">LEDs Not Working (Mikro MK3)</a></h3>
+<ol>
+<li>
+<p><strong>Check permissions</strong> (macOS):</p>
+<ul>
+<li>System Settings → Privacy &amp; Security → Input Monitoring</li>
+<li>Enable permission for Terminal or your IDE</li>
+</ul>
+</li>
+<li>
+<p><strong>Verify HID connection</strong>:</p>
+<pre><code class="language-bash">DEBUG=1 cargo run --release 2 --led reactive
+# Look for "✓ Connected to Mikro MK3 LED interface"
+</code></pre>
+</li>
+<li>
+<p><strong>Check for conflicts</strong>:</p>
+<ul>
+<li>Close Native Instruments Controller Editor</li>
+<li>Unplug and replug USB cable</li>
+<li>Try different USB port</li>
+</ul>
+</li>
+</ol>
+<h3 id="wrong-colors-1"><a class="header" href="#wrong-colors-1">Wrong Colors</a></h3>
+<ul>
+<li><strong>Issue</strong>: Colors don't match expected values</li>
+<li><strong>Cause</strong>: LED manufacturing variance (±10% color accuracy)</li>
+<li><strong>Solution</strong>: This is normal, colors may vary slightly between units</li>
+</ul>
+<h3 id="flickering-leds"><a class="header" href="#flickering-leds">Flickering LEDs</a></h3>
+<ul>
+<li><strong>Issue</strong>: LEDs flicker or strobe</li>
+<li><strong>Cause</strong>: Update rate too high or USB bandwidth saturation</li>
+<li><strong>Solution</strong>: Use simpler scheme (reactive or static) instead of complex animations</li>
+</ul>
+<h3 id="mode-colors-not-showing-1"><a class="header" href="#mode-colors-not-showing-1">Mode Colors Not Showing</a></h3>
+<ul>
+<li><strong>Issue</strong>: All pads same color regardless of mode</li>
+<li><strong>Cause</strong>: Using non-mode-aware scheme</li>
+<li><strong>Solution</strong>: Use <code>static</code> or <code>reactive</code> scheme, not <code>rainbow</code> or <code>sparkle</code></li>
+</ul>
+<hr />
+<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
+<h3 id="cpu-usage-by-scheme-1"><a class="header" href="#cpu-usage-by-scheme-1">CPU Usage by Scheme</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Scheme</th><th>CPU (Idle)</th><th>CPU (Active)</th><th>Memory</th></tr></thead><tbody>
+<tr><td>off</td><td>0%</td><td>0%</td><td>Minimal</td></tr>
+<tr><td>static</td><td>&lt;1%</td><td>&lt;1%</td><td>&lt;1MB</td></tr>
+<tr><td>reactive</td><td>&lt;1%</td><td>~1%</td><td>&lt;1MB</td></tr>
+<tr><td>breathing</td><td>~1%</td><td>~1%</td><td>&lt;1MB</td></tr>
+<tr><td>rainbow</td><td>~2%</td><td>~2%</td><td>&lt;1MB</td></tr>
+<tr><td>sparkle</td><td>~3%</td><td>~3%</td><td>~1MB</td></tr>
+</tbody></table>
+</div>
+<h3 id="usb-bandwidth"><a class="header" href="#usb-bandwidth">USB Bandwidth</a></h3>
+<ul>
+<li><strong>Update Rate</strong>: 10fps (100ms per frame)</li>
+<li><strong>Data per Update</strong>: 51 bytes (1 byte report ID + 50 bytes RGB data)</li>
+<li><strong>Bandwidth</strong>: 510 bytes/sec (~0.004 Mbps)</li>
+<li><strong>Impact</strong>: Negligible on USB 2.0 (480 Mbps)</li>
+</ul>
+<h3 id="recommendations"><a class="header" href="#recommendations">Recommendations</a></h3>
+<ul>
+<li><strong>Performance Mode</strong>: Use <code>reactive</code> or <code>static</code> for lowest CPU usage</li>
+<li><strong>Visual Appeal</strong>: Use <code>rainbow</code> or <code>spiral</code> for presentations/demos</li>
+<li><strong>Battery (USB-powered hubs)</strong>: Use <code>off</code> or <code>static</code> to reduce power draw</li>
+</ul>
+<hr />
+<h2 id="api-reference"><a class="header" href="#api-reference">API Reference</a></h2>
+<h3 id="trait-interface"><a class="header" href="#trait-interface">Trait Interface</a></h3>
+<pre><code class="language-rust">pub trait PadFeedback: Send {
+    fn connect(&amp;mut self) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;;
+    fn set_pad_color(&amp;mut self, pad: u8, color: RGB) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;;
+    fn set_pad_velocity(&amp;mut self, pad: u8, velocity: u8) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;;
+    fn set_mode_colors(&amp;mut self, mode: u8) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;;
+    fn show_velocity_feedback(&amp;mut self, pad: u8, velocity: u8) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;;
+    fn flash_pad(&amp;mut self, pad: u8, color: RGB, duration_ms: u64) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;;
+    fn ripple_effect(&amp;mut self, start_pad: u8, color: RGB) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;;
+    fn clear_all(&amp;mut self) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;;
+    fn show_long_press_feedback(&amp;mut self, pad: u8, elapsed_ms: u128) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;;
+    fn run_scheme(&amp;mut self, scheme: &amp;LightingScheme) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;;
+}</code></pre>
+<h3 id="rgb-color-structure"><a class="header" href="#rgb-color-structure">RGB Color Structure</a></h3>
+<pre><code class="language-rust">pub struct RGB {
+    pub r: u8,  // Red: 0-255
+    pub g: u8,  // Green: 0-255
+    pub b: u8,  // Blue: 0-255
+}
+
+impl RGB {
+    pub const OFF: RGB = RGB { r: 0, g: 0, b: 0 };
+    pub const RED: RGB = RGB { r: 255, g: 0, b: 0 };
+    pub const GREEN: RGB = RGB { r: 0, g: 255, b: 0 };
+    pub const BLUE: RGB = RGB { r: 0, g: 0, b: 255 };
+    pub const YELLOW: RGB = RGB { r: 255, g: 255, b: 0 };
+    pub const PURPLE: RGB = RGB { r: 255, g: 0, b: 255 };
+}</code></pre>
+<hr />
+<h2 id="see-also-5"><a class="header" href="#see-also-5">See Also</a></h2>
+<ul>
+<li><a href="reference/../configuration/led-feedback.html">Configuration → LED Feedback</a></li>
+<li><a href="reference/../devices/mikro-mk3.html">Device Support → Maschine Mikro MK3</a></li>
+<li><a href="reference/action-types.html">Reference → Action Types</a> (ModeChange action)</li>
+<li><a href="reference/../troubleshooting/common-issues.html">Troubleshooting → Common Issues</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="cli-commands"><a class="header" href="#cli-commands">CLI Commands</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-12"><a class="header" href="#coming-soon-12">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="reference/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="config-file-schema"><a class="header" href="#config-file-schema">Config File Schema</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-13"><a class="header" href="#coming-soon-13">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="reference/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-14"><a class="header" href="#coming-soon-14">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="reference/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="compatibility-matrix"><a class="header" href="#compatibility-matrix">Compatibility Matrix</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-15"><a class="header" href="#coming-soon-15">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="devices/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="maschine-mikro-mk3"><a class="header" href="#maschine-mikro-mk3">Maschine Mikro MK3</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-16"><a class="header" href="#coming-soon-16">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="devices/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="generic-midi-controllers"><a class="header" href="#generic-midi-controllers">Generic MIDI Controllers</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-17"><a class="header" href="#coming-soon-17">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="devices/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="creating-device-profiles"><a class="header" href="#creating-device-profiles">Creating Device Profiles</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-18"><a class="header" href="#coming-soon-18">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="devices/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="development-setup"><a class="header" href="#development-setup">Development Setup</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-19"><a class="header" href="#coming-soon-19">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="development/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="architecture-overview"><a class="header" href="#architecture-overview">Architecture Overview</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-20"><a class="header" href="#coming-soon-20">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="development/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="contributing-guide"><a class="header" href="#contributing-guide">Contributing Guide</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-21"><a class="header" href="#coming-soon-21">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="development/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="testing-guide"><a class="header" href="#testing-guide">Testing Guide</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-22"><a class="header" href="#coming-soon-22">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="development/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="release-process"><a class="header" href="#release-process">Release Process</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-23"><a class="header" href="#coming-soon-23">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="development/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="common-issues"><a class="header" href="#common-issues">Common Issues</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-24"><a class="header" href="#coming-soon-24">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="troubleshooting/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="faq"><a class="header" href="#faq">FAQ</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-25"><a class="header" href="#coming-soon-25">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="troubleshooting/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="diagnostic-tools"><a class="header" href="#diagnostic-tools">Diagnostic Tools</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-26"><a class="header" href="#coming-soon-26">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="troubleshooting/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="performance-2"><a class="header" href="#performance-2">Performance</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
+<p>For now, please refer to:</p>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+</ul>
+</blockquote>
+<h2 id="coming-soon-27"><a class="header" href="#coming-soon-27">Coming Soon</a></h2>
+<p>This page will cover:</p>
+<ul>
+<li>TBD</li>
+</ul>
+<hr />
+<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="troubleshooting/../development/contributing.html">Contributing Guide</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
+<p>See the main <a href="https://github.com/amiable-dev/midimon/blob/main/CHANGELOG.md">CHANGELOG.md</a> in the repository.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="roadmap"><a class="header" href="#roadmap">Roadmap</a></h1>
+<p>See the main <a href="https://github.com/amiable-dev/midimon/blob/main/ROADMAP.md">ROADMAP.md</a> in the repository.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="community-1"><a class="header" href="#community-1">Community</a></h1>
+<p>Join the MIDIMon community:</p>
+<ul>
+<li><strong>GitHub Discussions</strong>: <a href="https://github.com/amiable-dev/midimon/discussions">https://github.com/amiable-dev/midimon/discussions</a></li>
+<li><strong>Issues</strong>: <a href="https://github.com/amiable-dev/midimon/issues">https://github.com/amiable-dev/midimon/issues</a></li>
+<li><strong>Discord</strong>: Coming soon!</li>
+</ul>
+<p>See <a href="https://github.com/amiable-dev/midimon/blob/main/GOVERNANCE.md">GOVERNANCE.md</a> for community structure.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="support"><a class="header" href="#support">Support</a></h1>
+<p>See the main <a href="https://github.com/amiable-dev/midimon/blob/main/SUPPORT.md">SUPPORT.md</a> for getting help.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>

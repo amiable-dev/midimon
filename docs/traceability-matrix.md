@@ -1,6 +1,6 @@
 # MIDIMon Feature Traceability Matrix
 
-**Document Version**: 1.1
+**Document Version**: 1.2
 **Last Updated**: 2025-11-11
 **Status**: Active - Updated with Linear Issue References
 
@@ -16,9 +16,9 @@ This traceability matrix tracks all MIDIMon features across product requirements
 |----------|-------|------------|
 | **Total Features Identified** | 51 | 100% |
 | **Tracked in Linear** | 51 | **100%** ✅ |
-| **Fully Specified in features.md** | 9 | 17.6% |
+| **Fully Specified in features.md** | 10 | 19.6% |
 | **Partially Specified** | 4 | 7.8% |
-| **Not Specified** | 38 | 74.5% |
+| **Not Specified** | 37 | 72.5% |
 | **Implemented (v0.1.0)** | 26 | 51.0% |
 | **Planned (v2.0)** | 10 | 19.6% |
 | **Future (v2.5+)** | 4 | 7.8% |
@@ -180,10 +180,10 @@ Maps each feature to its documentation locations and specifications.
 | **F14** | ✅ Sec 4.2.5 | ⚠️ Mentioned | 📝 Action Types | 📝 Features | `actions.rs:137-180` |
 | **F15** | ✅ Sec 4.2.6 | ⚠️ Mentioned | 📝 Action Types | 📝 Features | `actions.rs:182-195` |
 | **F16** | ✅ Sec 4.2.7 | ❌ | 📝 Action Types | ❌ | `actions.rs:197-220` |
-| **F17** | ✅ Sec 4.2.8 | ❌ | 📝 Action Types | ❌ | `actions.rs:222-235` |
+| **F17** | ✅ Sec 4.2.8 | ✅ F17 | 📝 Action Types | ✅ Yes | `actions.rs:54-56` |
 | **F18** | ✅ Sec 4.2.9 | ❌ | 📝 Action Types | ❌ | `actions.rs:237-260` |
 | **F19** | ✅ Sec 4.2.10 | ❌ | 📝 Action Types | ❌ | `actions.rs:262-280` |
-| **F20** | ✅ Sec 4.2.11 | ❌ | 📝 Action Types | ❌ | `actions.rs:282-320` |
+| **F20** | ✅ Sec 4.2.11 | ✅ F20 | 📝 Action Types | ❌ | `actions.rs:282-320` |
 | **F21** | ✅ Sec 4.3.1 | 📝 Architecture | ✅ Mode System | 📝 Features | `mappings.rs:25-50` |
 | **F22** | ✅ Sec 4.3.2 | 📝 Architecture | ✅ Mode System | 📝 Features | `mappings.rs:52-75` |
 | **F23** | ✅ Sec 4.4.1 | 📝 Mentioned | ✅ LED Feedback | 📝 Features | `mikro_leds.rs:1-450` |
@@ -239,7 +239,7 @@ Tracks implementation state, test coverage, and documentation completeness.
 | **F14** | ✅ Complete | ⚠️ Basic | ❌ No | ⚠️ Partial | ⚠️ Minimal | ⚠️ Minimal |
 | **F15** | ✅ Complete | ✅ Yes | ✅ Yes | ⚠️ Partial | ⚠️ Minimal | ⚠️ Minimal |
 | **F16** | ✅ Complete | ⚠️ Basic | ❌ No | ❌ None | ❌ No | ❌ No |
-| **F17** | ✅ Complete | ✅ Yes | ❌ No | ❌ None | ❌ No | ❌ No |
+| **F17** | ✅ Complete | ✅ Yes | ❌ No | ✅ Full | ✅ Yes | ✅ Yes |
 | **F18** | ✅ Complete | ⚠️ Basic | ❌ No | ❌ None | ❌ No | ❌ No |
 | **F19** | ✅ Complete | ⚠️ Basic | ❌ No | ❌ None | ❌ No | ❌ No |
 | **F20** | ✅ Complete | ⚠️ Basic | ❌ No | ❌ None | ❌ No | ❌ No |

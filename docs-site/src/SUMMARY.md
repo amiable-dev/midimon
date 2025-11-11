@@ -30,6 +30,7 @@
 
 - [Trigger Types](reference/trigger-types.md)
 - [Action Types](reference/action-types.md)
+- [LED System](reference/led-system.md)
 - [CLI Commands](reference/cli-commands.md)
 - [Config File Schema](reference/config-schema.md)
 - [Environment Variables](reference/environment.md)
