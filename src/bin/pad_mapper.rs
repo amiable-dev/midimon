@@ -122,8 +122,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             let high_byte = buffer[idx + 1];
                             let pad_idx = (high_byte & 0xF0) >> 4;
                             let low_byte = buffer[idx];
-                            let value =
-                                (((high_byte & 0x0F) as u16) << 8) | low_byte as u16;
+                            let value = (((high_byte & 0x0F) as u16) << 8) | low_byte as u16;
 
                             if value > 512 {
                                 eprintln!(
@@ -192,7 +191,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             let hid_data = *captured_hid.lock().unwrap();
 
             if let (Some((note, vel)), Some(hid_idx)) = (midi_data, hid_data) {
-
                 println!("✓");
                 println!("  MIDI: Note {} velocity {}", note, vel);
                 println!("  HID:  Pad index 0x{:02X} ({})", hid_idx, hid_idx);

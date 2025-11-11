@@ -19,8 +19,14 @@ struct CompiledMapping {
 }
 
 enum CompiledTrigger {
-    Note { note: u8, velocity_min: u8 },
-    CC { cc: u8, value_min: u8 },
+    Note {
+        note: u8,
+        velocity_min: u8,
+    },
+    CC {
+        cc: u8,
+        value_min: u8,
+    },
     NoteChord {
         #[allow(dead_code)]
         notes: Vec<u8>,
