@@ -181,23 +181,587 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="cli-commands"><a class="header" href="#cli-commands">CLI Commands</a></h1>
-<blockquote>
-<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
-<p>For now, please refer to:</p>
+                        <h1 id="cli-commands-reference"><a class="header" href="#cli-commands-reference">CLI Commands Reference</a></h1>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>MIDIMon provides a main binary and several diagnostic tools, all accessible via the command line. This reference covers all available commands, their options, and usage examples.</p>
+<h2 id="main-binary-midimon"><a class="header" href="#main-binary-midimon">Main Binary: midimon</a></h2>
+<p>The primary MIDIMon application.</p>
+<h3 id="basic-syntax"><a class="header" href="#basic-syntax">Basic Syntax</a></h3>
+<pre><code class="language-bash"># Via cargo
+cargo run --release [PORT] [OPTIONS]
+
+# Or directly
+./target/release/midimon [PORT] [OPTIONS]
+</code></pre>
+<h3 id="arguments"><a class="header" href="#arguments">Arguments</a></h3>
+<h4 id="port-required-in-some-cases"><a class="header" href="#port-required-in-some-cases">PORT (Required in some cases)</a></h4>
+<p>The MIDI input port number to connect to.</p>
+<p><strong>Finding available ports</strong>:</p>
+<pre><code class="language-bash"># List all MIDI ports
+cargo run --release
+
+# Or
+./target/release/midimon
+</code></pre>
+<p>Output:</p>
+<pre><code>Available MIDI input ports:
+0: USB MIDI Device
+1: IAC Driver Bus 1
+2: Maschine Mikro MK3 - Input
+3: Digital Keyboard
+</code></pre>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash"># Connect to port 2 (Maschine Mikro MK3)
+cargo run --release 2
+
+# Connect to port 0
+cargo run --release 0
+</code></pre>
+<p><strong>Note</strong>: If <code>auto_connect = true</code> in <code>config.toml</code>, the port argument is optional and MIDIMon will connect to the first available port.</p>
+<h3 id="options"><a class="header" href="#options">Options</a></h3>
+<h4 id="--led---lighting"><a class="header" href="#--led---lighting">--led, --lighting <SCHEME></a></h4>
+<p>Select LED lighting scheme (for devices with LED support).</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">cargo run --release 2 --led &lt;SCHEME&gt;
+# or
+cargo run --release 2 --lighting &lt;SCHEME&gt;
+</code></pre>
+<p><strong>Available schemes</strong>:</p>
 <ul>
-<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
-<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
-<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+<li><code>reactive</code> (default) - Velocity-based colors, fade out after release</li>
+<li><code>rainbow</code> - Static rainbow gradient</li>
+<li><code>breathing</code> - Breathing effect (all pads)</li>
+<li><code>pulse</code> - Pulsing effect</li>
+<li><code>wave</code> - Wave pattern with brightness gradient</li>
+<li><code>sparkle</code> - Random twinkling LEDs</li>
+<li><code>vumeter</code> - VU meter style gradient (green → yellow → red)</li>
+<li><code>spiral</code> - Spiral/diagonal pattern</li>
+<li><code>static</code> - Static single color</li>
+<li><code>off</code> - LEDs disabled</li>
 </ul>
-</blockquote>
-<h2 id="coming-soon"><a class="header" href="#coming-soon">Coming Soon</a></h2>
-<p>This page will cover:</p>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-bash"># Reactive mode (velocity-sensitive)
+cargo run --release 2 --led reactive
+
+# Rainbow gradient
+cargo run --release 2 --led rainbow
+
+# Breathing effect
+cargo run --release 2 --lighting breathing
+
+# Turn off LEDs
+cargo run --release 2 --led off
+</code></pre>
+<p><strong>LED Behavior by Scheme</strong>:</p>
+<p><strong>reactive</strong>:</p>
 <ul>
-<li>TBD</li>
+<li>Soft press (velocity &lt; 50): Green Dim</li>
+<li>Medium press (50 ≤ velocity &lt; 100): Yellow Normal</li>
+<li>Hard press (velocity ≥ 100): Red Bright</li>
+<li>Fades out 1 second after release</li>
+</ul>
+<p><strong>rainbow</strong>:</p>
+<ul>
+<li>Static rainbow gradient across all pads</li>
+<li>No animation (constant colors)</li>
+</ul>
+<p><strong>sparkle</strong>:</p>
+<ul>
+<li>Random white LEDs</li>
+<li>20% probability per pad per frame</li>
+<li>Updates every 100ms</li>
+</ul>
+<p><strong>vumeter</strong>:</p>
+<ul>
+<li>Green (bottom rows)</li>
+<li>Yellow/Orange (middle)</li>
+<li>Red (top)</li>
+</ul>
+<p><strong>wave</strong>:</p>
+<ul>
+<li>Blue with varying brightness</li>
+<li>Creates wave effect</li>
+</ul>
+<h4 id="--profile--p"><a class="header" href="#--profile--p">--profile, -p <PATH></a></h4>
+<p>Load a Native Instruments Controller Editor profile (.ncmm3 file).</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">cargo run --release 2 --profile &lt;PATH&gt;
+# or
+cargo run --release 2 -p &lt;PATH&gt;
+</code></pre>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-bash"># Relative path
+cargo run --release 2 --profile my-profile.ncmm3
+
+# Absolute path
+cargo run --release 2 --profile ~/Downloads/base-template-ni-mikro-mk3.ncmm3
+
+# macOS default location
+cargo run --release 2 --profile "$HOME/Documents/Native Instruments/Controller Editor/Profiles/my-profile.ncmm3"
+</code></pre>
+<p><strong>What profiles do</strong>:</p>
+<ul>
+<li>Map physical pad positions to MIDI note numbers</li>
+<li>Support 8 pad pages (A-H) per profile</li>
+<li>Enable correct LED feedback for custom layouts</li>
+<li>Allow seamless integration with NI Controller Editor</li>
+</ul>
+<p><strong>Creating profiles</strong>:</p>
+<ol>
+<li>Open Native Instruments Controller Editor</li>
+<li>Select "Maschine Mikro MK3"</li>
+<li>Edit pad pages (A-H)</li>
+<li>Assign MIDI notes to each pad</li>
+<li>Save as <code>.ncmm3</code> file</li>
+<li>Use with <code>--profile</code> flag</li>
+</ol>
+<p>See <a href="../DEVICE_PROFILES.html">Device Profiles Documentation</a> for complete guide.</p>
+<h4 id="--pad-page"><a class="header" href="#--pad-page">--pad-page <PAGE></a></h4>
+<p>Force a specific pad page when using a profile (instead of auto-detection).</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">cargo run --release 2 --profile &lt;PATH&gt; --pad-page &lt;PAGE&gt;
+</code></pre>
+<p><strong>Valid pages</strong>: A, B, C, D, E, F, G, H (case-insensitive)</p>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-bash"># Force page A
+cargo run --release 2 --profile my-profile.ncmm3 --pad-page A
+
+# Force page H
+cargo run --release 2 --profile my-profile.ncmm3 --pad-page h
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Auto-detection not working correctly</li>
+<li>Want to lock to a specific page</li>
+<li>Testing specific page mappings</li>
+<li>Profile has identical notes across multiple pages</li>
+</ul>
+<p><strong>Default behavior</strong> (without <code>--pad-page</code>):</p>
+<ul>
+<li>Auto-detect active page from incoming MIDI notes</li>
+<li>Switch pages automatically when notes from different page detected</li>
+</ul>
+<h4 id="--config--c"><a class="header" href="#--config--c">--config, -c <PATH></a></h4>
+<p>Specify custom configuration file location.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">cargo run --release 2 --config &lt;PATH&gt;
+# or
+cargo run --release 2 -c &lt;PATH&gt;
+</code></pre>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-bash"># Use alternative config
+cargo run --release 2 --config config-dev.toml
+
+# Full path
+cargo run --release 2 --config /etc/midimon/config.toml
+</code></pre>
+<p><strong>Default</strong>: <code>./config.toml</code> (current directory)</p>
+<h4 id="--help--h"><a class="header" href="#--help--h">--help, -h</a></h4>
+<p>Display help message with all available options.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">cargo run --release -- --help
+# or
+./target/release/midimon --help
+</code></pre>
+<p>Note the <code>--</code> separator when using <code>cargo run</code>.</p>
+<h4 id="--version--v"><a class="header" href="#--version--v">--version, -v</a></h4>
+<p>Display MIDIMon version.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">cargo run --release -- --version
+# or
+./target/release/midimon --version
+</code></pre>
+<h3 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h3>
+<h4 id="debug1"><a class="header" href="#debug1">DEBUG=1</a></h4>
+<p>Enable verbose debug logging.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">DEBUG=1 cargo run --release 2
+</code></pre>
+<p><strong>Output includes</strong>:</p>
+<ul>
+<li>MIDI event details (note on/off, velocity, channel)</li>
+<li>HID connection status</li>
+<li>LED updates (buffer contents)</li>
+<li>Event processing (velocity detection, long press, chords)</li>
+<li>Mapping matches and action execution</li>
+<li>Mode changes</li>
+<li>Error details</li>
+</ul>
+<p><strong>Example debug output</strong>:</p>
+<pre><code>[DEBUG] Connected to MIDI port 2: Maschine Mikro MK3 - Input
+[DEBUG] HID device opened successfully
+[DEBUG] LED controller initialized
+[DEBUG] Loaded config with 3 modes, 24 mappings
+[DEBUG] Starting in mode 0: Default
+
+[MIDI] NoteOn ch:0 note:12 vel:87
+[DEBUG] Processed: Note(12) with velocity Medium
+[DEBUG] Matched mapping: "Copy text" (mode: Default)
+[DEBUG] Executing action: Keystroke(keys: "c", modifiers: ["cmd"])
+[DEBUG] LED update: pad 0 -&gt; color 7 (Green) brightness 2
+[MIDI] NoteOff ch:0 note:12 vel:0
+[DEBUG] LED fade: pad 0 cleared after 1000ms
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Troubleshooting mapping issues</li>
+<li>Debugging note number mismatches</li>
+<li>Verifying LED control</li>
+<li>Understanding event processing</li>
+<li>Investigating performance issues</li>
+</ul>
+<h4 id="rust_log"><a class="header" href="#rust_log">RUST_LOG</a></h4>
+<p>Control Rust logging levels (for development).</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">RUST_LOG=debug cargo run --release 2
+RUST_LOG=trace cargo run --release 2
+RUST_LOG=info cargo run --release 2
+</code></pre>
+<p><strong>Levels</strong>:</p>
+<ul>
+<li><code>error</code> - Only errors</li>
+<li><code>warn</code> - Warnings and errors</li>
+<li><code>info</code> - General information (default)</li>
+<li><code>debug</code> - Debug information</li>
+<li><code>trace</code> - Very verbose</li>
+</ul>
+<p><strong>Filter by module</strong>:</p>
+<pre><code class="language-bash"># Only log MIDI events
+RUST_LOG=midimon::midi=debug cargo run --release 2
+
+# Multiple modules
+RUST_LOG=midimon::event_processor=debug,midimon::mappings=trace cargo run --release 2
+</code></pre>
+<h3 id="complete-usage-examples"><a class="header" href="#complete-usage-examples">Complete Usage Examples</a></h3>
+<h4 id="example-1-basic-usage"><a class="header" href="#example-1-basic-usage">Example 1: Basic Usage</a></h4>
+<pre><code class="language-bash"># List ports
+cargo run --release
+
+# Connect to port 2 with default settings
+cargo run --release 2
+</code></pre>
+<h4 id="example-2-with-led-lighting"><a class="header" href="#example-2-with-led-lighting">Example 2: With LED Lighting</a></h4>
+<pre><code class="language-bash"># Reactive mode (default)
+cargo run --release 2 --led reactive
+
+# Rainbow gradient
+cargo run --release 2 --led rainbow
+
+# Sparkle effect
+cargo run --release 2 --led sparkle
+</code></pre>
+<h4 id="example-3-with-profile"><a class="header" href="#example-3-with-profile">Example 3: With Profile</a></h4>
+<pre><code class="language-bash"># Auto-detect page
+cargo run --release 2 --profile my-profile.ncmm3
+
+# Force specific page
+cargo run --release 2 --profile my-profile.ncmm3 --pad-page H
+
+# With LED scheme
+cargo run --release 2 --profile my-profile.ncmm3 --led reactive
+</code></pre>
+<h4 id="example-4-debug-mode"><a class="header" href="#example-4-debug-mode">Example 4: Debug Mode</a></h4>
+<pre><code class="language-bash"># Enable debug output
+DEBUG=1 cargo run --release 2
+
+# With all options
+DEBUG=1 cargo run --release 2 --profile my-profile.ncmm3 --led reactive
+</code></pre>
+<h4 id="example-5-custom-config"><a class="header" href="#example-5-custom-config">Example 5: Custom Config</a></h4>
+<pre><code class="language-bash"># Use development config
+cargo run --release 2 --config config-dev.toml
+
+# Use config from different directory
+cargo run --release 2 --config ~/midimon-configs/work.toml
+</code></pre>
+<h4 id="example-6-production-binary"><a class="header" href="#example-6-production-binary">Example 6: Production Binary</a></h4>
+<pre><code class="language-bash"># Build release
+cargo build --release
+
+# Run with all options
+./target/release/midimon 2 \
+    --profile ~/Documents/NI/my-profile.ncmm3 \
+    --led reactive \
+    --config ~/midimon-configs/production.toml
+</code></pre>
+<h2 id="diagnostic-tools"><a class="header" href="#diagnostic-tools">Diagnostic Tools</a></h2>
+<p>MIDIMon includes several diagnostic utilities for debugging and configuration.</p>
+<h3 id="midi_diagnostic"><a class="header" href="#midi_diagnostic">midi_diagnostic</a></h3>
+<p>Visualize all incoming MIDI events in real-time.</p>
+<p><strong>Purpose</strong>: Debug MIDI connectivity, view raw MIDI data, verify device is sending events.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">cargo run --bin midi_diagnostic [PORT]
+</code></pre>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-bash"># Connect to port 2
+cargo run --bin midi_diagnostic 2
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Connected to MIDI port 2: Maschine Mikro MK3 - Input
+Listening for MIDI events... (Ctrl+C to exit)
+
+[NoteOn]  ch:0 note:12 vel:87
+[NoteOff] ch:0 note:12 vel:0
+[NoteOn]  ch:0 note:13 vel:45
+[NoteOff] ch:0 note:13 vel:0
+[CC]      ch:0 cc:1 value:64
+[PitchBend] ch:0 value:8192
+</code></pre>
+<p><strong>Event types shown</strong>:</p>
+<ul>
+<li><code>NoteOn</code> - Pad/key pressed</li>
+<li><code>NoteOff</code> - Pad/key released</li>
+<li><code>CC</code> - Control Change (knobs, sliders)</li>
+<li><code>PitchBend</code> - Touch strip, pitch wheel</li>
+<li><code>Aftertouch</code> - Pressure sensitivity</li>
+<li><code>ProgramChange</code> - Program/patch change</li>
+</ul>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Verify MIDI device is connected</li>
+<li>Find note numbers for pads/keys</li>
+<li>Debug why mappings aren't triggering</li>
+<li>Check velocity ranges</li>
+<li>Verify CC numbers for encoders/knobs</li>
+</ul>
+<p><strong>Press Ctrl+C to exit.</strong></p>
+<h3 id="led_diagnostic"><a class="header" href="#led_diagnostic">led_diagnostic</a></h3>
+<p>Test LED functionality and HID connection.</p>
+<p><strong>Purpose</strong>: Verify HID access, test LED control, debug LED issues.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">cargo run --bin led_diagnostic
+</code></pre>
+<p><strong>What it does</strong>:</p>
+<ol>
+<li>Attempts to open HID device</li>
+<li>Displays connection status</li>
+<li>Tests individual LED control</li>
+<li>Cycles through all pads with different colors</li>
+</ol>
+<p><strong>Output</strong>:</p>
+<pre><code>LED Diagnostic Tool
+==================
+
+Searching for Maschine Mikro MK3...
+✓ Device found: Maschine Mikro MK3 (17cc:1600)
+✓ HID device opened successfully
+
+Testing LED control...
+- Lighting pad 0 (Red Bright)
+- Lighting pad 1 (Green Bright)
+- Lighting pad 2 (Blue Bright)
+...
+- Clearing all pads
+
+✓ LED diagnostic complete
+</code></pre>
+<p><strong>Error output</strong> (if HID not accessible):</p>
+<pre><code>✗ Failed to open HID device
+  Possible causes:
+  - Device not connected
+  - Input Monitoring permission not granted
+  - Native Instruments drivers not installed
+
+  Solutions:
+  1. Check USB connection
+  2. Grant Input Monitoring permission (System Settings → Privacy &amp; Security)
+  3. Install NI drivers via Native Access
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>LEDs not working in main application</li>
+<li>Verify HID access before running midimon</li>
+<li>Test after granting permissions</li>
+<li>Debug LED coordinate mapping issues</li>
+</ul>
+<h3 id="led_tester"><a class="header" href="#led_tester">led_tester</a></h3>
+<p>Interactive LED testing tool.</p>
+<p><strong>Purpose</strong>: Manual control of individual LEDs for testing and debugging.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">cargo run --bin led_tester
+</code></pre>
+<p><strong>Interactive mode</strong>:</p>
+<pre><code>LED Tester - Interactive Mode
+==============================
+
+Commands:
+  on &lt;pad&gt; &lt;color&gt; &lt;brightness&gt;  - Turn on LED
+  off &lt;pad&gt;                      - Turn off LED
+  all &lt;color&gt; &lt;brightness&gt;       - Set all LEDs
+  clear                          - Clear all LEDs
+  rainbow                        - Show rainbow pattern
+  test                           - Cycle through all pads
+  quit                           - Exit
+
+&gt; on 0 red 3
+✓ Pad 0: Red Bright
+
+&gt; all blue 2
+✓ All pads: Blue Normal
+
+&gt; rainbow
+✓ Rainbow pattern displayed
+
+&gt; quit
+</code></pre>
+<p><strong>Colors</strong>: red, orange, yellow, green, blue, purple, magenta, white</p>
+<p><strong>Brightness</strong>: 0 (off), 1 (dim), 2 (normal), 3 (bright)</p>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Test specific pad LEDs</li>
+<li>Verify coordinate mapping</li>
+<li>Experiment with colors and brightness</li>
+<li>Debug LED patterns</li>
+</ul>
+<h3 id="pad_mapper"><a class="header" href="#pad_mapper">pad_mapper</a></h3>
+<p>Find MIDI note numbers for physical pads.</p>
+<p><strong>Purpose</strong>: Discover note numbers to use in <code>config.toml</code>.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">cargo run --bin pad_mapper [PORT]
+</code></pre>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-bash">cargo run --bin pad_mapper 2
+</code></pre>
+<p><strong>Usage</strong>:</p>
+<ol>
+<li>Run the tool</li>
+<li>Press each pad on your controller</li>
+<li>Write down the note number displayed</li>
+<li>Use those numbers in your config</li>
+</ol>
+<p><strong>Output</strong>:</p>
+<pre><code>Pad Mapper - Press pads to see note numbers
+============================================
+Connected to port 2: Maschine Mikro MK3 - Input
+
+Press pads... (Ctrl+C to exit)
+
+Pad pressed: Note 12 (velocity: 87)
+Pad pressed: Note 13 (velocity: 64)
+Pad pressed: Note 14 (velocity: 103)
+Pad pressed: Note 15 (velocity: 52)
+</code></pre>
+<p><strong>Tips</strong>:</p>
+<ul>
+<li>Press pads in order (bottom-left to top-right)</li>
+<li>Draw a grid on paper and write down note numbers</li>
+<li>Use this data to update <code>config.toml</code></li>
+</ul>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Setting up a new device</li>
+<li>Creating initial config</li>
+<li>Mapping custom devices</li>
+<li>Verifying profile note numbers</li>
+</ul>
+<h3 id="test_midi"><a class="header" href="#test_midi">test_midi</a></h3>
+<p>Test MIDI port connectivity and enumerate devices.</p>
+<p><strong>Purpose</strong>: Quick MIDI connectivity test, list all available ports.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">cargo run --bin test_midi
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>MIDI Port Test
+==============
+
+Available input ports:
+0: USB MIDI Device
+1: IAC Driver Bus 1
+2: Maschine Mikro MK3 - Input
+3: Digital Keyboard
+
+Available output ports:
+0: USB MIDI Device
+1: IAC Driver Bus 1
+2: Maschine Mikro MK3 - Output
+
+Testing port 2 (input)...
+✓ Successfully opened port: Maschine Mikro MK3 - Input
+
+Press a pad to test... (5 second timeout)
+✓ Received MIDI event: NoteOn ch:0 note:12 vel:87
+
+Connection test: PASSED
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Verify MIDI device detected</li>
+<li>Check port numbers before running midimon</li>
+<li>Debug connectivity issues</li>
+<li>Confirm MIDI cable is working</li>
+</ul>
+<h2 id="command-quick-reference"><a class="header" href="#command-quick-reference">Command Quick Reference</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>Purpose</th><th>Example</th></tr></thead><tbody>
+<tr><td><code>midimon [PORT]</code></td><td>Main application</td><td><code>cargo run --release 2</code></td></tr>
+<tr><td><code>--led &lt;SCHEME&gt;</code></td><td>Set LED scheme</td><td><code>cargo run --release 2 --led rainbow</code></td></tr>
+<tr><td><code>--profile &lt;PATH&gt;</code></td><td>Load profile</td><td><code>cargo run --release 2 --profile my.ncmm3</code></td></tr>
+<tr><td><code>--pad-page &lt;PAGE&gt;</code></td><td>Force pad page</td><td><code>cargo run --release 2 --pad-page H</code></td></tr>
+<tr><td><code>--config &lt;PATH&gt;</code></td><td>Custom config</td><td><code>cargo run --release 2 --config dev.toml</code></td></tr>
+<tr><td><code>DEBUG=1</code></td><td>Enable debug log</td><td><code>DEBUG=1 cargo run --release 2</code></td></tr>
+<tr><td><code>midi_diagnostic</code></td><td>View MIDI events</td><td><code>cargo run --bin midi_diagnostic 2</code></td></tr>
+<tr><td><code>led_diagnostic</code></td><td>Test LEDs</td><td><code>cargo run --bin led_diagnostic</code></td></tr>
+<tr><td><code>led_tester</code></td><td>Interactive LED test</td><td><code>cargo run --bin led_tester</code></td></tr>
+<tr><td><code>pad_mapper</code></td><td>Find note numbers</td><td><code>cargo run --bin pad_mapper 2</code></td></tr>
+<tr><td><code>test_midi</code></td><td>Test MIDI ports</td><td><code>cargo run --bin test_midi</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="common-workflows"><a class="header" href="#common-workflows">Common Workflows</a></h2>
+<h3 id="first-time-setup"><a class="header" href="#first-time-setup">First-Time Setup</a></h3>
+<pre><code class="language-bash"># 1. List available ports
+cargo run --release
+
+# 2. Test connectivity
+cargo run --bin test_midi
+
+# 3. Map pads to note numbers
+cargo run --bin pad_mapper 2
+
+# 4. Run with basic settings
+cargo run --release 2
+
+# 5. Test LEDs
+cargo run --release 2 --led rainbow
+</code></pre>
+<h3 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h3>
+<pre><code class="language-bash"># 1. Check MIDI events are received
+cargo run --bin midi_diagnostic 2
+
+# 2. Enable debug logging
+DEBUG=1 cargo run --release 2
+
+# 3. Test LED control
+cargo run --bin led_diagnostic
+
+# 4. Verify port numbers
+cargo run --bin test_midi
+</code></pre>
+<h3 id="production-use"><a class="header" href="#production-use">Production Use</a></h3>
+<pre><code class="language-bash"># Build optimized binary
+cargo build --release
+
+# Run with all options
+./target/release/midimon 2 \
+    --profile ~/profiles/work.ncmm3 \
+    --led reactive \
+    --config ~/configs/production.toml
+
+# Or use shell script
+#!/bin/bash
+DEBUG=0 ./target/release/midimon 2 \
+    --profile "$HOME/Documents/NI/my-profile.ncmm3" \
+    --led reactive \
+    &gt; /tmp/midimon.log 2&gt;&amp;1 &amp;
+</code></pre>
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
+<ul>
+<li><a href="../installation/macos.html">macOS Installation</a> - Platform-specific setup</li>
+<li><a href="../installation/building.html">Building Guide</a> - Build from source</li>
+<li><a href="../troubleshooting/diagnostics.html">Diagnostics Guide</a> - Detailed troubleshooting</li>
+<li><a href="../configuration/overview.html">Configuration Overview</a> - Config file structure</li>
 </ul>
 <hr />
-<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="../development/contributing.html">Contributing Guide</a>.</p>
+<p><strong>Last Updated</strong>: November 11, 2025
+<strong>Binary Version</strong>: 0.1.0</p>
 
                     </main>
 

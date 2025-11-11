@@ -181,23 +181,499 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="macos-installation"><a class="header" href="#macos-installation">macOS Installation</a></h1>
-<blockquote>
-<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
-<p>For now, please refer to:</p>
+                        <h1 id="macos-installation-guide"><a class="header" href="#macos-installation-guide">macOS Installation Guide</a></h1>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>This guide walks through installing and configuring MIDIMon on macOS, from installing prerequisites to running your first mapping. The process takes approximately 15-20 minutes.</p>
+<h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
+<h3 id="1-rust-toolchain"><a class="header" href="#1-rust-toolchain">1. Rust Toolchain</a></h3>
+<p>MIDIMon is written in Rust and requires the Rust compiler and Cargo build system.</p>
+<p><strong>Check if Rust is already installed</strong>:</p>
+<pre><code class="language-bash">rustc --version
+cargo --version
+</code></pre>
+<p>If you see version numbers (e.g., <code>rustc 1.75.0</code>), skip to step 2.</p>
+<p><strong>Install Rust using rustup</strong>:</p>
+<pre><code class="language-bash">curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+</code></pre>
+<p>Follow the prompts and select the default installation. Then reload your shell:</p>
+<pre><code class="language-bash">source $HOME/.cargo/env
+</code></pre>
+<p><strong>Verify installation</strong>:</p>
+<pre><code class="language-bash">rustc --version  # Should show: rustc 1.75.0 (or later)
+cargo --version  # Should show: cargo 1.75.0 (or later)
+</code></pre>
+<h3 id="2-native-instruments-drivers-for-maschine-mikro-mk3"><a class="header" href="#2-native-instruments-drivers-for-maschine-mikro-mk3">2. Native Instruments Drivers (for Maschine Mikro MK3)</a></h3>
+<p>If using a Maschine Mikro MK3, install Native Instruments drivers for full RGB LED support.</p>
+<p><strong>Download and install</strong>:</p>
+<ol>
+<li>Visit <a href="https://www.native-instruments.com/en/support/downloads/">Native Instruments Downloads</a></li>
+<li>Download <strong>Native Access</strong> (the NI installation manager)</li>
+<li>Install Native Access and sign in (free account)</li>
+<li>In Native Access, install:
 <ul>
-<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
-<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
-<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+<li><strong>Maschine</strong> software (includes drivers)</li>
+<li><strong>Controller Editor</strong> (for creating custom profiles, optional)</li>
 </ul>
-</blockquote>
-<h2 id="coming-soon"><a class="header" href="#coming-soon">Coming Soon</a></h2>
-<p>This page will cover:</p>
+</li>
+</ol>
+<p><strong>Verify driver installation</strong>:</p>
+<pre><code class="language-bash">system_profiler SPUSBDataType | grep -i maschine
+</code></pre>
+<p>You should see output like:</p>
+<pre><code>Maschine Mikro MK3:
+  Product ID: 0x1600
+  Vendor ID: 0x17cc  (Native Instruments)
+</code></pre>
+<h3 id="3-xcode-command-line-tools"><a class="header" href="#3-xcode-command-line-tools">3. Xcode Command Line Tools</a></h3>
+<p>Required for compiling native dependencies:</p>
+<pre><code class="language-bash">xcode-select --install
+</code></pre>
+<p>If already installed, you'll see: "command line tools are already installed".</p>
+<h2 id="building-midimon-from-source"><a class="header" href="#building-midimon-from-source">Building MIDIMon from Source</a></h2>
+<h3 id="1-clone-the-repository"><a class="header" href="#1-clone-the-repository">1. Clone the Repository</a></h3>
+<pre><code class="language-bash"># Choose a location for the project
+cd ~/projects  # or wherever you keep code
+
+# Clone the repository
+git clone https://github.com/yourusername/midimon.git
+cd midimon
+</code></pre>
+<h3 id="2-build-the-project"><a class="header" href="#2-build-the-project">2. Build the Project</a></h3>
+<p><strong>Debug build</strong> (faster compilation, larger binary, includes debug symbols):</p>
+<pre><code class="language-bash">cargo build
+</code></pre>
+<p><strong>Release build</strong> (recommended for regular use):</p>
+<pre><code class="language-bash">cargo build --release
+</code></pre>
+<p>The release build takes 2-5 minutes on modern hardware and produces an optimized binary (~3-5MB) in <code>target/release/midimon</code>.</p>
+<p><strong>Build output</strong>:</p>
+<pre><code>   Compiling midimon v0.1.0 (/Users/you/projects/midimon)
+    Finished release [optimized] target(s) in 2m 34s
+</code></pre>
+<h3 id="3-verify-the-build"><a class="header" href="#3-verify-the-build">3. Verify the Build</a></h3>
+<pre><code class="language-bash"># List MIDI ports (should show connected devices)
+cargo run --release
+
+# Or use the binary directly
+./target/release/midimon
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Available MIDI input ports:
+0: USB MIDI Device
+1: IAC Driver Bus 1
+2: Maschine Mikro MK3 - Input
+</code></pre>
+<h2 id="setting-up-configuration"><a class="header" href="#setting-up-configuration">Setting Up Configuration</a></h2>
+<h3 id="1-create-configtoml"><a class="header" href="#1-create-configtoml">1. Create config.toml</a></h3>
+<p>MIDIMon looks for <code>config.toml</code> in the project root directory.</p>
+<p><strong>Create a minimal config</strong>:</p>
+<pre><code class="language-bash">cat &gt; config.toml &lt;&lt; 'EOF'
+[device]
+name = "Mikro"
+auto_connect = true
+
+[[modes]]
+name = "Default"
+color = "blue"
+
+[[modes.mappings]]
+description = "Test mapping - Copy"
+[modes.mappings.trigger]
+type = "Note"
+note = 12
+[modes.mappings.action]
+type = "Keystroke"
+keys = "c"
+modifiers = ["cmd"]
+
+[[global_mappings]]
+description = "Emergency exit (hold pad 0 for 3 seconds)"
+[global_mappings.trigger]
+type = "LongPress"
+note = 0
+hold_duration_ms = 3000
+[global_mappings.action]
+type = "Shell"
+command = "killall midimon"
+EOF
+</code></pre>
+<p>This creates a basic configuration with:</p>
 <ul>
-<li>TBD</li>
+<li>One mode (Default)</li>
+<li>One test mapping (pad 12 = Cmd+C)</li>
+<li>One emergency exit (hold pad 0 to quit)</li>
 </ul>
+<h3 id="2-find-your-note-numbers"><a class="header" href="#2-find-your-note-numbers">2. Find Your Note Numbers</a></h3>
+<p>If you don't know which MIDI note numbers your pads send:</p>
+<pre><code class="language-bash">cargo run --bin pad_mapper
+</code></pre>
+<p>Press each pad and write down the note numbers. Update your <code>config.toml</code> with the correct values.</p>
+<h2 id="configuring-macos-permissions"><a class="header" href="#configuring-macos-permissions">Configuring macOS Permissions</a></h2>
+<h3 id="input-monitoring-permission-required-for-hidled-control"><a class="header" href="#input-monitoring-permission-required-for-hidled-control">Input Monitoring Permission (Required for HID/LED Control)</a></h3>
+<p>macOS requires explicit permission for applications to access HID devices like the Maschine Mikro MK3.</p>
+<p><strong>Grant permission</strong>:</p>
+<ol>
+<li>
+<p>Run MIDIMon once:</p>
+<pre><code class="language-bash">cargo run --release 2
+</code></pre>
+</li>
+<li>
+<p>macOS will show a permission dialog: <strong>"midimon would like to receive keystrokes from any application"</strong></p>
+</li>
+<li>
+<p>Click <strong>Open System Settings</strong> or manually navigate:</p>
+<ul>
+<li>Open <strong>System Settings</strong> → <strong>Privacy &amp; Security</strong> → <strong>Input Monitoring</strong></li>
+<li>Find <code>midimon</code> (or <code>Terminal</code> if running via <code>cargo run</code>)</li>
+<li>Toggle the switch to <strong>ON</strong></li>
+</ul>
+</li>
+<li>
+<p>Restart MIDIMon:</p>
+<pre><code class="language-bash">cargo run --release 2
+</code></pre>
+</li>
+</ol>
+<p><strong>Verify HID access</strong>:</p>
+<pre><code class="language-bash">DEBUG=1 cargo run --release 2
+</code></pre>
+<p>Look for:</p>
+<pre><code>[DEBUG] HID device opened successfully
+[DEBUG] LED controller initialized
+</code></pre>
+<p>If you see "HID device open failed", check:</p>
+<ul>
+<li>Input Monitoring permission is enabled</li>
+<li>USB cable is connected</li>
+<li>Native Instruments drivers are installed</li>
+</ul>
+<h3 id="accessibility-permission-optional-for-advanced-actions"><a class="header" href="#accessibility-permission-optional-for-advanced-actions">Accessibility Permission (Optional, for Advanced Actions)</a></h3>
+<p>Some actions (e.g., controlling other apps programmatically) may require Accessibility permission:</p>
+<ol>
+<li>Go to <strong>System Settings</strong> → <strong>Privacy &amp; Security</strong> → <strong>Accessibility</strong></li>
+<li>Click the <strong>+</strong> button</li>
+<li>Navigate to <code>target/release/midimon</code> (or add <code>Terminal</code>)</li>
+<li>Click <strong>Open</strong></li>
+</ol>
+<p>This is optional and only needed for specific advanced features.</p>
+<h2 id="verifying-usb-connection"><a class="header" href="#verifying-usb-connection">Verifying USB Connection</a></h2>
+<h3 id="check-usb-device-enumeration"><a class="header" href="#check-usb-device-enumeration">Check USB Device Enumeration</a></h3>
+<pre><code class="language-bash">system_profiler SPUSBDataType | grep -i mikro
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Maschine Mikro MK3:
+  Product ID: 0x1600
+  Vendor ID: 0x17cc (Native Instruments)
+  Serial Number: XXXXX
+  Location ID: 0x14200000 / 5
+</code></pre>
+<h3 id="check-midi-connectivity"><a class="header" href="#check-midi-connectivity">Check MIDI Connectivity</a></h3>
+<pre><code class="language-bash"># Open Audio MIDI Setup
+open -a "Audio MIDI Setup"
+</code></pre>
+<p>In the <strong>MIDI Studio</strong> window (Window → Show MIDI Studio):</p>
+<ul>
+<li>You should see "Maschine Mikro MK3" listed</li>
+<li>It should be connected (not grayed out)</li>
+<li>Double-click to view its properties</li>
+</ul>
+<h3 id="test-midi-events"><a class="header" href="#test-midi-events">Test MIDI Events</a></h3>
+<pre><code class="language-bash"># Run diagnostic tool
+cargo run --bin midi_diagnostic 2
+</code></pre>
+<p>Press pads on your controller. You should see:</p>
+<pre><code>[NoteOn] ch:0 note:12 vel:87
+[NoteOff] ch:0 note:12 vel:0
+</code></pre>
+<p>If nothing appears:</p>
+<ul>
+<li>Check USB cable</li>
+<li>Verify correct port number (try 0, 1, 2, etc.)</li>
+<li>Restart the device</li>
+<li>Check Audio MIDI Setup</li>
+</ul>
+<h2 id="running-midimon"><a class="header" href="#running-midimon">Running MIDIMon</a></h2>
+<h3 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h3>
+<pre><code class="language-bash"># Auto-detect device (port 0)
+cargo run --release 0
+
+# Connect to specific port
+cargo run --release 2
+
+# With LED lighting
+cargo run --release 2 --led reactive
+</code></pre>
+<h3 id="with-device-profile"><a class="header" href="#with-device-profile">With Device Profile</a></h3>
+<p>If you have a <code>.ncmm3</code> profile from NI Controller Editor:</p>
+<pre><code class="language-bash"># Auto-detect pad page
+cargo run --release 2 --profile ~/Downloads/my-profile.ncmm3
+
+# Force specific pad page (A-H)
+cargo run --release 2 --profile my-profile.ncmm3 --pad-page H
+</code></pre>
+<h3 id="with-debug-logging"><a class="header" href="#with-debug-logging">With Debug Logging</a></h3>
+<pre><code class="language-bash"># Enable verbose logging
+DEBUG=1 cargo run --release 2
+</code></pre>
+<h3 id="available-led-schemes"><a class="header" href="#available-led-schemes">Available LED Schemes</a></h3>
+<pre><code class="language-bash"># Reactive (velocity-based colors, default)
+cargo run --release 2 --led reactive
+
+# Rainbow gradient
+cargo run --release 2 --led rainbow
+
+# Breathing effect
+cargo run --release 2 --led breathing
+
+# Other schemes: pulse, wave, sparkle, vumeter, spiral, static, off
+cargo run --release 2 --led wave
+</code></pre>
+<h2 id="optional-launchagent-setup-auto-start-on-login"><a class="header" href="#optional-launchagent-setup-auto-start-on-login">Optional: LaunchAgent Setup (Auto-Start on Login)</a></h2>
+<p>To run MIDIMon automatically when you log in:</p>
+<h3 id="1-create-launchagent-plist"><a class="header" href="#1-create-launchagent-plist">1. Create LaunchAgent plist</a></h3>
+<pre><code class="language-bash">mkdir -p ~/Library/LaunchAgents
+
+cat &gt; ~/Library/LaunchAgents/com.midimon.plist &lt;&lt; 'EOF'
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"&gt;
+&lt;plist version="1.0"&gt;
+&lt;dict&gt;
+    &lt;key&gt;Label&lt;/key&gt;
+    &lt;string&gt;com.midimon&lt;/string&gt;
+
+    &lt;key&gt;ProgramArguments&lt;/key&gt;
+    &lt;array&gt;
+        &lt;string&gt;/Users/YOURUSERNAME/projects/midimon/target/release/midimon&lt;/string&gt;
+        &lt;string&gt;2&lt;/string&gt;
+        &lt;string&gt;--led&lt;/string&gt;
+        &lt;string&gt;reactive&lt;/string&gt;
+    &lt;/array&gt;
+
+    &lt;key&gt;RunAtLoad&lt;/key&gt;
+    &lt;true/&gt;
+
+    &lt;key&gt;KeepAlive&lt;/key&gt;
+    &lt;false/&gt;
+
+    &lt;key&gt;StandardOutPath&lt;/key&gt;
+    &lt;string&gt;/tmp/midimon.log&lt;/string&gt;
+
+    &lt;key&gt;StandardErrorPath&lt;/key&gt;
+    &lt;string&gt;/tmp/midimon.err&lt;/string&gt;
+&lt;/dict&gt;
+&lt;/plist&gt;
+EOF
+</code></pre>
+<p><strong>Replace <code>YOURUSERNAME</code></strong> with your actual username, and update the path to your binary.</p>
+<h3 id="2-load-the-launchagent"><a class="header" href="#2-load-the-launchagent">2. Load the LaunchAgent</a></h3>
+<pre><code class="language-bash">launchctl load ~/Library/LaunchAgents/com.midimon.plist
+</code></pre>
+<h3 id="3-verify-its-running"><a class="header" href="#3-verify-its-running">3. Verify It's Running</a></h3>
+<pre><code class="language-bash">launchctl list | grep midimon
+</code></pre>
+<p>You should see:</p>
+<pre><code>12345   0   com.midimon
+</code></pre>
+<h3 id="4-control-the-launchagent"><a class="header" href="#4-control-the-launchagent">4. Control the LaunchAgent</a></h3>
+<pre><code class="language-bash"># Stop
+launchctl unload ~/Library/LaunchAgents/com.midimon.plist
+
+# Start
+launchctl load ~/Library/LaunchAgents/com.midimon.plist
+
+# Reload after changes
+launchctl unload ~/Library/LaunchAgents/com.midimon.plist
+launchctl load ~/Library/LaunchAgents/com.midimon.plist
+</code></pre>
+<h3 id="5-check-logs"><a class="header" href="#5-check-logs">5. Check Logs</a></h3>
+<pre><code class="language-bash"># Standard output
+tail -f /tmp/midimon.log
+
+# Errors
+tail -f /tmp/midimon.err
+</code></pre>
+<h2 id="post-installation-steps"><a class="header" href="#post-installation-steps">Post-Installation Steps</a></h2>
+<h3 id="1-test-your-mappings"><a class="header" href="#1-test-your-mappings">1. Test Your Mappings</a></h3>
+<p>Press pads on your controller and verify actions execute correctly.</p>
+<p><strong>Test checklist</strong>:</p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+Pad presses trigger actions</li>
+<li><input disabled="" type="checkbox"/>
+LEDs respond to presses (if using Mikro MK3)</li>
+<li><input disabled="" type="checkbox"/>
+Mode switching works (if configured)</li>
+<li><input disabled="" type="checkbox"/>
+Encoder controls work (if mapped)</li>
+<li><input disabled="" type="checkbox"/>
+Long press detection works</li>
+<li><input disabled="" type="checkbox"/>
+Double-tap detection works</li>
+</ul>
+<h3 id="2-customize-configtoml"><a class="header" href="#2-customize-configtoml">2. Customize config.toml</a></h3>
+<p>Edit <code>config.toml</code> to add your own mappings. See:</p>
+<ul>
+<li><a href="../getting-started/first-mapping.html">First Mapping Tutorial</a></li>
+<li><a href="../getting-started/modes.html">Modes Guide</a></li>
+<li><a href="../configuration/overview.html">Configuration Overview</a></li>
+</ul>
+<h3 id="3-create-device-profile-optional"><a class="header" href="#3-create-device-profile-optional">3. Create Device Profile (Optional)</a></h3>
+<p>If you want custom pad layouts:</p>
+<ol>
+<li>Open <strong>Native Instruments Controller Editor</strong></li>
+<li>Select <strong>Maschine Mikro MK3</strong></li>
+<li>Edit pad pages (A-H)</li>
+<li>Save as <code>.ncmm3</code> file</li>
+<li>Use with <code>--profile</code> flag</li>
+</ol>
+<p>See <a href="../DEVICE_PROFILES.html">Device Profiles Documentation</a> for details.</p>
+<h2 id="platform-specific-notes"><a class="header" href="#platform-specific-notes">Platform-Specific Notes</a></h2>
+<h3 id="macos-versions"><a class="header" href="#macos-versions">macOS Versions</a></h3>
+<p><strong>Tested on</strong>:</p>
+<ul>
+<li>macOS Sonoma (14.x) - Full support</li>
+<li>macOS Ventura (13.x) - Full support</li>
+<li>macOS Monterey (12.x) - Full support</li>
+</ul>
+<p><strong>Known issues</strong>:</p>
+<ul>
+<li>macOS Big Sur (11.x) and earlier: HID shared device access may not work</li>
+</ul>
+<h3 id="apple-silicon-m1m2m3"><a class="header" href="#apple-silicon-m1m2m3">Apple Silicon (M1/M2/M3)</a></h3>
+<p>MIDIMon works natively on Apple Silicon:</p>
+<pre><code class="language-bash"># Build for current architecture
+cargo build --release
+
+# Binary will be ARM64 (aarch64) on M1/M2/M3
+file target/release/midimon
+# Output: target/release/midimon: Mach-O 64-bit executable arm64
+</code></pre>
+<p>No special configuration needed - all dependencies support ARM64.</p>
+<h3 id="intel-macs"><a class="header" href="#intel-macs">Intel Macs</a></h3>
+<p>Works identically to Apple Silicon. If you need a universal binary:</p>
+<pre><code class="language-bash"># Build for both architectures
+rustup target add x86_64-apple-darwin
+rustup target add aarch64-apple-darwin
+
+cargo build --release --target x86_64-apple-darwin
+cargo build --release --target aarch64-apple-darwin
+
+# Combine into universal binary
+lipo -create \
+    target/x86_64-apple-darwin/release/midimon \
+    target/aarch64-apple-darwin/release/midimon \
+    -output midimon-universal
+</code></pre>
+<h3 id="shared-device-access"><a class="header" href="#shared-device-access">Shared Device Access</a></h3>
+<p>MIDIMon uses <code>macos-shared-device</code> feature in <code>hidapi</code> to allow concurrent access with NI Controller Editor. This means:</p>
+<ul>
+<li>✅ You can run MIDIMon and Controller Editor simultaneously</li>
+<li>✅ Both can control LEDs without conflicts</li>
+<li>✅ Both receive MIDI input</li>
+</ul>
+<p>This is enabled by default in <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[dependencies]
+hidapi = { version = "2.4", features = ["macos-shared-device"] }
+</code></pre>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="build-errors"><a class="header" href="#build-errors">Build Errors</a></h3>
+<p><strong>Error</strong>: <code>error: linker 'cc' not found</code></p>
+<p><strong>Solution</strong>: Install Xcode Command Line Tools:</p>
+<pre><code class="language-bash">xcode-select --install
+</code></pre>
 <hr />
-<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="../development/contributing.html">Contributing Guide</a>.</p>
+<p><strong>Error</strong>: <code>error: could not compile 'hidapi'</code></p>
+<p><strong>Solution</strong>: Update Rust and dependencies:</p>
+<pre><code class="language-bash">rustup update
+cargo clean
+cargo build --release
+</code></pre>
+<hr />
+<h3 id="runtime-errors"><a class="header" href="#runtime-errors">Runtime Errors</a></h3>
+<p><strong>Error</strong>: <code>No MIDI input ports available</code></p>
+<p><strong>Solution</strong>:</p>
+<ol>
+<li>Check USB connection</li>
+<li>Open Audio MIDI Setup and verify device appears</li>
+<li>Try different USB port</li>
+<li>Restart device</li>
+</ol>
+<hr />
+<p><strong>Error</strong>: <code>Failed to open HID device</code></p>
+<p><strong>Solution</strong>:</p>
+<ol>
+<li>Grant Input Monitoring permission (see above)</li>
+<li>Install Native Instruments drivers</li>
+<li>Check USB cable and connection</li>
+<li>Try running with sudo (not recommended long-term):
+<pre><code class="language-bash">sudo ./target/release/midimon 2
+</code></pre>
+</li>
+</ol>
+<hr />
+<p><strong>Error</strong>: <code>Permission denied (os error 13)</code></p>
+<p><strong>Solution</strong>:</p>
+<ol>
+<li>Check Input Monitoring permission</li>
+<li>Verify binary has correct permissions:
+<pre><code class="language-bash">ls -l target/release/midimon
+chmod +x target/release/midimon
+</code></pre>
+</li>
+</ol>
+<hr />
+<h3 id="led-issues"><a class="header" href="#led-issues">LED Issues</a></h3>
+<p><strong>LEDs not lighting up</strong>:</p>
+<ol>
+<li>Verify Native Instruments drivers installed</li>
+<li>Check Input Monitoring permission</li>
+<li>Test with different LED scheme:
+<pre><code class="language-bash">cargo run --release 2 --led rainbow
+</code></pre>
+</li>
+<li>Check DEBUG output:
+<pre><code class="language-bash">DEBUG=1 cargo run --release 2
+</code></pre>
+</li>
+</ol>
+<p><strong>LEDs lighting wrong pads</strong>:</p>
+<ol>
+<li>Verify you're using a device profile</li>
+<li>Check profile has correct note mappings</li>
+<li>See <a href="../DEVICE_PROFILES.html">Device Profiles</a></li>
+<li>Use pad mapper to verify notes:
+<pre><code class="language-bash">cargo run --bin pad_mapper
+</code></pre>
+</li>
+</ol>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Now that MIDIMon is installed and running:</p>
+<ol>
+<li><strong>Learn the Basics</strong>: Read <a href="../getting-started/first-mapping.html">First Mapping Tutorial</a></li>
+<li><strong>Configure Modes</strong>: See <a href="../getting-started/modes.html">Modes Guide</a></li>
+<li><strong>Explore Actions</strong>: Check <a href="../reference/actions.html">Actions Reference</a></li>
+<li><strong>Customize LEDs</strong>: Read <a href="../LED_SYSTEM.html">LED System Documentation</a></li>
+</ol>
+<h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
+<p>If you encounter issues:</p>
+<ol>
+<li>Check <a href="../troubleshooting/common-issues.html">Common Issues</a></li>
+<li>Use <a href="../troubleshooting/diagnostics.html">Diagnostic Tools</a></li>
+<li>Enable debug logging: <code>DEBUG=1 cargo run --release 2</code></li>
+<li>File an issue on GitHub with:
+<ul>
+<li>macOS version</li>
+<li>Hardware (Intel/Apple Silicon)</li>
+<li>Device model</li>
+<li>Error messages</li>
+<li>Output of <code>cargo --version</code> and <code>rustc --version</code></li>
+</ul>
+</li>
+</ol>
+<hr />
+<p><strong>Last Updated</strong>: November 11, 2025
+<strong>macOS Support</strong>: 12.0+ (Monterey and later)</p>
 
                     </main>
 

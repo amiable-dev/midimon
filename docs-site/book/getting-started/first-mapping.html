@@ -182,22 +182,100 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="your-first-mapping"><a class="header" href="#your-first-mapping">Your First Mapping</a></h1>
-<blockquote>
-<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
-<p>For now, please refer to:</p>
+<p>Learn how to create custom mappings by building a practical example step-by-step.</p>
+<h2 id="what-youll-build"><a class="header" href="#what-youll-build">What You'll Build</a></h2>
+<p>A simple pad mapping that opens Visual Studio Code when you press pad 1 (Note 60).</p>
+<h2 id="understanding-mapping-structure"><a class="header" href="#understanding-mapping-structure">Understanding Mapping Structure</a></h2>
+<p>Every mapping has two parts:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+trigger = { ... }  # What activates the mapping
+action = { ... }   # What happens when activated
+</code></pre>
+<p>Think of it as: <strong>"When [trigger], do [action]"</strong></p>
+<h2 id="step-1-open-your-config-file"><a class="header" href="#step-1-open-your-config-file">Step 1: Open Your Config File</a></h2>
+<p>The config file is <code>config.toml</code> in your project root:</p>
+<pre><code class="language-bash">cd /path/to/midimon
+open config.toml  # macOS
+# or
+nano config.toml  # Terminal editor
+</code></pre>
+<h2 id="step-2-find-the-modes-section"><a class="header" href="#step-2-find-the-modes-section">Step 2: Find the Modes Section</a></h2>
+<p>Scroll down to find the <code>[[modes]]</code> section. It looks like this:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Default"
+color = "blue"
+
+[[modes.mappings]]
+# Existing mappings here...
+</code></pre>
+<h2 id="step-3-add-your-mapping"><a class="header" href="#step-3-add-your-mapping">Step 3: Add Your Mapping</a></h2>
+<p>Add this <strong>at the end</strong> of the <code>[[modes.mappings]]</code> section:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+trigger = { Note = { note = 60, velocity_min = 0 } }
+action = { Launch = { app_path = "/Applications/Visual Studio Code.app" } }
+</code></pre>
+<p><strong>What this means</strong>:</p>
 <ul>
-<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
-<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
-<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+<li><strong>trigger</strong>: When pad Note 60 is pressed (any velocity ≥0)</li>
+<li><strong>action</strong>: Launch Visual Studio Code</li>
 </ul>
-</blockquote>
-<h2 id="coming-soon"><a class="header" href="#coming-soon">Coming Soon</a></h2>
-<p>This page will cover:</p>
+<h2 id="step-4-save-and-reload"><a class="header" href="#step-4-save-and-reload">Step 4: Save and Reload</a></h2>
+<ol>
+<li><strong>Save</strong> the file (Cmd+S or Ctrl+O in nano)</li>
+<li><strong>Stop</strong> MIDIMon if it's running (Ctrl+C)</li>
+<li><strong>Restart</strong> it:</li>
+</ol>
+<pre><code class="language-bash">cargo run --release 2
+</code></pre>
+<h2 id="step-5-test-it"><a class="header" href="#step-5-test-it">Step 5: Test It</a></h2>
+<p>Press the <strong>first pad</strong> (bottom-left on Mikro MK3). Visual Studio Code should launch!</p>
+<h2 id="understanding-note-numbers"><a class="header" href="#understanding-note-numbers">Understanding Note Numbers</a></h2>
+<p>How do you know which pad is Note 60?</p>
+<h3 id="quick-reference-maschine-mikro-mk3"><a class="header" href="#quick-reference-maschine-mikro-mk3">Quick Reference (Maschine Mikro MK3)</a></h3>
+<pre><code>Pad Layout (4x4 grid):
+┌────┬────┬────┬────┐
+│ 60 │ 61 │ 62 │ 63 │  Top row
+├────┼────┼────┼────┤
+│ 64 │ 65 │ 66 │ 67 │
+├────┼────┼────┼────┤
+│ 68 │ 69 │ 70 │ 71 │
+└────┴────┴────┴────┘
+   72   73   74   75    Bottom row
+</code></pre>
+<h3 id="find-note-numbers-for-any-device"><a class="header" href="#find-note-numbers-for-any-device">Find Note Numbers for Any Device</a></h3>
+<p>Use the pad mapper tool:</p>
+<pre><code class="language-bash">cargo run --bin pad_mapper
+</code></pre>
+<p>Then press each pad to see its note number.</p>
+<h2 id="common-mapping-patterns"><a class="header" href="#common-mapping-patterns">Common Mapping Patterns</a></h2>
+<h3 id="pattern-1-keyboard-shortcut"><a class="header" href="#pattern-1-keyboard-shortcut">Pattern 1: Keyboard Shortcut</a></h3>
+<pre><code class="language-toml">[[modes.mappings]]
+trigger = { Note = { note = 61, velocity_min = 0 } }
+action = { Keystroke = { keys = ["Cmd", "T"] } }  # New tab
+</code></pre>
+<h3 id="pattern-2-type-text"><a class="header" href="#pattern-2-type-text">Pattern 2: Type Text</a></h3>
+<pre><code class="language-toml">[[modes.mappings]]
+trigger = { Note = { note = 62, velocity_min = 0 } }
+action = { Text = { text = "user@example.com" } }
+</code></pre>
+<h3 id="pattern-3-run-shell-command"><a class="header" href="#pattern-3-run-shell-command">Pattern 3: Run Shell Command</a></h3>
+<pre><code class="language-toml">[[modes.mappings]]
+trigger = { Note = { note = 63, velocity_min = 0 } }
+action = { Shell = { command = "open -a Calculator" } }
+</code></pre>
+<h3 id="pattern-4-volume-control"><a class="header" href="#pattern-4-volume-control">Pattern 4: Volume Control</a></h3>
+<pre><code class="language-toml">[[modes.mappings]]
+trigger = { Note = { note = 64, velocity_min = 0 } }
+action = { VolumeControl = "VolumeUp" }
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <ul>
-<li>TBD</li>
+<li><a href="./modes.html">Understanding Modes</a> - Create mode-based workflows</li>
+<li><a href="../configuration/overview.html">Configuration Overview</a> - Full config reference</li>
+<li><a href="../reference/trigger-types.html">All Trigger Types</a> - Complete trigger reference</li>
+<li><a href="../reference/action-types.html">All Action Types</a> - Complete action reference</li>
+<li><a href="../configuration/examples.html">Example Configurations</a> - Pre-built configs</li>
 </ul>
-<hr />
-<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="../development/contributing.html">Contributing Guide</a>.</p>
 
                     </main>
 

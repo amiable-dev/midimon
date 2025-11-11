@@ -181,23 +181,623 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="understanding-modes"><a class="header" href="#understanding-modes">Understanding Modes</a></h1>
-<blockquote>
-<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
-<p>For now, please refer to:</p>
+                        <h1 id="modes-context-switching-for-different-workflows"><a class="header" href="#modes-context-switching-for-different-workflows">Modes: Context Switching for Different Workflows</a></h1>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>Modes are MIDIMon's system for context switching - they allow you to define completely different mapping sets for different workflows, all accessible from the same MIDI controller. Think of modes as "profiles" or "layers" that transform your controller's behavior based on what you're doing.</p>
+<p>For example:</p>
 <ul>
-<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
-<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
-<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+<li><strong>Default Mode</strong>: General productivity shortcuts (copy, paste, window switching)</li>
+<li><strong>Developer Mode</strong>: IDE shortcuts, terminal commands, debugging tools</li>
+<li><strong>Media Mode</strong>: Audio/video playback controls, screen capture, streaming tools</li>
 </ul>
-</blockquote>
-<h2 id="coming-soon"><a class="header" href="#coming-soon">Coming Soon</a></h2>
-<p>This page will cover:</p>
+<p>Modes enable a single 16-pad controller to provide hundreds of distinct functions without reconfiguring anything.</p>
+<h2 id="mode-architecture"><a class="header" href="#mode-architecture">Mode Architecture</a></h2>
+<h3 id="mode-structure-in-configtoml"><a class="header" href="#mode-structure-in-configtoml">Mode Structure in config.toml</a></h3>
+<p>Modes are defined in your <code>config.toml</code> using the <code>[[modes]]</code> array:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Default"
+color = "blue"
+
+[[modes.mappings]]
+description = "Copy text"
+[modes.mappings.trigger]
+type = "Note"
+note = 12
+[modes.mappings.action]
+type = "Keystroke"
+keys = "c"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Paste text"
+[modes.mappings.trigger]
+type = "Note"
+note = 13
+[modes.mappings.action]
+type = "Keystroke"
+keys = "v"
+modifiers = ["cmd"]
+
+[[modes]]
+name = "Developer"
+color = "green"
+
+[[modes.mappings]]
+description = "Run tests"
+[modes.mappings.trigger]
+type = "Note"
+note = 12
+[modes.mappings.action]
+type = "Shell"
+command = "cargo test"
+
+[[modes.mappings]]
+description = "Git commit"
+[modes.mappings.trigger]
+type = "Note"
+note = 13
+[modes.mappings.action]
+type = "Shell"
+command = "git commit"
+</code></pre>
+<p><strong>Key Points</strong>:</p>
 <ul>
-<li>TBD</li>
+<li>Each <code>[[modes]]</code> section defines a complete mode</li>
+<li><code>name</code>: Displayed in console when switching modes</li>
+<li><code>color</code>: LED feedback color theme (optional but recommended)</li>
+<li><code>[[modes.mappings]]</code>: Array of triggers and actions for this mode</li>
+</ul>
+<h3 id="mode-colors-and-led-feedback"><a class="header" href="#mode-colors-and-led-feedback">Mode Colors and LED Feedback</a></h3>
+<p>Each mode can have a distinct color theme for visual identification:</p>
+<p><strong>Available Colors</strong>:</p>
+<ul>
+<li><code>blue</code> - Default mode (calm, general use)</li>
+<li><code>green</code> - Development/productivity (focused work)</li>
+<li><code>purple</code> - Media/creative (entertainment)</li>
+<li><code>red</code> - Emergency/system (critical functions)</li>
+<li><code>yellow</code> - Testing/debug (temporary mappings)</li>
+<li><code>white</code> - Neutral (fallback)</li>
+</ul>
+<p><strong>How Colors Work</strong>:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Default"
+color = "blue"  # All pads in this mode default to blue when idle
+</code></pre>
+<p>When using the <code>reactive</code> lighting scheme:</p>
+<ul>
+<li>Idle pads show the mode's base color at dim brightness</li>
+<li>Pressed pads light up with velocity-based colors (green/yellow/red)</li>
+<li>Released pads fade back to the mode's base color</li>
+</ul>
+<p>When using static patterns (rainbow, wave, etc.):</p>
+<ul>
+<li>The mode color is used as the primary theme color</li>
+<li>Pattern variations are tinted with the mode color</li>
+</ul>
+<h2 id="global-vs-mode-specific-mappings"><a class="header" href="#global-vs-mode-specific-mappings">Global vs Mode-Specific Mappings</a></h2>
+<p>MIDIMon supports two types of mappings:</p>
+<h3 id="mode-specific-mappings"><a class="header" href="#mode-specific-mappings">Mode-Specific Mappings</a></h3>
+<p>Defined inside <code>[[modes.mappings]]</code>, these only work when that mode is active:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Media"
+color = "purple"
+
+[[modes.mappings]]
+description = "Play/Pause"
+[modes.mappings.trigger]
+type = "Note"
+note = 12
+[modes.mappings.action]
+type = "Keystroke"
+keys = "space"
+modifiers = []
+</code></pre>
+<p>This Play/Pause mapping only works in Media mode.</p>
+<h3 id="global-mappings"><a class="header" href="#global-mappings">Global Mappings</a></h3>
+<p>Defined in <code>[[global_mappings]]</code> at the top level, these work in ALL modes:</p>
+<pre><code class="language-toml">[[global_mappings]]
+description = "Emergency exit"
+[global_mappings.trigger]
+type = "LongPress"
+note = 0
+hold_duration_ms = 3000
+[global_mappings.action]
+type = "Shell"
+command = "killall midimon"
+
+[[global_mappings]]
+description = "Volume up (always available)"
+[global_mappings.trigger]
+type = "EncoderTurn"
+direction = "Clockwise"
+[global_mappings.action]
+type = "VolumeControl"
+operation = "Up"
+</code></pre>
+<p><strong>Use Cases for Global Mappings</strong>:</p>
+<ul>
+<li>Emergency shutdown (long press escape)</li>
+<li>Volume control (encoder always controls volume)</li>
+<li>Mode switching (dedicated mode-change buttons)</li>
+<li>System-wide shortcuts (screenshots, lock screen)</li>
+</ul>
+<p><strong>Priority Order</strong>:</p>
+<ol>
+<li>Mode-specific mappings are checked first</li>
+<li>If no match, global mappings are checked</li>
+<li>If still no match, the event is ignored</li>
+</ol>
+<p>This means mode-specific mappings can "override" global ones by using the same trigger.</p>
+<h2 id="switching-between-modes"><a class="header" href="#switching-between-modes">Switching Between Modes</a></h2>
+<p>There are three ways to switch modes:</p>
+<h3 id="1-encoder-rotation"><a class="header" href="#1-encoder-rotation">1. Encoder Rotation</a></h3>
+<p>The most common method - use your encoder as a mode selector:</p>
+<pre><code class="language-toml">[[global_mappings]]
+description = "Next mode (encoder clockwise)"
+[global_mappings.trigger]
+type = "EncoderTurn"
+direction = "Clockwise"
+[global_mappings.action]
+type = "ModeChange"
+mode = "next"
+
+[[global_mappings]]
+description = "Previous mode (encoder counter-clockwise)"
+[global_mappings.trigger]
+type = "EncoderTurn"
+direction = "CounterClockwise"
+[global_mappings.action]
+type = "ModeChange"
+mode = "previous"
+</code></pre>
+<p>This creates a circular mode selector:</p>
+<ul>
+<li>Turn clockwise: Default → Developer → Media → Default...</li>
+<li>Turn counter-clockwise: Default → Media → Developer → Default...</li>
+</ul>
+<h3 id="2-dedicated-mode-buttons"><a class="header" href="#2-dedicated-mode-buttons">2. Dedicated Mode Buttons</a></h3>
+<p>Assign specific pads to jump directly to modes:</p>
+<pre><code class="language-toml">[[global_mappings]]
+description = "Jump to Developer mode"
+[global_mappings.trigger]
+type = "Note"
+note = 15  # Top-right pad
+[global_mappings.action]
+type = "ModeChange"
+mode = "Developer"
+
+[[global_mappings]]
+description = "Jump to Media mode"
+[global_mappings.trigger]
+type = "Note"
+note = 11  # Another pad
+[global_mappings.action]
+type = "ModeChange"
+mode = "Media"
+</code></pre>
+<h3 id="3-chord-based-mode-switching"><a class="header" href="#3-chord-based-mode-switching">3. Chord-Based Mode Switching</a></h3>
+<p>Use pad combinations for advanced mode switching:</p>
+<pre><code class="language-toml">[[global_mappings]]
+description = "Secret admin mode (pads 0+1+2 together)"
+[global_mappings.trigger]
+type = "NoteChord"
+notes = [0, 1, 2]
+chord_timeout_ms = 100
+[global_mappings.action]
+type = "ModeChange"
+mode = "Admin"
+</code></pre>
+<p><strong>ModeChange Action Parameters</strong>:</p>
+<ul>
+<li><code>mode = "next"</code> - Cycle to next mode</li>
+<li><code>mode = "previous"</code> - Cycle to previous mode</li>
+<li><code>mode = "Default"</code> - Jump to specific mode by name (case-sensitive)</li>
+<li><code>mode = 0</code> - Jump to mode by index (0-based)</li>
+</ul>
+<h2 id="practical-mode-examples"><a class="header" href="#practical-mode-examples">Practical Mode Examples</a></h2>
+<h3 id="example-1-three-mode-general-setup"><a class="header" href="#example-1-three-mode-general-setup">Example 1: Three-Mode General Setup</a></h3>
+<pre><code class="language-toml"># Mode 0: Default (General Productivity)
+[[modes]]
+name = "Default"
+color = "blue"
+
+[[modes.mappings]]
+description = "Copy"
+[modes.mappings.trigger]
+type = "Note"
+note = 12
+[modes.mappings.action]
+type = "Keystroke"
+keys = "c"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Paste"
+[modes.mappings.trigger]
+type = "Note"
+note = 13
+[modes.mappings.action]
+type = "Keystroke"
+keys = "v"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Switch to next app"
+[modes.mappings.trigger]
+type = "Note"
+note = 14
+[modes.mappings.action]
+type = "Keystroke"
+keys = "tab"
+modifiers = ["cmd"]
+
+# Mode 1: Developer (Coding Tools)
+[[modes]]
+name = "Developer"
+color = "green"
+
+[[modes.mappings]]
+description = "Run tests"
+[modes.mappings.trigger]
+type = "Note"
+note = 12
+[modes.mappings.action]
+type = "Shell"
+command = "cargo test"
+
+[[modes.mappings]]
+description = "Build release"
+[modes.mappings.trigger]
+type = "Note"
+note = 13
+[modes.mappings.action]
+type = "Shell"
+command = "cargo build --release"
+
+[[modes.mappings]]
+description = "Open terminal"
+[modes.mappings.trigger]
+type = "Note"
+note = 14
+[modes.mappings.action]
+type = "Launch"
+app = "Terminal"
+
+# Mode 2: Media (Audio/Video Control)
+[[modes]]
+name = "Media"
+color = "purple"
+
+[[modes.mappings]]
+description = "Play/Pause"
+[modes.mappings.trigger]
+type = "Note"
+note = 12
+[modes.mappings.action]
+type = "Keystroke"
+keys = "space"
+modifiers = []
+
+[[modes.mappings]]
+description = "Next track"
+[modes.mappings.trigger]
+type = "Note"
+note = 13
+[modes.mappings.action]
+type = "Keystroke"
+keys = "right"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Screenshot"
+[modes.mappings.trigger]
+type = "Note"
+note = 14
+[modes.mappings.action]
+type = "Keystroke"
+keys = "4"
+modifiers = ["cmd", "shift"]
+
+# Global: Mode switching and volume
+[[global_mappings]]
+description = "Next mode"
+[global_mappings.trigger]
+type = "EncoderTurn"
+direction = "Clockwise"
+[global_mappings.action]
+type = "ModeChange"
+mode = "next"
+
+[[global_mappings]]
+description = "Previous mode"
+[global_mappings.trigger]
+type = "EncoderTurn"
+direction = "CounterClockwise"
+[global_mappings.action]
+type = "ModeChange"
+mode = "previous"
+</code></pre>
+<h3 id="example-2-context-aware-developer-modes"><a class="header" href="#example-2-context-aware-developer-modes">Example 2: Context-Aware Developer Modes</a></h3>
+<pre><code class="language-toml"># General development
+[[modes]]
+name = "Dev-General"
+color = "green"
+
+[[modes.mappings]]
+description = "Save all"
+[modes.mappings.trigger]
+type = "Note"
+note = 12
+[modes.mappings.action]
+type = "Keystroke"
+keys = "s"
+modifiers = ["cmd", "alt"]
+
+# Rust-specific
+[[modes]]
+name = "Dev-Rust"
+color = "green"
+
+[[modes.mappings]]
+description = "cargo check"
+[modes.mappings.trigger]
+type = "Note"
+note = 12
+[modes.mappings.action]
+type = "Shell"
+command = "cargo check"
+
+[[modes.mappings]]
+description = "cargo fmt"
+[modes.mappings.trigger]
+type = "Note"
+note = 13
+[modes.mappings.action]
+type = "Shell"
+command = "cargo fmt"
+
+# Python-specific
+[[modes]]
+name = "Dev-Python"
+color = "green"
+
+[[modes.mappings]]
+description = "pytest"
+[modes.mappings.trigger]
+type = "Note"
+note = 12
+[modes.mappings.action]
+type = "Shell"
+command = "pytest"
+
+[[modes.mappings]]
+description = "black format"
+[modes.mappings.trigger]
+type = "Note"
+note = 13
+[modes.mappings.action]
+type = "Shell"
+command = "black ."
+</code></pre>
+<h3 id="example-3-velocity-sensitive-multi-mode"><a class="header" href="#example-3-velocity-sensitive-multi-mode">Example 3: Velocity-Sensitive Multi-Mode</a></h3>
+<p>Combine modes with velocity detection for even more control:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Advanced"
+color = "yellow"
+
+# Soft press: Small increase
+[[modes.mappings]]
+description = "Small volume up"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 12
+min_velocity = 0
+max_velocity = 40
+[modes.mappings.action]
+type = "Shell"
+command = "osascript -e 'set volume output volume (output volume of (get volume settings) + 5)'"
+
+# Hard press: Large increase
+[[modes.mappings]]
+description = "Large volume up"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 12
+min_velocity = 81
+max_velocity = 127
+[modes.mappings.action]
+type = "Shell"
+command = "osascript -e 'set volume output volume (output volume of (get volume settings) + 20)'"
+</code></pre>
+<h2 id="mode-design-best-practices"><a class="header" href="#mode-design-best-practices">Mode Design Best Practices</a></h2>
+<h3 id="1-use-descriptive-names"><a class="header" href="#1-use-descriptive-names">1. Use Descriptive Names</a></h3>
+<pre><code class="language-toml"># Good: Clear what the mode does
+[[modes]]
+name = "Media-Playback"
+
+# Bad: Ambiguous
+[[modes]]
+name = "Mode3"
+</code></pre>
+<h3 id="2-assign-consistent-color-themes"><a class="header" href="#2-assign-consistent-color-themes">2. Assign Consistent Color Themes</a></h3>
+<pre><code class="language-toml"># Productivity modes: Blue family
+[[modes]]
+name = "Default"
+color = "blue"
+
+[[modes]]
+name = "Email"
+color = "blue"
+
+# Development modes: Green family
+[[modes]]
+name = "Developer"
+color = "green"
+
+[[modes]]
+name = "Testing"
+color = "green"
+
+# Creative modes: Purple/Magenta family
+[[modes]]
+name = "Media"
+color = "purple"
+
+[[modes]]
+name = "Design"
+color = "magenta"
+</code></pre>
+<h3 id="3-keep-mode-count-manageable"><a class="header" href="#3-keep-mode-count-manageable">3. Keep Mode Count Manageable</a></h3>
+<p><strong>Recommended</strong>: 3-5 modes for most users</p>
+<ul>
+<li>Too few modes: You'll run out of pads for all your functions</li>
+<li>Too many modes: You'll forget which mode you're in</li>
+</ul>
+<p><strong>Strategy</strong>: Group related functions into modes rather than creating a mode for every app.</p>
+<h3 id="4-reserve-global-mappings-for-critical-functions"><a class="header" href="#4-reserve-global-mappings-for-critical-functions">4. Reserve Global Mappings for Critical Functions</a></h3>
+<p>Only use <code>[[global_mappings]]</code> for:</p>
+<ul>
+<li>Mode switching itself</li>
+<li>Emergency shutdowns</li>
+<li>System-wide controls (volume, screen lock)</li>
+<li>Functions that should work regardless of mode</li>
+</ul>
+<h3 id="5-use-mode-colors-for-visual-feedback"><a class="header" href="#5-use-mode-colors-for-visual-feedback">5. Use Mode Colors for Visual Feedback</a></h3>
+<p>If your device supports LED feedback:</p>
+<ul>
+<li>Test each mode and verify the color matches the function</li>
+<li>Use calming colors (blue, green) for frequent modes</li>
+<li>Use attention-grabbing colors (red, yellow) for special modes</li>
+</ul>
+<h3 id="6-document-your-modes"><a class="header" href="#6-document-your-modes">6. Document Your Modes</a></h3>
+<p>Add descriptions to help remember your layout:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Developer"
+color = "green"
+# Description comments help future you remember the layout:
+# Pad 0-3: Git commands (status, add, commit, push)
+# Pad 4-7: Build commands (check, test, build, run)
+# Pad 8-11: IDE shortcuts (format, refactor, debug, terminal)
+# Pad 12-15: Project navigation (files, search, grep, docs)
+
+[[modes.mappings]]
+description = "Git status"
+[modes.mappings.trigger]
+type = "Note"
+note = 0
+[modes.mappings.action]
+type = "Shell"
+command = "git status"
+</code></pre>
+<h2 id="advanced-mode-techniques"><a class="header" href="#advanced-mode-techniques">Advanced Mode Techniques</a></h2>
+<h3 id="mode-specific-timing-adjustments"><a class="header" href="#mode-specific-timing-adjustments">Mode-Specific Timing Adjustments</a></h3>
+<p>Override advanced settings per mode:</p>
+<pre><code class="language-toml">[advanced_settings]
+chord_timeout_ms = 100
+double_tap_timeout_ms = 300
+hold_threshold_ms = 2000
+
+[[modes]]
+name = "Gaming"
+color = "red"
+# Gaming mode needs faster response
+# (Note: Per-mode advanced settings not yet implemented,
+#  but this is the planned syntax)
+</code></pre>
+<h3 id="conditional-mode-switching"><a class="header" href="#conditional-mode-switching">Conditional Mode Switching</a></h3>
+<p>Combine with Conditional actions for smart mode switching:</p>
+<pre><code class="language-toml">[[global_mappings]]
+description = "Auto-switch to Dev mode if VS Code is active"
+[global_mappings.trigger]
+type = "Note"
+note = 15
+[global_mappings.action]
+type = "Conditional"
+condition = "ActiveApp"
+value = "Visual Studio Code"
+then_action = { type = "ModeChange", mode = "Developer" }
+else_action = { type = "ModeChange", mode = "Default" }
+</code></pre>
+<h3 id="mode-sequences"><a class="header" href="#mode-sequences">Mode Sequences</a></h3>
+<p>Chain mode changes with other actions:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Open Spotify and switch to Media mode"
+[modes.mappings.trigger]
+type = "Note"
+note = 15
+[modes.mappings.action]
+type = "Sequence"
+actions = [
+    { type = "Launch", app = "Spotify" },
+    { type = "Delay", duration_ms = 1000 },
+    { type = "ModeChange", mode = "Media" }
+]
+</code></pre>
+<h2 id="troubleshooting-modes"><a class="header" href="#troubleshooting-modes">Troubleshooting Modes</a></h2>
+<h3 id="mode-not-switching"><a class="header" href="#mode-not-switching">Mode Not Switching</a></h3>
+<p><strong>Symptoms</strong>: Encoder turns but mode doesn't change</p>
+<p><strong>Checks</strong>:</p>
+<ul>
+<li>Verify <code>[[global_mappings]]</code> contains ModeChange actions</li>
+<li>Check encoder is mapped correctly (use <code>cargo run --bin midi_diagnostic 2</code>)</li>
+<li>Ensure mode names are spelled exactly as defined</li>
+<li>Look for console output confirming mode changes</li>
+</ul>
+<p><strong>Debug</strong>:</p>
+<pre><code class="language-bash">DEBUG=1 cargo run --release 2
+# Look for: "Mode changed: Default -&gt; Developer"
+</code></pre>
+<h3 id="mappings-not-working-in-mode"><a class="header" href="#mappings-not-working-in-mode">Mappings Not Working in Mode</a></h3>
+<p><strong>Symptoms</strong>: Pad press does nothing in a specific mode</p>
+<p><strong>Checks</strong>:</p>
+<ul>
+<li>Verify you're in the correct mode (check console output)</li>
+<li>Confirm note numbers match (use <code>cargo run --bin pad_mapper</code>)</li>
+<li>Check <code>[[modes.mappings]]</code> is properly nested under the mode</li>
+<li>Ensure TOML syntax is valid</li>
+</ul>
+<p><strong>Test</strong>:</p>
+<pre><code class="language-bash"># Add a simple test mapping to verify mode is active
+[[modes.mappings]]
+description = "Test mode active"
+[modes.mappings.trigger]
+type = "Note"
+note = 0
+[modes.mappings.action]
+type = "Shell"
+command = "echo 'Mode working!' | tee /dev/tty"
+</code></pre>
+<h3 id="conflicting-mappings"><a class="header" href="#conflicting-mappings">Conflicting Mappings</a></h3>
+<p><strong>Symptoms</strong>: Unexpected action triggers</p>
+<p><strong>Checks</strong>:</p>
+<ul>
+<li>Global mappings override mode mappings if using same trigger</li>
+<li>Multiple modes might have similar triggers</li>
+<li>Check for copy-paste errors in note numbers</li>
+</ul>
+<p><strong>Solution</strong>: Use unique note numbers for each function, or intentionally use the priority system:</p>
+<pre><code class="language-toml"># Global: Emergency stop (works everywhere)
+[[global_mappings]]
+[global_mappings.trigger]
+type = "LongPress"
+note = 0
+
+# Mode: Normal pad 0 function (only when not held)
+[[modes.mappings]]
+[modes.mappings.trigger]
+type = "Note"
+note = 0
+</code></pre>
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
+<ul>
+<li><a href="first-mapping.html">First Mapping Tutorial</a> - Learn basic mapping syntax</li>
+<li><a href="../configuration/overview.html">Configuration Overview</a> - Complete config.toml structure</li>
+<li><a href="../reference/actions.html">Actions Reference</a> - All available actions including ModeChange</li>
+<li><a href="../LED_SYSTEM.html">LED System</a> - How mode colors work with LED feedback</li>
 </ul>
 <hr />
-<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="../development/contributing.html">Contributing Guide</a>.</p>
+<p><strong>Last Updated</strong>: November 11, 2025
+<strong>Implementation Status</strong>: Fully functional in current release</p>
 
                     </main>
 
