@@ -23,6 +23,7 @@ colored = "3.0"
 chrono = "0.4"
 hidapi = { version = "2.6", features = ["macos-shared-device"] }
 quick-xml = { version = "0.37", features = ["serialize"] }
+rand = "0.8"
 
 [dev-dependencies]
 proptest = "1.5"

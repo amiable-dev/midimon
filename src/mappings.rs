@@ -114,11 +114,12 @@ impl MappingEngine {
                 MidiEvent::NoteOn {
                     note: ev_note,
                     velocity,
+                    ..
                 },
             ) => *note == *ev_note && *velocity >= *velocity_min,
             (
                 CompiledTrigger::CC { cc, value_min },
-                MidiEvent::ControlChange { cc: ev_cc, value },
+                MidiEvent::ControlChange { cc: ev_cc, value, .. },
             ) => *cc == *ev_cc && *value >= *value_min,
             _ => false,
         }
