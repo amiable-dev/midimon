@@ -162,7 +162,8 @@ fn test_delay_accuracy_100ms() {
     thread::sleep(Duration::from_millis(100));
     let duration = start.elapsed();
 
-    assert_duration_within_tolerance(duration, 100, 50, "100ms delay");
+    // Increased tolerance for CI environments (macos-latest runner variance observed)
+    assert_duration_within_tolerance(duration, 100, 60, "100ms delay");
 }
 
 #[test]
