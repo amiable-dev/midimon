@@ -1,3 +1,6 @@
+// Copyright 2025 Amiable
+// SPDX-License-Identifier: MIT
+
 use enigo::{
     Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings
 };

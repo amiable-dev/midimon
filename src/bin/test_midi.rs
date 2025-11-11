@@ -1,3 +1,6 @@
+// Copyright 2025 Amiable
+// SPDX-License-Identifier: MIT
+
 // Create a file called test_midi.rs in src/bin/
 // src/bin/test_midi.rs
 

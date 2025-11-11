@@ -1,3 +1,6 @@
+// Copyright 2025 Amiable
+// SPDX-License-Identifier: MIT
+
 use midir::{MidiInput, MidiInputConnection};
 use crossbeam_channel::{bounded, Receiver};
 use std::sync::Arc;
