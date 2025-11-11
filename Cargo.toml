@@ -1,31 +1,35 @@
-[package]
-name = "midimon"
-version = "0.1.0"
-license = "MIT"
+[workspace]
+members = [
+    "midimon-core",
+    "midimon-daemon",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.2.0"
 edition = "2024"
+authors = ["MIDIMon Contributors"]
+license = "MIT"
+repository = "https://github.com/amiable-dev/midimon"
 
-[lib]
-name = "midimon"
-path = "src/lib.rs"
-
-[[bin]]
-name = "midimon"
-path = "src/main.rs"
-
-[dependencies]
-midir = "0.10"
-enigo = "0.6"
+[workspace.dependencies]
+# Core dependencies (used by midimon-core)
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.9"
-crossbeam-channel = "0.5"
-ctrlc = "3.4"
-colored = "3.0"
-chrono = "0.4"
+midir = "0.10"
 hidapi = { version = "2.6", features = ["macos-shared-device"] }
 quick-xml = { version = "0.37", features = ["serialize"] }
+crossbeam-channel = "0.5"
+thiserror = "2.0"
 rand = "0.8"
 
-[dev-dependencies]
+# CLI/display dependencies (NOT in midimon-core, only midimon-daemon)
+enigo = "0.6"
+colored = "3.0"
+chrono = "0.4"
+ctrlc = "3.4"
+
+# Testing
 proptest = "1.5"
 rstest = "0.23"
 
