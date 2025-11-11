@@ -8,7 +8,7 @@
 
 mod midi_simulator;
 
-use midi_simulator::{MidiSimulator, Gesture, EncoderDirection, ScenarioBuilder};
+use midi_simulator::{EncoderDirection, Gesture, MidiSimulator, ScenarioBuilder};
 use std::time::{Duration, Instant};
 
 // Mock the event processor types for testing
@@ -97,10 +97,10 @@ fn test_velocity_detection() {
     let sim = MidiSimulator::new(0);
 
     // Test all three velocity levels
-    sim.note_on(60, 30);  // Soft
+    sim.note_on(60, 30); // Soft
     sim.note_off(60);
 
-    sim.note_on(61, 70);  // Medium
+    sim.note_on(61, 70); // Medium
     sim.note_off(61);
 
     sim.note_on(62, 110); // Hard
@@ -111,9 +111,18 @@ fn test_velocity_detection() {
     let velocities = parser.get_velocities();
 
     assert_eq!(velocities.len(), 3);
-    assert_eq!(MidiEventParser::velocity_level(velocities[0]), VelocityLevel::Soft);
-    assert_eq!(MidiEventParser::velocity_level(velocities[1]), VelocityLevel::Medium);
-    assert_eq!(MidiEventParser::velocity_level(velocities[2]), VelocityLevel::Hard);
+    assert_eq!(
+        MidiEventParser::velocity_level(velocities[0]),
+        VelocityLevel::Soft
+    );
+    assert_eq!(
+        MidiEventParser::velocity_level(velocities[1]),
+        VelocityLevel::Medium
+    );
+    assert_eq!(
+        MidiEventParser::velocity_level(velocities[2]),
+        VelocityLevel::Hard
+    );
 }
 
 #[test]
@@ -325,7 +334,10 @@ fn test_velocity_ramp() {
 
     // Verify velocities are increasing
     for i in 1..velocities.len() {
-        assert!(velocities[i] >= velocities[i - 1], "Velocities should increase in ramp");
+        assert!(
+            velocities[i] >= velocities[i - 1],
+            "Velocities should increase in ramp"
+        );
     }
 }
 
@@ -462,8 +474,8 @@ fn test_midi_message_format() {
     let events = sim.get_events();
     assert_eq!(events[0].len(), 3);
     assert_eq!(events[0][0] & 0xF0, 0x90); // Status
-    assert_eq!(events[0][1], 60);           // Note
-    assert_eq!(events[0][2], 100);          // Velocity
+    assert_eq!(events[0][1], 60); // Note
+    assert_eq!(events[0][2], 100); // Velocity
 
     sim.clear_events();
 
@@ -472,8 +484,8 @@ fn test_midi_message_format() {
     let events = sim.get_events();
     assert_eq!(events[0].len(), 3);
     assert_eq!(events[0][0] & 0xF0, 0xB0); // Status
-    assert_eq!(events[0][1], 1);            // CC number
-    assert_eq!(events[0][2], 64);           // Value
+    assert_eq!(events[0][1], 1); // CC number
+    assert_eq!(events[0][2], 64); // Value
 
     sim.clear_events();
 
@@ -482,7 +494,7 @@ fn test_midi_message_format() {
     let events = sim.get_events();
     assert_eq!(events[0].len(), 2);
     assert_eq!(events[0][0] & 0xF0, 0xD0); // Status
-    assert_eq!(events[0][1], 80);           // Pressure
+    assert_eq!(events[0][1], 80); // Pressure
 
     sim.clear_events();
 

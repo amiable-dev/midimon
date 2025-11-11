@@ -1,11 +1,11 @@
 // Copyright 2025 Amiable
 // SPDX-License-Identifier: MIT
 
+use hidapi::{HidApi, HidDevice};
+use midir::{Ignore, MidiInput};
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::{self, Write};
-use hidapi::{HidApi, HidDevice};
-use midir::{MidiInput, Ignore};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -29,28 +29,35 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Open HID device for LED control
     let api = HidApi::new()?;
     let mut hid_device: Option<HidDevice> = None;
-    
+
     for device_info in api.device_list() {
-        if device_info.vendor_id() == NI_VENDOR_ID 
-           && device_info.product_id() == MIKRO_MK3_PRODUCT_ID 
-           && device_info.interface_number() == 0 {
+        if device_info.vendor_id() == NI_VENDOR_ID
+            && device_info.product_id() == MIKRO_MK3_PRODUCT_ID
+            && device_info.interface_number() == 0
+        {
             println!("✓ Found Mikro MK3 HID interface");
             hid_device = Some(device_info.open_device(&api)?);
             break;
         }
     }
-    
+
     let hid_device = hid_device.ok_or("Mikro MK3 HID not found")?;
 
     // Open MIDI input
     let mut midi_in = MidiInput::new("LED Diagnostic MIDI")?;
     midi_in.ignore(Ignore::None);
-    
+
     let midi_ports = midi_in.ports();
-    let mikro_port = midi_ports.iter()
-        .find(|p| midi_in.port_name(p).unwrap_or_default().contains("Mikro MK3"))
+    let mikro_port = midi_ports
+        .iter()
+        .find(|p| {
+            midi_in
+                .port_name(p)
+                .unwrap_or_default()
+                .contains("Mikro MK3")
+        })
         .ok_or("Mikro MK3 MIDI port not found")?;
-    
+
     println!("✓ Found Mikro MK3 MIDI input\n");
 
     // Shared capture data
@@ -59,18 +66,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         midi_velocity: None,
         hid_buffer: Vec::new(),
     }));
-    
+
     let capture_clone = capture.clone();
-    
+
     // Connect MIDI input
-    let _midi_conn = midi_in.connect(mikro_port, "diagnostic", move |_timestamp, message, _| {
-        if message.len() >= 3 && (message[0] & 0xF0) == 0x90 && message[2] > 0 {
-            let mut cap = capture_clone.lock().unwrap();
-            cap.midi_note = Some(message[1]);
-            cap.midi_velocity = Some(message[2]);
-            println!("\n📥 MIDI: Note {} velocity {}", message[1], message[2]);
-        }
-    }, ())?;
+    let _midi_conn = midi_in.connect(
+        mikro_port,
+        "diagnostic",
+        move |_timestamp, message, _| {
+            if message.len() >= 3 && (message[0] & 0xF0) == 0x90 && message[2] > 0 {
+                let mut cap = capture_clone.lock().unwrap();
+                cap.midi_note = Some(message[1]);
+                cap.midi_velocity = Some(message[2]);
+                println!("\n📥 MIDI: Note {} velocity {}", message[1], message[2]);
+            }
+        },
+        (),
+    )?;
 
     println!("Ready! Press pads one at a time.\n");
     println!("Instructions:");
@@ -78,14 +90,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("2. Wait to see if LED lights up");
     println!("3. Type 'y' if LED lit up, 'n' if not");
     println!("4. Type 'q' to quit\n");
-    
+
     let mut results: HashMap<u8, bool> = HashMap::new();
     let mut test_count = 0;
 
     loop {
         println!("\n─────────────────────────────────────");
         println!("Test #{}: Press any pad (or 'q' to quit)", test_count + 1);
-        
+
         // Clear previous capture
         {
             let mut cap = capture.lock().unwrap();
@@ -93,10 +105,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             cap.midi_velocity = None;
             cap.hid_buffer.clear();
         }
-        
+
         // Wait for MIDI input
         std::thread::sleep(Duration::from_millis(100));
-        
+
         let (note, velocity) = loop {
             {
                 let cap = capture.lock().unwrap();
@@ -106,12 +118,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             std::thread::sleep(Duration::from_millis(50));
         };
-        
+
         println!("\n✓ Captured: Note {} vel {}", note, velocity);
-        
+
         // Now test LED with different addresses
         println!("\nTesting LED addresses...");
-        
+
         let test_addresses = [
             (0x1E, "LED_PAD13 (0x1E) - should be pad index 0"),
             (0x21, "LED_PAD14 (0x21) - should be pad index 1"),
@@ -130,38 +142,41 @@ fn main() -> Result<(), Box<dyn Error>> {
             (0x48, "LED_PAD03 (0x48) - should be pad index 14"),
             (0x4B, "LED_PAD04 (0x4B) - should be pad index 15"),
         ];
-        
+
         for (addr, desc) in &test_addresses {
             // Create LED buffer
             let mut buffer = vec![LED_REPORT_ID];
             buffer.resize(80, 0);
-            
+
             // Set RGB at this address (bright red)
-            buffer[*addr as usize] = 255;     // R
-            buffer[*addr as usize + 1] = 0;   // G
-            buffer[*addr as usize + 2] = 0;   // B
-            
+            buffer[*addr as usize] = 255; // R
+            buffer[*addr as usize + 1] = 0; // G
+            buffer[*addr as usize + 2] = 0; // B
+
             // Pad to 65 bytes
             buffer.resize(65, 0);
-            
+
             hid_device.write(&buffer)?;
             std::thread::sleep(Duration::from_millis(300));
-            
+
             print!("\n  Testing {} - Did you see RED light? (y/n): ", desc);
             io::stdout().flush()?;
-            
+
             let mut input = String::new();
             io::stdin().read_line(&mut input)?;
-            
+
             if input.trim().eq_ignore_ascii_case("y") {
-                println!("  ✓✓✓ FOUND IT! Note {} maps to address 0x{:02X} ({})", note, addr, desc);
+                println!(
+                    "  ✓✓✓ FOUND IT! Note {} maps to address 0x{:02X} ({})",
+                    note, addr, desc
+                );
                 results.insert(note, true);
-                
+
                 // Turn off
                 let mut buffer = vec![LED_REPORT_ID];
                 buffer.resize(65, 0);
                 hid_device.write(&buffer)?;
-                
+
                 break;
             } else {
                 // Turn off and try next
@@ -170,26 +185,26 @@ fn main() -> Result<(), Box<dyn Error>> {
                 hid_device.write(&buffer)?;
             }
         }
-        
+
         test_count += 1;
-        
+
         println!("\n\nResults so far:");
         println!("─────────────────────────────────────");
         for (note, _) in &results {
             println!("  Note {}: LED address found", note);
         }
-        
+
         print!("\nContinue testing? (y/n): ");
         io::stdout().flush()?;
-        
+
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
-        
+
         if !input.trim().eq_ignore_ascii_case("y") {
             break;
         }
     }
-    
+
     println!("\n\n╔════════════════════════════════════════╗");
     println!("║  Diagnostic Complete!                  ║");
     println!("╚════════════════════════════════════════╝");
@@ -198,6 +213,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     for (note, _) in results {
         println!("  MIDI Note {} → LED address (found)", note);
     }
-    
+
     Ok(())
 }

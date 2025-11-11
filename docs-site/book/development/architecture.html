@@ -182,22 +182,447 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="architecture-overview"><a class="header" href="#architecture-overview">Architecture Overview</a></h1>
-<blockquote>
-<p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
-<p>For now, please refer to:</p>
+<h2 id="current-architecture-phase-1"><a class="header" href="#current-architecture-phase-1">Current Architecture (Phase 1)</a></h2>
+<p>MIDIMon is currently implemented as a <strong>single-binary Rust application</strong> with all functionality in one crate. This design prioritizes rapid development and feature validation.</p>
+<h3 id="system-architecture"><a class="header" href="#system-architecture">System Architecture</a></h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                        MIDIMon CLI                          │
+│                    (Single Binary)                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐  │
+│  │   Config    │───▶│    Engine    │◀──▶│  Feedback    │  │
+│  │   Loader    │    │              │    │   System     │  │
+│  └─────────────┘    └──────────────┘    └──────────────┘  │
+│         │                   │                    │         │
+│         │                   │                    │         │
+│         ▼                   ▼                    ▼         │
+│  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐  │
+│  │  Mappings   │    │    Event     │    │  HID/MIDI    │  │
+│  │   Engine    │    │  Processor   │    │   LEDs       │  │
+│  └─────────────┘    └──────────────┘    └──────────────┘  │
+│         │                   │                              │
+│         │                   │                              │
+│         ▼                   ▼                              │
+│  ┌─────────────┐    ┌──────────────┐                      │
+│  │   Actions   │    │  Device I/O  │                      │
+│  │  Executor   │    │ (midir/HID)  │                      │
+│  └─────────────┘    └──────────────┘                      │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="event-processing-pipeline"><a class="header" href="#event-processing-pipeline">Event Processing Pipeline</a></h3>
+<p>The system uses a three-stage event processing architecture:</p>
+<pre><code>┌──────────────────┐
+│   MIDI Device    │
+└────────┬─────────┘
+         │ Raw bytes
+         ▼
+┌──────────────────┐
+│   MidiEvent      │  (Note On/Off, CC, Velocity)
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Event Processor  │  (State Machine)
+│  - Velocity      │  - Soft/Med/Hard levels
+│  - Long Press    │  - Hold detection (2000ms)
+│  - Double-Tap    │  - Quick succession (300ms)
+│  - Chord         │  - Simultaneous notes (50ms)
+│  - Encoder       │  - Direction detection
+└────────┬─────────┘
+         │ ProcessedEvent
+         ▼
+┌──────────────────┐
+│ Mapping Engine   │  (Mode-aware matching)
+│  - Global maps   │
+│  - Mode maps     │
+│  - Trigger match │
+└────────┬─────────┘
+         │ Action
+         ▼
+┌──────────────────┐
+│ Action Executor  │  (enigo for input simulation)
+│  - Keystroke     │
+│  - Shell         │
+│  - Launch        │
+│  - Volume        │
+└──────────────────┘
+</code></pre>
+<h3 id="core-components"><a class="header" href="#core-components">Core Components</a></h3>
+<h4 id="mainrs"><a class="header" href="#mainrs">main.rs</a></h4>
 <ul>
-<li><a href="https://github.com/amiable-dev/midimon/blob/main/README.md">README.md</a></li>
-<li><a href="https://github.com/amiable-dev/midimon/blob/main/CLAUDE.md">CLAUDE.md</a></li>
-<li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
+<li><strong>Entry Point</strong>: CLI argument parsing, device enumeration</li>
+<li><strong>MIDI Connection</strong>: Sets up <code>midir</code> input callbacks</li>
+<li><strong>Event Loop</strong>: Coordinates event processing thread</li>
+<li><strong>Mode Management</strong>: Tracks current mode via <code>AtomicU8</code></li>
+<li><strong>Device Profiles</strong>: Loads <code>.ncmm3</code> profiles for pad mapping</li>
 </ul>
-</blockquote>
-<h2 id="coming-soon"><a class="header" href="#coming-soon">Coming Soon</a></h2>
-<p>This page will cover:</p>
+<h4 id="configrs"><a class="header" href="#configrs">config.rs</a></h4>
 <ul>
-<li>TBD</li>
+<li><strong>Configuration Types</strong>: <code>Config</code>, <code>Mode</code>, <code>Mapping</code>, <code>Trigger</code>, <code>ActionConfig</code></li>
+<li><strong>TOML Parsing</strong>: Loads and validates <code>config.toml</code></li>
+<li><strong>Serialization</strong>: Supports saving default configs</li>
 </ul>
+<h4 id="event_processorrs"><a class="header" href="#event_processorrs">event_processor.rs</a></h4>
+<ul>
+<li><strong>State Machine</strong>: Transforms raw MIDI → ProcessedEvent</li>
+<li><strong>Timing Detection</strong>: Long press, double-tap, hold threshold</li>
+<li><strong>Velocity Ranges</strong>: Soft (0-40), Medium (41-80), Hard (81-127)</li>
+<li><strong>Chord Detection</strong>: Buffers notes within 50ms window</li>
+<li><strong>Encoder Direction</strong>: Detects clockwise/counterclockwise rotation</li>
+</ul>
+<h4 id="mappingsrs"><a class="header" href="#mappingsrs">mappings.rs</a></h4>
+<ul>
+<li><strong>Mapping Engine</strong>: Matches <code>ProcessedEvent</code> → <code>Action</code></li>
+<li><strong>Mode System</strong>: Global mappings + per-mode mappings</li>
+<li><strong>Trigger Matching</strong>: Supports Note, CC, Chord, Velocity, LongPress, DoubleTap</li>
+<li><strong>Compilation</strong>: Converts <code>Trigger</code> config → <code>CompiledTrigger</code> for fast matching</li>
+</ul>
+<h4 id="actionsrs"><a class="header" href="#actionsrs">actions.rs</a></h4>
+<ul>
+<li><strong>Action Executor</strong>: Executes compiled actions via <code>enigo</code></li>
+<li><strong>Keystroke Simulation</strong>: Key sequences with modifiers</li>
+<li><strong>Application Launch</strong>: Platform-specific (macOS <code>open</code>, Linux <code>exec</code>, Windows <code>start</code>)</li>
+<li><strong>Shell Execution</strong>: Runs arbitrary shell commands</li>
+<li><strong>Sequences</strong>: Chains multiple actions with delays</li>
+</ul>
+<h4 id="feedbackrs"><a class="header" href="#feedbackrs">feedback.rs</a></h4>
+<ul>
+<li><strong>Trait Abstraction</strong>: <code>PadFeedback</code> trait for LED control</li>
+<li><strong>Device Factory</strong>: Creates HID (Mikro MK3) or MIDI feedback</li>
+<li><strong>Lighting Schemes</strong>: Off, Static, Breathing, Pulse, Rainbow, Wave, Sparkle, Reactive, VuMeter, Spiral</li>
+</ul>
+<h4 id="mikro_ledsrs"><a class="header" href="#mikro_ledsrs">mikro_leds.rs</a></h4>
+<ul>
+<li><strong>HID Control</strong>: Direct RGB LED control via <code>hidapi</code></li>
+<li><strong>Maschine Mikro MK3</strong>: Full RGB control, 16 pads</li>
+<li><strong>Shared Device Mode</strong>: macOS shared access (runs alongside NI Controller Editor)</li>
+<li><strong>Effects</strong>: Velocity feedback, mode colors, reactive lighting</li>
+</ul>
+<h4 id="midi_feedbackrs"><a class="header" href="#midi_feedbackrs">midi_feedback.rs</a></h4>
+<ul>
+<li><strong>Standard MIDI</strong>: Fallback LED control via MIDI Note messages</li>
+<li><strong>Generic Devices</strong>: Works with any MIDI device with LED support</li>
+<li><strong>Limited Features</strong>: On/off only, no color control</li>
+</ul>
+<h4 id="device_profilers"><a class="header" href="#device_profilers">device_profile.rs</a></h4>
+<ul>
+<li><strong>NI Profile Parser</strong>: Parses <code>.ncmm3</code> XML from Controller Editor</li>
+<li><strong>Pad Mapping</strong>: Maps physical pad positions → MIDI notes</li>
+<li><strong>Page Support</strong>: Handles pad pages (A-H) for multi-page controllers</li>
+<li><strong>Auto-Detection</strong>: Detects active pad page from incoming MIDI</li>
+</ul>
+<h3 id="key-design-patterns"><a class="header" href="#key-design-patterns">Key Design Patterns</a></h3>
+<h4 id="mode-system"><a class="header" href="#mode-system">Mode System</a></h4>
+<p>Multiple modes (Default, Development, Media, etc.) allow different mapping sets. Each mode has:</p>
+<ul>
+<li>Distinct name and color theme</li>
+<li>Mode-specific mappings</li>
+<li>LED color scheme</li>
+</ul>
+<p>Mode changes triggered by:</p>
+<ul>
+<li>Encoder rotation (CC messages)</li>
+<li>Specific pad combinations</li>
+<li>Programmatic mode switching</li>
+</ul>
+<h4 id="global-vs-mode-mappings"><a class="header" href="#global-vs-mode-mappings">Global vs Mode Mappings</a></h4>
+<ul>
+<li><strong>Global Mappings</strong>: Active in all modes (e.g., emergency exit, encoder volume)</li>
+<li><strong>Mode Mappings</strong>: Scoped to specific modes (e.g., dev tools in Development mode)</li>
+</ul>
+<h4 id="profile-based-note-mapping"><a class="header" href="#profile-based-note-mapping">Profile-Based Note Mapping</a></h4>
+<p>Supports loading NI Controller Editor profiles (<code>.ncmm3</code>) to:</p>
+<ul>
+<li>Map physical pad positions to MIDI notes</li>
+<li>Handle different pad pages (A-H)</li>
+<li>Auto-detect active pad page from events</li>
+<li>Support custom controller configurations</li>
+</ul>
+<h4 id="led-feedback-system"><a class="header" href="#led-feedback-system">LED Feedback System</a></h4>
+<p>Trait-based abstraction (<code>PadFeedback</code>) supports:</p>
+<ul>
+<li><strong>HID Devices</strong>: Full RGB control (Maschine Mikro MK3)</li>
+<li><strong>MIDI Devices</strong>: Basic on/off via MIDI Note messages</li>
+</ul>
+<p><strong>Reactive Mode</strong>: LEDs respond to velocity:</p>
+<ul>
+<li>Soft (green), Medium (yellow), Hard (red)</li>
+<li>Fade-out 1 second after release</li>
+</ul>
+<p><strong>Mode Colors</strong>: Distinct color themes per mode</p>
+<ul>
+<li>Mode 0: Blue</li>
+<li>Mode 1: Green</li>
+<li>Mode 2: Purple</li>
+</ul>
+<h3 id="threading-and-concurrency"><a class="header" href="#threading-and-concurrency">Threading and Concurrency</a></h3>
+<pre><code>┌─────────────────────┐
+│   Main Thread       │
+│   - Config load     │
+│   - Device connect  │
+│   - Ctrl+C handler  │
+└──────────┬──────────┘
+           │
+           ├─────────────────────────┐
+           │                         │
+           ▼                         ▼
+┌─────────────────────┐   ┌─────────────────────┐
+│   MIDI Callback     │   │   LED Effect        │
+│   - Raw bytes       │   │   - Background      │
+│   - crossbeam send  │   │   - Lighting loop   │
+└──────────┬──────────┘   └─────────────────────┘
+           │
+           ▼
+┌─────────────────────┐
+│   Event Thread      │
+│   - Process events  │
+│   - Match mappings  │
+│   - Execute actions │
+└─────────────────────┘
+</code></pre>
+<p><strong>Current Threading Model</strong>:</p>
+<ul>
+<li><strong>Main Thread</strong>: Setup, config loading, signal handling</li>
+<li><strong>MIDI Callbacks</strong>: Lock-free (via <code>crossbeam-channel</code>)</li>
+<li><strong>Event Thread</strong>: Dedicated thread for event processing</li>
+<li><strong>LED Effects</strong>: Optional background thread for lighting schemes</li>
+</ul>
+<p><strong>Atomic State</strong>:</p>
+<ul>
+<li><code>AtomicU8</code> for current mode (lock-free reads/writes)</li>
+<li><code>AtomicBool</code> for running flag (graceful shutdown)</li>
+</ul>
+<h3 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h3>
+<ul>
+<li><strong>Event Latency</strong>: &lt;1ms typical</li>
+<li><strong>Memory Usage</strong>: 5-10MB</li>
+<li><strong>CPU Usage</strong>: &lt;1% idle, &lt;5% active</li>
+<li><strong>Binary Size</strong>: ~3-5MB (release with LTO)</li>
+</ul>
+<h3 id="dependencies"><a class="header" href="#dependencies">Dependencies</a></h3>
+<p><strong>Core Dependencies</strong>:</p>
+<ul>
+<li><code>midir</code>: Cross-platform MIDI I/O</li>
+<li><code>enigo</code>: Keyboard/mouse simulation</li>
+<li><code>hidapi</code>: HID device access (with <code>macos-shared-device</code>)</li>
+<li><code>serde</code>/<code>toml</code>: Config parsing</li>
+<li><code>quick-xml</code>: XML profile parsing</li>
+<li><code>crossbeam-channel</code>: Lock-free event channels</li>
+</ul>
+<p><strong>Platform-Specific</strong>:</p>
+<ul>
+<li>macOS: AppleScript for volume control</li>
+<li>Linux: <code>xdotool</code> (optional, for input simulation)</li>
+<li>Windows: Native Windows APIs</li>
+</ul>
+<h2 id="future-architecture-phase-2"><a class="header" href="#future-architecture-phase-2">Future Architecture (Phase 2+)</a></h2>
+<p>The roadmap includes migrating to a <strong>workspace structure</strong> with separate crates. See <a href="../../docs/workspace-structure.html">Workspace Structure Design</a> for complete details (AMI-124).</p>
+<h3 id="target-structure"><a class="header" href="#target-structure">Target Structure</a></h3>
+<pre><code>midimon/
+├── Cargo.toml                      # Workspace root manifest
+├── midimon-core/                   # Pure Rust engine (UI-free)
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs                  # Public API
+│       ├── engine.rs               # MidiMonEngine
+│       ├── config.rs               # Config types
+│       ├── events.rs               # Event types
+│       ├── mappings.rs             # Mapping engine
+│       ├── actions.rs              # Action execution
+│       ├── feedback.rs             # LED feedback
+│       ├── device_profile.rs       # NI profile parser
+│       └── error.rs                # Error types
+├── midimon-daemon/                 # CLI binary (current main.rs)
+│   ├── Cargo.toml
+│   └── src/
+│       ├── main.rs                 # CLI entry point
+│       ├── cli.rs                  # Argument parsing
+│       ├── debug.rs                # Debug output
+│       └── bin/                    # Diagnostic tools
+├── midimon-gui/                    # Tauri UI (Phase 4)
+│   ├── Cargo.toml
+│   ├── src-tauri/
+│   └── ui/
+└── config/                         # Config templates
+    ├── default.toml
+    ├── examples/
+    └── device_templates/
+</code></pre>
+<h3 id="workspace-dependency-graph"><a class="header" href="#workspace-dependency-graph">Workspace Dependency Graph</a></h3>
+<pre><code class="language-mermaid">graph TD
+    A[midimon-gui&lt;br/&gt;Tauri UI] --&gt;|depends on| C[midimon-core&lt;br/&gt;Engine Library]
+    B[midimon-daemon&lt;br/&gt;CLI Binary] --&gt;|depends on| C
+    C --&gt;|no dependencies on| A
+    C --&gt;|no dependencies on| B
+
+    style C fill:#4a90e2,stroke:#2e5f8a,stroke-width:3px,color:#fff
+    style A fill:#50c878,stroke:#2d7a4d,stroke-width:2px,color:#fff
+    style B fill:#50c878,stroke:#2d7a4d,stroke-width:2px,color:#fff
+</code></pre>
+<h3 id="phase-2-core-library-extraction"><a class="header" href="#phase-2-core-library-extraction">Phase 2: Core Library Extraction</a></h3>
+<p><strong>Goal</strong>: Extract engine logic into reusable <code>midimon-core</code> crate (AMI-123, AMI-124).</p>
+<p><strong>Public API</strong> (from <a href="../../docs/api-design.html">API Design</a>):</p>
+<pre><code class="language-rust">pub struct MidiMonEngine;
+impl MidiMonEngine {
+    pub fn new(config: Config) -&gt; Result&lt;Self, EngineError&gt;;
+    pub fn start(&amp;mut self) -&gt; Result&lt;(), EngineError&gt;;
+    pub fn stop(&amp;mut self) -&gt; Result&lt;(), EngineError&gt;;
+    pub fn reload_config(&amp;mut self, config: Config) -&gt; Result&lt;(), EngineError&gt;;
+    pub fn current_mode(&amp;self) -&gt; u8;
+    pub fn set_mode(&amp;mut self, mode: u8) -&gt; Result&lt;(), EngineError&gt;;
+    pub fn config(&amp;self) -&gt; Config;
+    pub fn stats(&amp;self) -&gt; EngineStats;
+
+    // Callbacks for integration
+    pub fn on_mode_change&lt;F&gt;(&amp;mut self, callback: F)
+    where F: Fn(u8) + Send + 'static;
+
+    pub fn on_action&lt;F&gt;(&amp;mut self, callback: F)
+    where F: Fn(&amp;ProcessedEvent, &amp;Action) + Send + 'static;
+}</code></pre>
+<p><strong>Module Separation</strong>:</p>
+<ul>
+<li><strong>Public Modules</strong>: <code>config</code>, <code>engine</code>, <code>events</code>, <code>actions</code>, <code>feedback</code>, <code>device</code>, <code>error</code></li>
+<li><strong>Private Modules</strong>: <code>event_processor</code>, <code>timing</code>, <code>chord</code>, <code>velocity</code></li>
+</ul>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Reusable engine for CLI, daemon, GUI</li>
+<li>Zero UI dependencies in core (no <code>colored</code>, <code>chrono</code> for display)</li>
+<li>Clean API boundaries with trait-based abstractions</li>
+<li>Easier testing and integration</li>
+<li>Thread-safe with Arc/RwLock for shared state</li>
+</ul>
+<p><strong>Build Commands</strong>:</p>
+<pre><code class="language-bash"># Build core library only
+cargo build -p midimon-core
+
+# Build CLI daemon
+cargo build -p midimon-daemon --release
+
+# Run with new structure
+cargo run -p midimon-daemon --release -- 2 --led reactive
+
+# Test workspace
+cargo test --workspace
+</code></pre>
+<h3 id="phase-3-daemon-and-menu-bar"><a class="header" href="#phase-3-daemon-and-menu-bar">Phase 3: Daemon and Menu Bar</a></h3>
+<p><strong>Goal</strong>: Add <code>midimon-daemon</code> with macOS menu bar integration.</p>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>System tray icon with status</li>
+<li>Quick actions (Pause, Reload, Open Config)</li>
+<li>Config hot-reloading via <code>notify</code> crate</li>
+<li>Auto-start via LaunchAgent or Tauri autostart plugin</li>
+<li>Frontmost app detection for per-app profiles</li>
+</ul>
+<p><strong>Integration Pattern</strong>:</p>
+<pre><code class="language-rust">use midimon_core::{Config, MidiMonEngine};
+
+fn main() -&gt; Result&lt;()&gt; {
+    let config = Config::load("config.toml")?;
+    let mut engine = MidiMonEngine::new(config)?;
+
+    // Register callbacks for UI updates
+    engine.on_mode_change(|mode| {
+        update_menu_bar_icon(mode);
+    });
+
+    engine.start()?;
+    Ok(())
+}</code></pre>
+<h3 id="phase-4-gui-configuration"><a class="header" href="#phase-4-gui-configuration">Phase 4: GUI Configuration</a></h3>
+<p><strong>Goal</strong>: Add <code>midimon-gui</code> with Tauri-based visual config editor.</p>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Visual device mapping with SVG pad layouts</li>
+<li>MIDI Learn mode (click → press → bind)</li>
+<li>Profile management (import/export/share)</li>
+<li>Live event console with filtering</li>
+<li>Velocity curve editor</li>
+<li>Test bindings without saving</li>
+</ul>
+<p><strong>UI Components</strong>:</p>
+<ul>
+<li>Device visualizer (16-pad grid for Maschine Mikro MK3)</li>
+<li>Mapping editor (trigger → action configuration)</li>
+<li>Profile switcher (per-app profiles)</li>
+<li>Event log (real-time MIDI/HID events)</li>
+<li>Settings panel (advanced timing, thresholds)</li>
+</ul>
+<h2 id="configuration-backward-compatibility"><a class="header" href="#configuration-backward-compatibility">Configuration Backward Compatibility</a></h2>
+<p><strong>Core Commitment</strong>: Configuration files created for v0.1.0 will work in all v1.x.x versions without modification.</p>
+<h3 id="stability-guarantees"><a class="header" href="#stability-guarantees">Stability Guarantees</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Section</th><th>v0.1.0</th><th>v0.2.0</th><th>v1.0.0</th><th>Stability</th></tr></thead><tbody>
+<tr><td><code>[device]</code></td><td>✅</td><td>✅</td><td>✅</td><td><strong>Stable</strong></td></tr>
+<tr><td><code>[[modes]]</code></td><td>✅</td><td>✅</td><td>✅</td><td><strong>Stable</strong></td></tr>
+<tr><td><code>[[global_mappings]]</code></td><td>✅</td><td>✅</td><td>✅</td><td><strong>Stable</strong> (optional, defaults to empty)</td></tr>
+<tr><td><code>[advanced_settings]</code></td><td>⚠️</td><td>✅</td><td>✅</td><td><strong>Optional</strong> (defaults provided)</td></tr>
+</tbody></table>
+</div>
+<p><strong>Legend</strong>:</p>
+<ul>
+<li>✅ <strong>Fully Supported</strong>: Section works identically across versions</li>
+<li>⚠️  <strong>Optional</strong>: Section is optional with sensible defaults</li>
+</ul>
+<h3 id="version-compatibility"><a class="header" href="#version-compatibility">Version Compatibility</a></h3>
+<pre><code>v0.1.0 config → v0.2.0 engine ✅ (100% compatible)
+v0.1.0 config → v1.0.0 engine ✅ (100% compatible)
+
+v0.2.0 config → v0.1.0 engine ⚠️  (new features ignored with warnings)
+v1.0.0 config → v0.1.0 engine ⚠️  (new features ignored with warnings)
+</code></pre>
+<h3 id="deprecation-policy"><a class="header" href="#deprecation-policy">Deprecation Policy</a></h3>
+<p>MIDIMon follows <strong>semantic versioning</strong> (SemVer) for configuration:</p>
+<ul>
+<li><strong>Major version (x.0.0)</strong>: May introduce breaking changes with migration tools</li>
+<li><strong>Minor version (0.x.0)</strong>: Adds features in backward-compatible manner</li>
+<li><strong>Patch version (0.0.x)</strong>: Bug fixes only, no config changes</li>
+</ul>
+<p><strong>Breaking changes</strong> require:</p>
+<ol>
+<li>Deprecation notice (version N)</li>
+<li>Deprecation period with warnings (version N+1)</li>
+<li>Removal with migration tool (version N+2, major bump)</li>
+</ol>
+<h3 id="test-coverage"><a class="header" href="#test-coverage">Test Coverage</a></h3>
+<p>All v0.1.0 configuration examples are validated in CI/CD via <code>tests/config_compatibility_test.rs</code>:</p>
+<ul>
+<li><strong>CFG-001</strong>: Basic config.toml loads without errors</li>
+<li><strong>CFG-003</strong>: Minimal device-only configs use defaults</li>
+<li><strong>CFG-004</strong>: All trigger types parse correctly</li>
+<li><strong>CFG-005</strong>: All action types parse correctly</li>
+<li><strong>CFG-006</strong>: Complex sequences work</li>
+<li><strong>CFG-007</strong>: Multiple modes supported</li>
+<li><strong>CFG-009</strong>: Legacy v0.1.0 syntax always works</li>
+<li><strong>CFG-010</strong>: Invalid syntax produces clear error messages</li>
+</ul>
+<p><strong>Coverage Requirements</strong>:</p>
+<ul>
+<li>100% coverage for config parsing (<code>src/config.rs</code>)</li>
+<li>All documentation examples must parse successfully</li>
+<li>Regression tests for every released version</li>
+</ul>
+<p>For complete details, see: <strong><a href="../../docs/config-compatibility.html">Configuration Backward Compatibility Strategy</a></strong></p>
 <hr />
-<p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="../development/contributing.html">Contributing Guide</a>.</p>
+<h2 id="api-design"><a class="header" href="#api-design">API Design</a></h2>
+<p>For detailed public API design (Phase 2+), see:</p>
+<ul>
+<li><strong><a href="../../docs/api-design.html">API Design Document</a></strong> - Complete API specification (AMI-123)</li>
+<li><strong><a href="../../docs/config-compatibility.html">Configuration Compatibility</a></strong> - Backward compatibility strategy (AMI-125)</li>
+<li><strong><a href="../../.research/implementation-viewpoint-1.html">Implementation Viewpoint 1</a></strong> - Monorepo with Tauri</li>
+<li><strong><a href="../../.research/implementation-viewpoint-2.html">Implementation Viewpoint 2</a></strong> - Alternative approach</li>
+</ul>
+<h2 id="related-documentation"><a class="header" href="#related-documentation">Related Documentation</a></h2>
+<ul>
+<li><a href="../configuration/overview.html">Configuration Overview</a></li>
+<li><a href="../configuration/device-profiles.html">Device Profiles</a></li>
+<li><a href="../configuration/led-feedback.html">LED Feedback System</a></li>
+<li><a href="contributing.html">Contributing Guide</a></li>
+<li><a href="testing.html">Testing Strategy</a></li>
+</ul>
 
                     </main>
 

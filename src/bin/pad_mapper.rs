@@ -28,12 +28,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Open HID device for reading pad events (with shared access)
     let api = hidapi::HidApi::new()?;
     let mut hid_device = None;
-    
+
     println!("Searching for Mikro MK3 HID interfaces...");
     for device in api.device_list() {
-        if device.vendor_id() == MIKRO_MK3_VENDOR_ID 
-            && device.product_id() == MIKRO_MK3_PRODUCT_ID {
-            println!("  Found interface {}: {}", 
+        if device.vendor_id() == MIKRO_MK3_VENDOR_ID && device.product_id() == MIKRO_MK3_PRODUCT_ID
+        {
+            println!(
+                "  Found interface {}: {}",
                 device.interface_number(),
                 device.product_string().unwrap_or("Unknown")
             );
@@ -51,37 +52,50 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
     }
-    
-    let hid_device = Arc::new(Mutex::new(hid_device.ok_or("Mikro MK3 HID not found or could not open")?));
+
+    let hid_device = Arc::new(Mutex::new(
+        hid_device.ok_or("Mikro MK3 HID not found or could not open")?,
+    ));
     println!("✓ Found Mikro MK3 HID interface");
 
     // Shared data for captured events
     let captured_midi = Arc::new(Mutex::new(None::<(u8, u8)>)); // (note, velocity)
     let captured_hid = Arc::new(Mutex::new(None::<u8>)); // pad_index
-    
+
     // Open MIDI input
     let mut midi_in = MidiInput::new("Pad Mapper MIDI")?;
     midi_in.ignore(Ignore::None);
-    
+
     let ports = midi_in.ports();
-    let mikro_port = ports.iter()
-        .find(|p| midi_in.port_name(p).unwrap_or_default().contains("Mikro MK3"))
+    let mikro_port = ports
+        .iter()
+        .find(|p| {
+            midi_in
+                .port_name(p)
+                .unwrap_or_default()
+                .contains("Mikro MK3")
+        })
         .ok_or("Mikro MK3 MIDI not found")?;
-    
+
     println!("✓ Found Mikro MK3 MIDI input");
     println!();
 
     // Start MIDI capture thread
     let captured_midi_clone = Arc::clone(&captured_midi);
-    let _midi_conn = midi_in.connect(mikro_port, "pad-mapper", move |_stamp, message, _| {
-        if message.len() >= 3 && (message[0] & 0xF0) == 0x90 {
-            let note = message[1];
-            let velocity = message[2];
-            if velocity > 0 {
-                *captured_midi_clone.lock().unwrap() = Some((note, velocity));
+    let _midi_conn = midi_in.connect(
+        mikro_port,
+        "pad-mapper",
+        move |_stamp, message, _| {
+            if message.len() >= 3 && (message[0] & 0xF0) == 0x90 {
+                let note = message[1];
+                let velocity = message[2];
+                if velocity > 0 {
+                    *captured_midi_clone.lock().unwrap() = Some((note, velocity));
+                }
             }
-        }
-    }, ())?;
+        },
+        (),
+    )?;
 
     // Start HID reading thread
     let captured_hid_clone = Arc::clone(&captured_hid);
@@ -92,9 +106,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             if let Ok(device) = hid_device_clone.lock() {
                 if let Ok(size) = device.read_timeout(&mut buffer, 10) {
                     if size > 0 {
-                        eprintln!("HID Report: ID=0x{:02X}, size={}, data={:02X?}", 
-                            buffer[0], size, &buffer[0..size.min(16)]);
-                        
+                        eprintln!(
+                            "HID Report: ID=0x{:02X}, size={}, data={:02X?}",
+                            buffer[0],
+                            size,
+                            &buffer[0..size.min(16)]
+                        );
+
                         // MK3 might use different report format - check all reports
                         if buffer[0] == 0x20 || buffer[0] == 0x01 {
                             // Try to extract pad index from report
@@ -103,10 +121,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     let high_byte = buffer[idx + 1];
                                     let pad_idx = (high_byte & 0xF0) >> 4;
                                     let low_byte = buffer[idx];
-                                    let value = (((high_byte & 0x0F) as u16) << 8) | low_byte as u16;
-                                    
+                                    let value =
+                                        (((high_byte & 0x0F) as u16) << 8) | low_byte as u16;
+
                                     if value > 512 {
-                                        eprintln!("  -> Detected pad index: 0x{:02X} (value={})", pad_idx, value);
+                                        eprintln!(
+                                            "  -> Detected pad index: 0x{:02X} (value={})",
+                                            pad_idx, value
+                                        );
                                         *captured_hid_clone.lock().unwrap() = Some(pad_idx);
                                         break;
                                     }
@@ -173,17 +195,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             if midi_data.is_some() && hid_data.is_some() {
                 let (note, vel) = midi_data.unwrap();
                 let hid_idx = hid_data.unwrap();
-                
+
                 println!("✓");
                 println!("  MIDI: Note {} velocity {}", note, vel);
                 println!("  HID:  Pad index 0x{:02X} ({})", hid_idx, hid_idx);
-                
+
                 results.push(PadData {
                     physical_pad: pad_num,
                     midi_note: note,
                     hid_pad_index: Some(hid_idx),
                 });
-                
+
                 thread::sleep(Duration::from_millis(500));
                 break;
             }
@@ -201,11 +223,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("-------------|-----------|---------------");
     for data in &results {
         if let Some(hid_idx) = data.hid_pad_index {
-            println!("    {:2}       |    {:3}    |   0x{:02X} ({:2})", 
-                data.physical_pad, 
-                data.midi_note, 
-                hid_idx,
-                hid_idx
+            println!(
+                "    {:2}       |    {:3}    |   0x{:02X} ({:2})",
+                data.physical_pad, data.midi_note, hid_idx, hid_idx
             );
         }
     }

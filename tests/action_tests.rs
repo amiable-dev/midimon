@@ -5,9 +5,9 @@
 //!
 //! Tests for Launch Application (F12) and Volume Control (F14) actions
 
-use std::process::Command;
-use std::path::PathBuf;
 use std::env;
+use std::path::PathBuf;
+use std::process::Command;
 
 /// Mock application path for testing
 fn get_test_app_path() -> String {
@@ -42,18 +42,14 @@ fn test_launch_action_valid_path() {
 
     #[cfg(target_os = "linux")]
     {
-        let result = Command::new("which")
-            .arg(&app_path)
-            .output();
+        let result = Command::new("which").arg(&app_path).output();
 
         assert!(result.is_ok());
     }
 
     #[cfg(target_os = "windows")]
     {
-        let result = Command::new("where")
-            .arg(&app_path)
-            .output();
+        let result = Command::new("where").arg(&app_path).output();
 
         assert!(result.is_ok());
     }
@@ -65,22 +61,20 @@ fn test_launch_action_invalid_path() {
 
     #[cfg(target_os = "macos")]
     {
-        let result = Command::new("open")
-            .arg("-a")
-            .arg(invalid_app)
-            .output();
+        let result = Command::new("open").arg("-a").arg(invalid_app).output();
 
         // This should fail or return an error status
         if let Ok(output) = result {
-            assert!(!output.status.success(), "Invalid app should fail to launch");
+            assert!(
+                !output.status.success(),
+                "Invalid app should fail to launch"
+            );
         }
     }
 
     #[cfg(target_os = "linux")]
     {
-        let result = Command::new("which")
-            .arg(invalid_app)
-            .output();
+        let result = Command::new("which").arg(invalid_app).output();
 
         if let Ok(output) = result {
             assert!(!output.status.success(), "Invalid app should not be found");
@@ -89,9 +83,7 @@ fn test_launch_action_invalid_path() {
 
     #[cfg(target_os = "windows")]
     {
-        let result = Command::new("where")
-            .arg(invalid_app)
-            .output();
+        let result = Command::new("where").arg(invalid_app).output();
 
         if let Ok(output) = result {
             assert!(!output.status.success(), "Invalid app should not be found");
@@ -125,13 +117,9 @@ fn test_launch_action_with_spaces_in_path() {
 fn test_launch_action_process_spawning() {
     // Test that we can spawn a simple process
     let result = if cfg!(unix) {
-        Command::new("echo")
-            .arg("test")
-            .output()
+        Command::new("echo").arg("test").output()
     } else {
-        Command::new("cmd")
-            .args(&["/C", "echo", "test"])
-            .output()
+        Command::new("cmd").args(&["/C", "echo", "test"]).output()
     };
 
     assert!(result.is_ok(), "Should be able to spawn echo process");
@@ -173,7 +161,10 @@ fn test_launch_action_error_handling_permission_denied() {
 
                 // Verify execution failed due to permissions
                 if let Ok(output) = result {
-                    assert!(!output.status.success(), "Should fail to execute file without exec permissions");
+                    assert!(
+                        !output.status.success(),
+                        "Should fail to execute file without exec permissions"
+                    );
                 } else {
                     // Error occurred during spawn, which is expected
                     assert!(true);
@@ -190,9 +181,7 @@ fn test_volume_control_command_detection() {
     #[cfg(target_os = "macos")]
     {
         // macOS uses osascript for volume control
-        let result = Command::new("which")
-            .arg("osascript")
-            .output();
+        let result = Command::new("which").arg("osascript").output();
 
         assert!(result.is_ok(), "osascript should be available on macOS");
 
@@ -204,13 +193,9 @@ fn test_volume_control_command_detection() {
     #[cfg(target_os = "linux")]
     {
         // Linux typically uses amixer or pactl
-        let amixer = Command::new("which")
-            .arg("amixer")
-            .output();
+        let amixer = Command::new("which").arg("amixer").output();
 
-        let pactl = Command::new("which")
-            .arg("pactl")
-            .output();
+        let pactl = Command::new("which").arg("pactl").output();
 
         // At least one should be available on Linux systems with audio
         // (may not be available in CI without audio)
@@ -223,9 +208,7 @@ fn test_volume_control_command_detection() {
     #[cfg(target_os = "windows")]
     {
         // Windows uses nircmd or built-in commands
-        let result = Command::new("where")
-            .arg("powershell")
-            .output();
+        let result = Command::new("where").arg("powershell").output();
 
         assert!(result.is_ok(), "PowerShell should be available on Windows");
     }
@@ -237,7 +220,8 @@ fn test_volume_up_command_structure() {
 
     #[cfg(target_os = "macos")]
     {
-        let cmd = "osascript -e 'set volume output volume (output volume of (get volume settings) + 10)'";
+        let cmd =
+            "osascript -e 'set volume output volume (output volume of (get volume settings) + 10)'";
 
         // Verify command can be parsed
         assert!(cmd.contains("osascript"));
@@ -260,7 +244,8 @@ fn test_volume_up_command_structure() {
 
     #[cfg(target_os = "windows")]
     {
-        let cmd = "powershell -Command \"(New-Object -ComObject WScript.Shell).SendKeys([char]175)\"";
+        let cmd =
+            "powershell -Command \"(New-Object -ComObject WScript.Shell).SendKeys([char]175)\"";
 
         // Verify command structure
         assert!(cmd.contains("powershell"));
@@ -272,7 +257,8 @@ fn test_volume_up_command_structure() {
 fn test_volume_down_command_structure() {
     #[cfg(target_os = "macos")]
     {
-        let cmd = "osascript -e 'set volume output volume (output volume of (get volume settings) - 10)'";
+        let cmd =
+            "osascript -e 'set volume output volume (output volume of (get volume settings) - 10)'";
 
         assert!(cmd.contains("osascript"));
         assert!(cmd.contains("set volume"));
@@ -293,7 +279,8 @@ fn test_volume_down_command_structure() {
 fn test_volume_mute_command_structure() {
     #[cfg(target_os = "macos")]
     {
-        let cmd = "osascript -e 'set volume output muted (not (output muted of (get volume settings)))'";
+        let cmd =
+            "osascript -e 'set volume output muted (not (output muted of (get volume settings)))'";
 
         assert!(cmd.contains("osascript"));
         assert!(cmd.contains("muted"));
@@ -341,14 +328,9 @@ fn test_mock_volume_control_execution() {
     };
 
     let result = if cfg!(unix) {
-        Command::new("sh")
-            .arg("-c")
-            .arg(mock_cmd)
-            .output()
+        Command::new("sh").arg("-c").arg(mock_cmd).output()
     } else {
-        Command::new("cmd")
-            .args(&["/C", mock_cmd])
-            .output()
+        Command::new("cmd").args(&["/C", mock_cmd]).output()
     };
 
     assert!(result.is_ok(), "Mock volume command should execute");
@@ -379,10 +361,7 @@ fn test_platform_specific_behavior_detection() {
         .filter(|&&x| x)
         .count();
 
-    assert_eq!(
-        platform_count, 1,
-        "Should detect exactly one platform"
-    );
+    assert_eq!(platform_count, 1, "Should detect exactly one platform");
 }
 
 #[test]
@@ -401,14 +380,17 @@ fn test_shell_command_escaping() {
             .output()
     };
 
-    assert!(result.is_ok(), "Should handle special characters in commands");
+    assert!(
+        result.is_ok(),
+        "Should handle special characters in commands"
+    );
 }
 
 #[test]
 fn test_concurrent_process_spawning() {
     // Test spawning multiple processes concurrently (common in action sequences)
-    use std::thread;
     use std::sync::{Arc, Mutex};
+    use std::thread;
 
     let success_count = Arc::new(Mutex::new(0));
     let mut handles = vec![];
@@ -418,13 +400,9 @@ fn test_concurrent_process_spawning() {
 
         let handle = thread::spawn(move || {
             let result = if cfg!(unix) {
-                Command::new("echo")
-                    .arg("test")
-                    .output()
+                Command::new("echo").arg("test").output()
             } else {
-                Command::new("cmd")
-                    .args(&["/C", "echo", "test"])
-                    .output()
+                Command::new("cmd").args(&["/C", "echo", "test"]).output()
             };
 
             if result.is_ok() {

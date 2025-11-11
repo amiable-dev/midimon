@@ -32,10 +32,7 @@ fn test_aftertouch_pressure_range() {
             0xD0,
             "First byte should be aftertouch status (0xD0)"
         );
-        assert_eq!(
-            event[1], test_pressures[i],
-            "Pressure value should match"
-        );
+        assert_eq!(event[1], test_pressures[i], "Pressure value should match");
     }
 }
 
@@ -139,11 +136,11 @@ fn test_pitch_bend_full_range() {
 
     // Test full 14-bit range: 0 (min down) to 16383 (max up)
     let test_values = vec![
-        0,      // Maximum bend down
-        4096,   // Quarter way up
-        8192,   // Center (no bend)
-        12288,  // Quarter way up
-        16383,  // Maximum bend up
+        0,     // Maximum bend down
+        4096,  // Quarter way up
+        8192,  // Center (no bend)
+        12288, // Quarter way up
+        16383, // Maximum bend up
     ];
 
     for &value in &test_values {
@@ -234,10 +231,7 @@ fn test_pitch_bend_smooth_sweep() {
         let value = ((msb as u16) << 7) | (lsb as u16);
 
         if prev_value > 0 {
-            assert!(
-                value > prev_value,
-                "Pitch bend should increase smoothly"
-            );
+            assert!(value > prev_value, "Pitch bend should increase smoothly");
         }
         prev_value = value;
     }

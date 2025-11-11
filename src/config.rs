@@ -43,17 +43,31 @@ pub enum Trigger {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "type")]
 pub enum ActionConfig {
-    Keystroke { 
+    Keystroke {
         keys: String,
         #[serde(default)]
-        modifiers: Vec<String> 
+        modifiers: Vec<String>,
     },
-    Text { text: String },
-    Launch { app: String },
-    Shell { command: String },
-    Sequence { actions: Vec<ActionConfig> },
-    Delay { ms: u64 },
-    MouseClick { button: String, x: Option<i32>, y: Option<i32> },
+    Text {
+        text: String,
+    },
+    Launch {
+        app: String,
+    },
+    Shell {
+        command: String,
+    },
+    Sequence {
+        actions: Vec<ActionConfig>,
+    },
+    Delay {
+        ms: u64,
+    },
+    MouseClick {
+        button: String,
+        x: Option<i32>,
+        y: Option<i32>,
+    },
 }
 
 impl Config {
@@ -86,29 +100,31 @@ impl Config {
                 Mode {
                     name: "Default".to_string(),
                     color: Some("blue".to_string()),
-                    mappings: vec![
-                        Mapping {
-                            trigger: Trigger::Note { note: 60, velocity_min: Some(1) },
-                            action: ActionConfig::Keystroke {
-                                keys: "space".to_string(),
-                                modifiers: vec!["cmd".to_string()],
-                            },
-                            description: Some("Spotlight Search".to_string()),
+                    mappings: vec![Mapping {
+                        trigger: Trigger::Note {
+                            note: 60,
+                            velocity_min: Some(1),
                         },
-                    ],
+                        action: ActionConfig::Keystroke {
+                            keys: "space".to_string(),
+                            modifiers: vec!["cmd".to_string()],
+                        },
+                        description: Some("Spotlight Search".to_string()),
+                    }],
                 },
                 Mode {
                     name: "Development".to_string(),
                     color: Some("green".to_string()),
-                    mappings: vec![
-                        Mapping {
-                            trigger: Trigger::Note { note: 60, velocity_min: None },
-                            action: ActionConfig::Shell {
-                                command: "git status".to_string(),
-                            },
-                            description: Some("Git status".to_string()),
+                    mappings: vec![Mapping {
+                        trigger: Trigger::Note {
+                            note: 60,
+                            velocity_min: None,
                         },
-                    ],
+                        action: ActionConfig::Shell {
+                            command: "git status".to_string(),
+                        },
+                        description: Some("Git status".to_string()),
+                    }],
                 },
             ],
             global_mappings: vec![],

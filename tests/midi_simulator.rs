@@ -15,7 +15,11 @@ use std::time::{Duration, Instant};
 #[derive(Debug, Clone)]
 pub enum SimulatorEvent {
     /// Note On with note number, velocity, and optional delay before sending
-    NoteOn { note: u8, velocity: u8, delay_ms: u64 },
+    NoteOn {
+        note: u8,
+        velocity: u8,
+        delay_ms: u64,
+    },
     /// Note Off with note number and optional delay before sending
     NoteOff { note: u8, delay_ms: u64 },
     /// Control Change with CC number, value, and optional delay
@@ -34,17 +38,45 @@ pub enum SimulatorEvent {
 #[derive(Debug, Clone)]
 pub enum Gesture {
     /// Simple note press and release with configurable velocity and duration
-    SimpleTap { note: u8, velocity: u8, duration_ms: u64 },
+    SimpleTap {
+        note: u8,
+        velocity: u8,
+        duration_ms: u64,
+    },
     /// Double-tap gesture with configurable timing between taps
-    DoubleTap { note: u8, velocity: u8, tap_duration_ms: u64, gap_ms: u64 },
+    DoubleTap {
+        note: u8,
+        velocity: u8,
+        tap_duration_ms: u64,
+        gap_ms: u64,
+    },
     /// Long press gesture with configurable hold duration
-    LongPress { note: u8, velocity: u8, hold_ms: u64 },
+    LongPress {
+        note: u8,
+        velocity: u8,
+        hold_ms: u64,
+    },
     /// Chord gesture with multiple notes pressed simultaneously
-    Chord { notes: Vec<u8>, velocity: u8, stagger_ms: u64, hold_ms: u64 },
+    Chord {
+        notes: Vec<u8>,
+        velocity: u8,
+        stagger_ms: u64,
+        hold_ms: u64,
+    },
     /// Encoder rotation simulation using CC messages
-    EncoderTurn { cc: u8, direction: EncoderDirection, steps: u8, step_delay_ms: u64 },
+    EncoderTurn {
+        cc: u8,
+        direction: EncoderDirection,
+        steps: u8,
+        step_delay_ms: u64,
+    },
     /// Velocity ramp from soft to hard
-    VelocityRamp { note: u8, min_velocity: u8, max_velocity: u8, steps: u8 },
+    VelocityRamp {
+        note: u8,
+        min_velocity: u8,
+        max_velocity: u8,
+        steps: u8,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -148,7 +180,11 @@ impl MidiSimulator {
     /// Execute a simulator event with timing
     pub fn execute(&self, event: SimulatorEvent) {
         match event {
-            SimulatorEvent::NoteOn { note, velocity, delay_ms } => {
+            SimulatorEvent::NoteOn {
+                note,
+                velocity,
+                delay_ms,
+            } => {
                 if delay_ms > 0 {
                     thread::sleep(Duration::from_millis(delay_ms));
                 }
@@ -160,7 +196,11 @@ impl MidiSimulator {
                 }
                 self.note_off(note);
             }
-            SimulatorEvent::ControlChange { cc, value, delay_ms } => {
+            SimulatorEvent::ControlChange {
+                cc,
+                value,
+                delay_ms,
+            } => {
                 if delay_ms > 0 {
                     thread::sleep(Duration::from_millis(delay_ms));
                 }
@@ -200,12 +240,21 @@ impl MidiSimulator {
     /// Perform a high-level gesture
     pub fn perform_gesture(&self, gesture: Gesture) {
         match gesture {
-            Gesture::SimpleTap { note, velocity, duration_ms } => {
+            Gesture::SimpleTap {
+                note,
+                velocity,
+                duration_ms,
+            } => {
                 self.note_on(note, velocity);
                 thread::sleep(Duration::from_millis(duration_ms));
                 self.note_off(note);
             }
-            Gesture::DoubleTap { note, velocity, tap_duration_ms, gap_ms } => {
+            Gesture::DoubleTap {
+                note,
+                velocity,
+                tap_duration_ms,
+                gap_ms,
+            } => {
                 // First tap
                 self.note_on(note, velocity);
                 thread::sleep(Duration::from_millis(tap_duration_ms));
@@ -219,12 +268,21 @@ impl MidiSimulator {
                 thread::sleep(Duration::from_millis(tap_duration_ms));
                 self.note_off(note);
             }
-            Gesture::LongPress { note, velocity, hold_ms } => {
+            Gesture::LongPress {
+                note,
+                velocity,
+                hold_ms,
+            } => {
                 self.note_on(note, velocity);
                 thread::sleep(Duration::from_millis(hold_ms));
                 self.note_off(note);
             }
-            Gesture::Chord { notes, velocity, stagger_ms, hold_ms } => {
+            Gesture::Chord {
+                notes,
+                velocity,
+                stagger_ms,
+                hold_ms,
+            } => {
                 // Press all notes with stagger
                 for (i, &note) in notes.iter().enumerate() {
                     if i > 0 && stagger_ms > 0 {
@@ -244,7 +302,12 @@ impl MidiSimulator {
                     }
                 }
             }
-            Gesture::EncoderTurn { cc, direction, steps, step_delay_ms } => {
+            Gesture::EncoderTurn {
+                cc,
+                direction,
+                steps,
+                step_delay_ms,
+            } => {
                 let mut current_value: u8 = 64; // Start at center
 
                 for _ in 0..steps {
@@ -260,7 +323,12 @@ impl MidiSimulator {
                     }
                 }
             }
-            Gesture::VelocityRamp { note, min_velocity, max_velocity, steps } => {
+            Gesture::VelocityRamp {
+                note,
+                min_velocity,
+                max_velocity,
+                steps,
+            } => {
                 let step_size = (max_velocity - min_velocity) / steps;
 
                 for i in 0..steps {
@@ -282,18 +350,21 @@ pub struct ScenarioBuilder {
 
 impl ScenarioBuilder {
     pub fn new() -> Self {
-        Self {
-            events: Vec::new(),
-        }
+        Self { events: Vec::new() }
     }
 
     pub fn note_on(mut self, note: u8, velocity: u8) -> Self {
-        self.events.push(SimulatorEvent::NoteOn { note, velocity, delay_ms: 0 });
+        self.events.push(SimulatorEvent::NoteOn {
+            note,
+            velocity,
+            delay_ms: 0,
+        });
         self
     }
 
     pub fn note_off(mut self, note: u8) -> Self {
-        self.events.push(SimulatorEvent::NoteOff { note, delay_ms: 0 });
+        self.events
+            .push(SimulatorEvent::NoteOff { note, delay_ms: 0 });
         self
     }
 
@@ -303,17 +374,25 @@ impl ScenarioBuilder {
     }
 
     pub fn control_change(mut self, cc: u8, value: u8) -> Self {
-        self.events.push(SimulatorEvent::ControlChange { cc, value, delay_ms: 0 });
+        self.events.push(SimulatorEvent::ControlChange {
+            cc,
+            value,
+            delay_ms: 0,
+        });
         self
     }
 
     pub fn aftertouch(mut self, pressure: u8) -> Self {
-        self.events.push(SimulatorEvent::Aftertouch { pressure, delay_ms: 0 });
+        self.events.push(SimulatorEvent::Aftertouch {
+            pressure,
+            delay_ms: 0,
+        });
         self
     }
 
     pub fn pitch_bend(mut self, value: u16) -> Self {
-        self.events.push(SimulatorEvent::PitchBend { value, delay_ms: 0 });
+        self.events
+            .push(SimulatorEvent::PitchBend { value, delay_ms: 0 });
         self
     }
 
@@ -441,7 +520,7 @@ mod tests {
 
         // Verify increasing values
         for i in 1..events.len() {
-            assert!(events[i][2] > events[i-1][2]);
+            assert!(events[i][2] > events[i - 1][2]);
         }
     }
 

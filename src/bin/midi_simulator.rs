@@ -15,7 +15,7 @@ use std::time::Duration;
 #[path = "../../tests/midi_simulator.rs"]
 mod midi_simulator;
 
-use midi_simulator::{MidiSimulator, Gesture, EncoderDirection, SimulatorEvent, ScenarioBuilder};
+use midi_simulator::{EncoderDirection, Gesture, MidiSimulator, ScenarioBuilder, SimulatorEvent};
 
 fn main() {
     println!("╔══════════════════════════════════════════════════════════════╗");
@@ -124,14 +124,20 @@ fn main() {
                     continue;
                 }
                 let note = parts[1].parse::<u8>().unwrap_or(60);
-                let duration = parts.get(2).and_then(|s| s.parse::<u64>().ok()).unwrap_or(2500);
+                let duration = parts
+                    .get(2)
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .unwrap_or(2500);
 
                 println!("Simulating long press for {}ms...", duration);
-                simulator.lock().unwrap().perform_gesture(Gesture::LongPress {
-                    note,
-                    velocity: 80,
-                    hold_ms: duration,
-                });
+                simulator
+                    .lock()
+                    .unwrap()
+                    .perform_gesture(Gesture::LongPress {
+                        note,
+                        velocity: 80,
+                        hold_ms: duration,
+                    });
                 println!("✓ Long press complete");
             }
 
@@ -142,15 +148,21 @@ fn main() {
                     continue;
                 }
                 let note = parts[1].parse::<u8>().unwrap_or(60);
-                let gap = parts.get(2).and_then(|s| s.parse::<u64>().ok()).unwrap_or(200);
+                let gap = parts
+                    .get(2)
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .unwrap_or(200);
 
                 println!("Simulating double-tap with {}ms gap...", gap);
-                simulator.lock().unwrap().perform_gesture(Gesture::DoubleTap {
-                    note,
-                    velocity: 80,
-                    tap_duration_ms: 50,
-                    gap_ms: gap,
-                });
+                simulator
+                    .lock()
+                    .unwrap()
+                    .perform_gesture(Gesture::DoubleTap {
+                        note,
+                        velocity: 80,
+                        tap_duration_ms: 50,
+                        gap_ms: gap,
+                    });
                 println!("✓ Double-tap complete");
             }
 
@@ -199,13 +211,19 @@ fn main() {
                 };
                 let steps = parts.get(3).and_then(|s| s.parse::<u8>().ok()).unwrap_or(5);
 
-                println!("Simulating encoder CC{} {:?} {} steps...", cc, direction, steps);
-                simulator.lock().unwrap().perform_gesture(Gesture::EncoderTurn {
-                    cc,
-                    direction,
-                    steps,
-                    step_delay_ms: 50,
-                });
+                println!(
+                    "Simulating encoder CC{} {:?} {} steps...",
+                    cc, direction, steps
+                );
+                simulator
+                    .lock()
+                    .unwrap()
+                    .perform_gesture(Gesture::EncoderTurn {
+                        cc,
+                        direction,
+                        steps,
+                        step_delay_ms: 50,
+                    });
                 println!("✓ Encoder simulation complete");
             }
 
@@ -287,7 +305,10 @@ fn main() {
             }
 
             _ => {
-                println!("✗ Unknown command '{}'. Type 'help' for available commands.", command);
+                println!(
+                    "✗ Unknown command '{}'. Type 'help' for available commands.",
+                    command
+                );
             }
         }
     }
@@ -333,19 +354,25 @@ fn run_demo(simulator: &Arc<Mutex<MidiSimulator>>) {
     thread::sleep(Duration::from_millis(500));
 
     println!("2. Testing long press...");
-    simulator.lock().unwrap().perform_gesture(Gesture::LongPress {
-        note: 61,
-        velocity: 80,
-        hold_ms: 2500,
-    });
+    simulator
+        .lock()
+        .unwrap()
+        .perform_gesture(Gesture::LongPress {
+            note: 61,
+            velocity: 80,
+            hold_ms: 2500,
+        });
 
     println!("3. Testing double-tap...");
-    simulator.lock().unwrap().perform_gesture(Gesture::DoubleTap {
-        note: 62,
-        velocity: 80,
-        tap_duration_ms: 50,
-        gap_ms: 200,
-    });
+    simulator
+        .lock()
+        .unwrap()
+        .perform_gesture(Gesture::DoubleTap {
+            note: 62,
+            velocity: 80,
+            tap_duration_ms: 50,
+            gap_ms: 200,
+        });
 
     println!("4. Testing chord...");
     simulator.lock().unwrap().perform_gesture(Gesture::Chord {
@@ -356,12 +383,15 @@ fn run_demo(simulator: &Arc<Mutex<MidiSimulator>>) {
     });
 
     println!("5. Testing encoder...");
-    simulator.lock().unwrap().perform_gesture(Gesture::EncoderTurn {
-        cc: 1,
-        direction: EncoderDirection::Clockwise,
-        steps: 10,
-        step_delay_ms: 30,
-    });
+    simulator
+        .lock()
+        .unwrap()
+        .perform_gesture(Gesture::EncoderTurn {
+            cc: 1,
+            direction: EncoderDirection::Clockwise,
+            steps: 10,
+            step_delay_ms: 30,
+        });
 }
 
 fn run_velocity_scenario(simulator: &Arc<Mutex<MidiSimulator>>) {
@@ -389,39 +419,51 @@ fn run_timing_scenario(simulator: &Arc<Mutex<MidiSimulator>>) {
     println!("Testing press durations: Short (100ms), Medium (500ms), Long (2500ms)");
 
     // Short press
-    simulator.lock().unwrap().perform_gesture(Gesture::SimpleTap {
-        note: 60,
-        velocity: 80,
-        duration_ms: 100,
-    });
+    simulator
+        .lock()
+        .unwrap()
+        .perform_gesture(Gesture::SimpleTap {
+            note: 60,
+            velocity: 80,
+            duration_ms: 100,
+        });
     thread::sleep(Duration::from_millis(300));
 
     // Medium press
-    simulator.lock().unwrap().perform_gesture(Gesture::SimpleTap {
-        note: 60,
-        velocity: 80,
-        duration_ms: 500,
-    });
+    simulator
+        .lock()
+        .unwrap()
+        .perform_gesture(Gesture::SimpleTap {
+            note: 60,
+            velocity: 80,
+            duration_ms: 500,
+        });
     thread::sleep(Duration::from_millis(300));
 
     // Long press
-    simulator.lock().unwrap().perform_gesture(Gesture::LongPress {
-        note: 60,
-        velocity: 80,
-        hold_ms: 2500,
-    });
+    simulator
+        .lock()
+        .unwrap()
+        .perform_gesture(Gesture::LongPress {
+            note: 60,
+            velocity: 80,
+            hold_ms: 2500,
+        });
 
     println!("✓ Timing scenario complete");
 }
 
 fn run_doubletap_scenario(simulator: &Arc<Mutex<MidiSimulator>>) {
     println!("Testing double-tap with 200ms gap");
-    simulator.lock().unwrap().perform_gesture(Gesture::DoubleTap {
-        note: 60,
-        velocity: 80,
-        tap_duration_ms: 50,
-        gap_ms: 200,
-    });
+    simulator
+        .lock()
+        .unwrap()
+        .perform_gesture(Gesture::DoubleTap {
+            note: 60,
+            velocity: 80,
+            tap_duration_ms: 50,
+            gap_ms: 200,
+        });
     println!("✓ Double-tap scenario complete");
 }
 
@@ -439,21 +481,27 @@ fn run_chord_scenario(simulator: &Arc<Mutex<MidiSimulator>>) {
 fn run_encoder_scenario(simulator: &Arc<Mutex<MidiSimulator>>) {
     println!("Testing encoder: 5 steps CW, then 5 steps CCW");
 
-    simulator.lock().unwrap().perform_gesture(Gesture::EncoderTurn {
-        cc: 1,
-        direction: EncoderDirection::Clockwise,
-        steps: 5,
-        step_delay_ms: 50,
-    });
+    simulator
+        .lock()
+        .unwrap()
+        .perform_gesture(Gesture::EncoderTurn {
+            cc: 1,
+            direction: EncoderDirection::Clockwise,
+            steps: 5,
+            step_delay_ms: 50,
+        });
 
     thread::sleep(Duration::from_millis(500));
 
-    simulator.lock().unwrap().perform_gesture(Gesture::EncoderTurn {
-        cc: 1,
-        direction: EncoderDirection::CounterClockwise,
-        steps: 5,
-        step_delay_ms: 50,
-    });
+    simulator
+        .lock()
+        .unwrap()
+        .perform_gesture(Gesture::EncoderTurn {
+            cc: 1,
+            direction: EncoderDirection::CounterClockwise,
+            steps: 5,
+            step_delay_ms: 50,
+        });
 
     println!("✓ Encoder scenario complete");
 }

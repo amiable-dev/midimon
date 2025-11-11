@@ -1,11 +1,11 @@
 // Copyright 2025 Amiable
 // SPDX-License-Identifier: MIT
 
-use std::collections::HashMap;
-use crate::config::{Config, Trigger, Mapping};
-use crate::actions::Action;
 use crate::MidiEvent;
+use crate::actions::Action;
+use crate::config::{Config, Mapping, Trigger};
 use colored::Colorize;
+use std::collections::HashMap;
 
 pub struct MappingEngine {
     mode_mappings: HashMap<u8, Vec<CompiledMapping>>,
@@ -35,16 +35,18 @@ impl MappingEngine {
     pub fn load_from_config(&mut self, config: &Config) {
         // Load mode-specific mappings
         for (mode_idx, mode) in config.modes.iter().enumerate() {
-            let compiled: Vec<CompiledMapping> = mode.mappings
+            let compiled: Vec<CompiledMapping> = mode
+                .mappings
                 .iter()
                 .map(|m| self.compile_mapping(m))
                 .collect();
-            
+
             self.mode_mappings.insert(mode_idx as u8, compiled);
         }
 
         // Load global mappings
-        self.global_mappings = config.global_mappings
+        self.global_mappings = config
+            .global_mappings
             .iter()
             .map(|m| self.compile_mapping(m))
             .collect();
@@ -53,23 +55,17 @@ impl MappingEngine {
     fn compile_mapping(&self, mapping: &Mapping) -> CompiledMapping {
         CompiledMapping {
             trigger: match &mapping.trigger {
-                Trigger::Note { note, velocity_min } => {
-                    CompiledTrigger::Note {
-                        note: *note,
-                        velocity_min: velocity_min.unwrap_or(1),
-                    }
-                }
-                Trigger::CC { cc, value_min } => {
-                    CompiledTrigger::CC {
-                        cc: *cc,
-                        value_min: value_min.unwrap_or(0),
-                    }
-                }
-                Trigger::NoteChord { notes } => {
-                    CompiledTrigger::NoteChord {
-                        notes: notes.clone(),
-                    }
-                }
+                Trigger::Note { note, velocity_min } => CompiledTrigger::Note {
+                    note: *note,
+                    velocity_min: velocity_min.unwrap_or(1),
+                },
+                Trigger::CC { cc, value_min } => CompiledTrigger::CC {
+                    cc: *cc,
+                    value_min: value_min.unwrap_or(0),
+                },
+                Trigger::NoteChord { notes } => CompiledTrigger::NoteChord {
+                    notes: notes.clone(),
+                },
             },
             action: mapping.action.clone().into(),
             description: mapping.description.clone(),
@@ -89,9 +85,9 @@ impl MappingEngine {
     }
 
     fn find_matching_action(
-        &self, 
-        event: &MidiEvent, 
-        mappings: &[CompiledMapping]
+        &self,
+        event: &MidiEvent,
+        mappings: &[CompiledMapping],
     ) -> Option<Action> {
         for mapping in mappings {
             if self.trigger_matches(&mapping.trigger, event) {
@@ -108,16 +104,15 @@ impl MappingEngine {
         match (trigger, event) {
             (
                 CompiledTrigger::Note { note, velocity_min },
-                MidiEvent::NoteOn { note: ev_note, velocity }
-            ) => {
-                *note == *ev_note && *velocity >= *velocity_min
-            }
+                MidiEvent::NoteOn {
+                    note: ev_note,
+                    velocity,
+                },
+            ) => *note == *ev_note && *velocity >= *velocity_min,
             (
                 CompiledTrigger::CC { cc, value_min },
-                MidiEvent::ControlChange { cc: ev_cc, value }
-            ) => {
-                *cc == *ev_cc && *value >= *value_min
-            }
+                MidiEvent::ControlChange { cc: ev_cc, value },
+            ) => *cc == *ev_cc && *value >= *value_min,
             _ => false,
         }
     }

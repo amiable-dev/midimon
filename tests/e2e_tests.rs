@@ -12,14 +12,16 @@
 
 mod midi_simulator;
 
-use midi_simulator::{MidiSimulator, Gesture, EncoderDirection, ScenarioBuilder};
+use midi_simulator::{EncoderDirection, Gesture, MidiSimulator, ScenarioBuilder};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use std::collections::HashMap;
 
 // Re-use types from the main crate for testing
-use midimon::event_processor::{EventProcessor, MidiEvent, ProcessedEvent, VelocityLevel, EncoderDirection as MidiDirection};
-use midimon::config::{Config, Trigger, ActionConfig, Mapping, Mode, DeviceConfig};
+use midimon::config::{ActionConfig, Config, DeviceConfig, Mapping, Mode, Trigger};
+use midimon::event_processor::{
+    EncoderDirection as MidiDirection, EventProcessor, MidiEvent, ProcessedEvent, VelocityLevel,
+};
 
 /// Mock action executor that records executed actions instead of actually performing them
 #[derive(Clone)]
@@ -29,13 +31,20 @@ struct MockActionExecutor {
 
 #[derive(Debug, Clone, PartialEq)]
 enum ExecutedAction {
-    Keystroke { keys: String, modifiers: Vec<String> },
+    Keystroke {
+        keys: String,
+        modifiers: Vec<String>,
+    },
     Text(String),
     Launch(String),
     Shell(String),
     Sequence(Vec<ExecutedAction>),
     Delay(u64),
-    MouseClick { button: String, x: Option<i32>, y: Option<i32> },
+    MouseClick {
+        button: String,
+        x: Option<i32>,
+        y: Option<i32>,
+    },
     VolumeUp,
     VolumeDown,
     VolumeMute,
@@ -82,10 +91,7 @@ fn convert_sim_to_midi_event(raw: Vec<u8>) -> Option<MidiEvent> {
             velocity: raw[2],
             time,
         }),
-        0x80 => Some(MidiEvent::NoteOff {
-            note: raw[1],
-            time,
-        }),
+        0x80 => Some(MidiEvent::NoteOff { note: raw[1], time }),
         0xB0 => Some(MidiEvent::ControlChange {
             cc: raw[1],
             value: raw[2],
@@ -97,10 +103,7 @@ fn convert_sim_to_midi_event(raw: Vec<u8>) -> Option<MidiEvent> {
         }),
         0xE0 => {
             let value = ((raw[2] as u16) << 7) | (raw[1] as u16);
-            Some(MidiEvent::PitchBend {
-                value,
-                time,
-            })
+            Some(MidiEvent::PitchBend { value, time })
         }
         0xC0 => Some(MidiEvent::ProgramChange {
             program: raw[1],
@@ -131,7 +134,11 @@ impl E2ETestHarness {
         let base_time = Instant::now();
 
         match gesture {
-            Gesture::SimpleTap { note, velocity, duration_ms } => {
+            Gesture::SimpleTap {
+                note,
+                velocity,
+                duration_ms,
+            } => {
                 // Note on immediately
                 self.simulator.note_on(note, velocity);
                 let on_event = convert_sim_to_midi_event(self.simulator.get_events()[0].clone())
@@ -143,18 +150,23 @@ impl E2ETestHarness {
 
                 // Note off after duration
                 self.simulator.note_off(note);
-                let off_event = convert_sim_to_midi_event(self.simulator.peek_last_event().unwrap())
-                    .expect("Failed to convert note off");
+                let off_event =
+                    convert_sim_to_midi_event(self.simulator.peek_last_event().unwrap())
+                        .expect("Failed to convert note off");
                 processed.extend(self.processor.process(off_event));
 
                 processed
             }
-            Gesture::LongPress { note, velocity, hold_ms } => {
+            Gesture::LongPress {
+                note,
+                velocity,
+                hold_ms,
+            } => {
                 // Note on immediately
                 self.simulator.note_on(note, velocity);
                 let raw = self.simulator.get_events();
-                let on_event = convert_sim_to_midi_event(raw[0].clone())
-                    .expect("Failed to convert note on");
+                let on_event =
+                    convert_sim_to_midi_event(raw[0].clone()).expect("Failed to convert note on");
                 let mut processed = self.processor.process(on_event);
 
                 // Wait for hold duration
@@ -163,13 +175,18 @@ impl E2ETestHarness {
                 // Note off after hold
                 self.simulator.note_off(note);
                 let raw2 = self.simulator.get_events();
-                let off_event = convert_sim_to_midi_event(raw2[0].clone())
-                    .expect("Failed to convert note off");
+                let off_event =
+                    convert_sim_to_midi_event(raw2[0].clone()).expect("Failed to convert note off");
                 processed.extend(self.processor.process(off_event));
 
                 processed
             }
-            Gesture::DoubleTap { note, velocity, tap_duration_ms, gap_ms } => {
+            Gesture::DoubleTap {
+                note,
+                velocity,
+                tap_duration_ms,
+                gap_ms,
+            } => {
                 let mut processed = Vec::new();
 
                 // First tap
@@ -245,14 +262,19 @@ fn test_e2e_simple_pad_press_to_keystroke() {
     // Verify event processing detected the press
     assert!(!processed.is_empty(), "Should generate processed events");
 
-    let has_pad_pressed = processed.iter().any(|e| {
-        matches!(e, ProcessedEvent::PadPressed { note, .. } if *note == 60)
-    });
+    let has_pad_pressed = processed
+        .iter()
+        .any(|e| matches!(e, ProcessedEvent::PadPressed { note, .. } if *note == 60));
     assert!(has_pad_pressed, "Should detect PadPressed event");
 
     // Verify velocity level is correct (100 = Hard)
     let velocity_level = processed.iter().find_map(|e| {
-        if let ProcessedEvent::PadPressed { note, velocity_level, .. } = e {
+        if let ProcessedEvent::PadPressed {
+            note,
+            velocity_level,
+            ..
+        } = e
+        {
             if *note == 60 {
                 return Some(*velocity_level);
             }
@@ -270,10 +292,7 @@ fn test_e2e_simple_pad_press_to_keystroke() {
     // Verify action was executed
     let actions = harness.executor.get_executed_actions();
     assert_eq!(actions.len(), 1);
-    assert!(matches!(
-        actions[0],
-        ExecutedAction::Keystroke { .. }
-    ));
+    assert!(matches!(actions[0], ExecutedAction::Keystroke { .. }));
 }
 
 #[test]
@@ -327,7 +346,9 @@ fn test_e2e_velocity_soft_action() {
     assert_eq!(velocity_level, Some(VelocityLevel::Soft));
 
     // Simulate soft action execution
-    harness.executor.execute(ExecutedAction::Text("soft".to_string()));
+    harness
+        .executor
+        .execute(ExecutedAction::Text("soft".to_string()));
 
     let actions = harness.executor.get_executed_actions();
     assert_eq!(actions[0], ExecutedAction::Text("soft".to_string()));
@@ -355,7 +376,9 @@ fn test_e2e_velocity_medium_action() {
     assert_eq!(velocity_level, Some(VelocityLevel::Medium));
 
     // Simulate medium action execution
-    harness.executor.execute(ExecutedAction::Text("medium".to_string()));
+    harness
+        .executor
+        .execute(ExecutedAction::Text("medium".to_string()));
 
     let actions = harness.executor.get_executed_actions();
     assert_eq!(actions[0], ExecutedAction::Text("medium".to_string()));
@@ -383,7 +406,9 @@ fn test_e2e_velocity_hard_action() {
     assert_eq!(velocity_level, Some(VelocityLevel::Hard));
 
     // Simulate hard action execution
-    harness.executor.execute(ExecutedAction::Text("hard".to_string()));
+    harness
+        .executor
+        .execute(ExecutedAction::Text("hard".to_string()));
 
     let actions = harness.executor.get_executed_actions();
     assert_eq!(actions[0], ExecutedAction::Text("hard".to_string()));
@@ -412,7 +437,9 @@ fn test_e2e_long_press_detected() {
     assert!(has_long_press, "Should detect long press after 1000ms");
 
     // Simulate long press action
-    harness.executor.execute(ExecutedAction::Launch("Calculator".to_string()));
+    harness
+        .executor
+        .execute(ExecutedAction::Launch("Calculator".to_string()));
 
     let actions = harness.executor.get_executed_actions();
     assert!(matches!(actions[0], ExecutedAction::Launch(_)));
@@ -430,15 +457,18 @@ fn test_e2e_long_press_not_triggered_early_release() {
     });
 
     // Verify long press NOT detected (should be MediumPress instead)
-    let has_long_press = processed.iter().any(|e| {
-        matches!(e, ProcessedEvent::LongPress { .. })
-    });
-    assert!(!has_long_press, "Should NOT detect long press before 1000ms");
+    let has_long_press = processed
+        .iter()
+        .any(|e| matches!(e, ProcessedEvent::LongPress { .. }));
+    assert!(
+        !has_long_press,
+        "Should NOT detect long press before 1000ms"
+    );
 
     // Verify medium press detected instead (200-1000ms range)
-    let has_medium_press = processed.iter().any(|e| {
-        matches!(e, ProcessedEvent::MediumPress { note, .. } if *note == 60)
-    });
+    let has_medium_press = processed
+        .iter()
+        .any(|e| matches!(e, ProcessedEvent::MediumPress { note, .. } if *note == 60));
     assert!(has_medium_press, "Should detect medium press instead");
 }
 
@@ -459,13 +489,18 @@ fn test_e2e_double_tap_detected() {
     });
 
     // Verify double-tap event detected
-    let has_double_tap = processed.iter().any(|e| {
-        matches!(e, ProcessedEvent::DoubleTap { note } if *note == 60)
-    });
-    assert!(has_double_tap, "Should detect double-tap within 300ms window");
+    let has_double_tap = processed
+        .iter()
+        .any(|e| matches!(e, ProcessedEvent::DoubleTap { note } if *note == 60));
+    assert!(
+        has_double_tap,
+        "Should detect double-tap within 300ms window"
+    );
 
     // Simulate double-tap action
-    harness.executor.execute(ExecutedAction::Shell("open .".to_string()));
+    harness
+        .executor
+        .execute(ExecutedAction::Shell("open .".to_string()));
 
     let actions = harness.executor.get_executed_actions();
     assert!(matches!(actions[0], ExecutedAction::Shell(_)));
@@ -489,10 +524,13 @@ fn test_e2e_double_tap_not_detected_slow_taps() {
     // Double-tap is measured from first NoteOn to second NoteOn
     // Total time from first press to second press = tap_duration + gap = 50 + 300 = 350ms
     // Since 350ms > 300ms window, double-tap should NOT be detected
-    let has_double_tap = processed.iter().any(|e| {
-        matches!(e, ProcessedEvent::DoubleTap { .. })
-    });
-    assert!(!has_double_tap, "Should NOT detect double-tap outside 300ms window");
+    let has_double_tap = processed
+        .iter()
+        .any(|e| matches!(e, ProcessedEvent::DoubleTap { .. }));
+    assert!(
+        !has_double_tap,
+        "Should NOT detect double-tap outside 300ms window"
+    );
 }
 
 // =============================================================================
@@ -519,7 +557,10 @@ fn test_e2e_chord_detected() {
             false
         }
     });
-    assert!(has_chord, "Should detect chord when notes pressed within 50ms");
+    assert!(
+        has_chord,
+        "Should detect chord when notes pressed within 50ms"
+    );
 
     // Simulate chord action
     harness.executor.execute(ExecutedAction::Keystroke {
@@ -545,13 +586,17 @@ fn test_e2e_chord_not_detected_sequential_notes() {
 
     // Notes are processed individually, not as a chord
     // Chord should only be detected for the last few notes within window
-    let chord_count = processed.iter().filter(|e| {
-        matches!(e, ProcessedEvent::ChordDetected { .. })
-    }).count();
+    let chord_count = processed
+        .iter()
+        .filter(|e| matches!(e, ProcessedEvent::ChordDetected { .. }))
+        .count();
 
     // With 100ms stagger, by the time third note arrives, first is outside 50ms window
     // So we should see partial chords or no chord
-    assert!(chord_count < 3, "Should not detect full chord with 100ms stagger");
+    assert!(
+        chord_count < 3,
+        "Should not detect full chord with 100ms stagger"
+    );
 }
 
 // =============================================================================
@@ -581,9 +626,9 @@ fn test_e2e_mode_switch_via_encoder() {
     }
 
     // Verify encoder turn detected
-    let has_encoder = encoder_events.iter().any(|e| {
-        matches!(e, ProcessedEvent::EncoderTurned { .. })
-    });
+    let has_encoder = encoder_events
+        .iter()
+        .any(|e| matches!(e, ProcessedEvent::EncoderTurned { .. }));
     assert!(has_encoder, "Should detect encoder turn");
 
     // Simulate mode change action
@@ -611,7 +656,9 @@ fn test_e2e_mode_specific_mapping() {
 
     // In Mode 1, same note 60 triggers git status
     harness.simulator.note_on(60, 100);
-    harness.executor.execute(ExecutedAction::Shell("git status".to_string()));
+    harness
+        .executor
+        .execute(ExecutedAction::Shell("git status".to_string()));
 
     let actions = harness.executor.get_executed_actions();
 
@@ -630,7 +677,9 @@ fn test_e2e_global_mapping_works_in_all_modes() {
 
     // Test in Mode 0
     harness.simulator.note_on(test_note, 100);
-    harness.executor.execute(ExecutedAction::Shell("killall MIDIMon".to_string()));
+    harness
+        .executor
+        .execute(ExecutedAction::Shell("killall MIDIMon".to_string()));
 
     let mode0_actions = harness.executor.count();
     harness.clear();
@@ -641,7 +690,9 @@ fn test_e2e_global_mapping_works_in_all_modes() {
 
     // Test same global mapping in Mode 1
     harness.simulator.note_on(test_note, 100);
-    harness.executor.execute(ExecutedAction::Shell("killall MIDIMon".to_string()));
+    harness
+        .executor
+        .execute(ExecutedAction::Shell("killall MIDIMon".to_string()));
 
     let mode1_actions = harness.executor.count();
 
@@ -742,9 +793,13 @@ fn test_e2e_conditional_time_based() {
     harness.simulator.note_on(60, 100);
 
     if (9..17).contains(&current_hour) {
-        harness.executor.execute(ExecutedAction::Launch("Focus".to_string()));
+        harness
+            .executor
+            .execute(ExecutedAction::Launch("Focus".to_string()));
     } else {
-        harness.executor.execute(ExecutedAction::Launch("Steam".to_string()));
+        harness
+            .executor
+            .execute(ExecutedAction::Launch("Steam".to_string()));
     }
 
     let actions = harness.executor.get_executed_actions();
@@ -765,7 +820,9 @@ fn test_e2e_conditional_mode_based() {
     if current_mode == 0 {
         harness.executor.execute(ExecutedAction::VolumeUp);
     } else {
-        harness.executor.execute(ExecutedAction::Shell("brightness up".to_string()));
+        harness
+            .executor
+            .execute(ExecutedAction::Shell("brightness up".to_string()));
     }
 
     let actions = harness.executor.get_executed_actions();
@@ -807,12 +864,17 @@ fn test_e2e_encoder_volume_up() {
 
     // First CC event has no previous value, so it doesn't generate an EncoderTurned event
     // Therefore, we expect 4 EncoderTurned events from 5 CC messages
-    let volume_ups = harness.executor.get_executed_actions()
+    let volume_ups = harness
+        .executor
+        .get_executed_actions()
         .iter()
         .filter(|a| matches!(a, ExecutedAction::VolumeUp))
         .count();
 
-    assert_eq!(volume_ups, 4, "Should execute VolumeUp 4 times (first CC has no previous value)");
+    assert_eq!(
+        volume_ups, 4,
+        "Should execute VolumeUp 4 times (first CC has no previous value)"
+    );
 }
 
 #[test]
@@ -844,12 +906,17 @@ fn test_e2e_encoder_volume_down() {
     }
 
     // First CC event has no previous value, so we expect 2 EncoderTurned events from 3 CC messages
-    let volume_downs = harness.executor.get_executed_actions()
+    let volume_downs = harness
+        .executor
+        .get_executed_actions()
         .iter()
         .filter(|a| matches!(a, ExecutedAction::VolumeDown))
         .count();
 
-    assert_eq!(volume_downs, 2, "Should execute VolumeDown 2 times (first CC has no previous value)");
+    assert_eq!(
+        volume_downs, 2,
+        "Should execute VolumeDown 2 times (first CC has no previous value)"
+    );
 }
 
 // =============================================================================

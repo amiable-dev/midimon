@@ -1,23 +1,28 @@
 // Copyright 2025 Amiable
 // SPDX-License-Identifier: MIT
 
-use enigo::{
-    Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings
-};
+use crate::config::ActionConfig;
+use enigo::{Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
+use std::process::Command;
 use std::thread;
 use std::time::Duration;
-use std::process::Command;
-use crate::config::ActionConfig;
 
 #[derive(Debug, Clone)]
 pub enum Action {
-    Keystroke { keys: Vec<Key>, modifiers: Vec<Key> },
+    Keystroke {
+        keys: Vec<Key>,
+        modifiers: Vec<Key>,
+    },
     Text(String),
     Launch(String),
     Shell(String),
     Sequence(Vec<Action>),
     Delay(u64),
-    MouseClick { button: Button, x: Option<i32>, y: Option<i32> },
+    MouseClick {
+        button: Button,
+        x: Option<i32>,
+        y: Option<i32>,
+    },
 }
 
 pub struct ActionExecutor {
@@ -68,12 +73,12 @@ impl ActionExecutor {
         for modifier in &modifiers {
             self.enigo.key(*modifier, Direction::Press).unwrap();
         }
-        
+
         // Press keys
         for key in &keys {
             self.enigo.key(*key, Direction::Click).unwrap();
         }
-        
+
         // Release modifiers
         for modifier in modifiers.iter().rev() {
             self.enigo.key(*modifier, Direction::Release).unwrap();
@@ -83,45 +88,29 @@ impl ActionExecutor {
     fn launch_app(&self, app: &str) {
         #[cfg(target_os = "macos")]
         {
-            Command::new("open")
-                .arg("-a")
-                .arg(app)
-                .spawn()
-                .ok();
+            Command::new("open").arg("-a").arg(app).spawn().ok();
         }
-        
+
         #[cfg(target_os = "linux")]
         {
-            Command::new(app)
-                .spawn()
-                .ok();
+            Command::new(app).spawn().ok();
         }
-        
+
         #[cfg(target_os = "windows")]
         {
-            Command::new("cmd")
-                .args(&["/C", "start", app])
-                .spawn()
-                .ok();
+            Command::new("cmd").args(&["/C", "start", app]).spawn().ok();
         }
     }
 
     fn execute_shell(&self, cmd: &str) {
         #[cfg(unix)]
         {
-            Command::new("sh")
-                .arg("-c")
-                .arg(cmd)
-                .spawn()
-                .ok();
+            Command::new("sh").arg("-c").arg(cmd).spawn().ok();
         }
-        
+
         #[cfg(windows)]
         {
-            Command::new("cmd")
-                .args(&["/C", cmd])
-                .spawn()
-                .ok();
+            Command::new("cmd").args(&["/C", cmd]).spawn().ok();
         }
     }
 }
@@ -129,12 +118,10 @@ impl ActionExecutor {
 impl From<ActionConfig> for Action {
     fn from(config: ActionConfig) -> Self {
         match config {
-            ActionConfig::Keystroke { keys, modifiers } => {
-                Action::Keystroke {
-                    keys: parse_keys(&keys),
-                    modifiers: modifiers.iter().flat_map(|m| parse_modifier(m)).collect(),
-                }
-            }
+            ActionConfig::Keystroke { keys, modifiers } => Action::Keystroke {
+                keys: parse_keys(&keys),
+                modifiers: modifiers.iter().flat_map(|m| parse_modifier(m)).collect(),
+            },
             ActionConfig::Text { text } => Action::Text(text),
             ActionConfig::Launch { app } => Action::Launch(app),
             ActionConfig::Shell { command } => Action::Shell(command),
@@ -142,13 +129,11 @@ impl From<ActionConfig> for Action {
                 Action::Sequence(actions.into_iter().map(Into::into).collect())
             }
             ActionConfig::Delay { ms } => Action::Delay(ms),
-            ActionConfig::MouseClick { button, x, y } => {
-                Action::MouseClick {
-                    button: parse_mouse_button(&button),
-                    x,
-                    y,
-                }
-            }
+            ActionConfig::MouseClick { button, x, y } => Action::MouseClick {
+                button: parse_mouse_button(&button),
+                x,
+                y,
+            },
         }
     }
 }

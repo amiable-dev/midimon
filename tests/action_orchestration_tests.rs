@@ -5,10 +5,10 @@
 //!
 //! Tests for F16-F20: Sequence, Delay, MouseClick, Repeat, Conditional actions
 
-use std::time::{Duration, Instant};
-use std::thread;
-use std::sync::{Arc, Mutex};
 use chrono::{Local, Timelike};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::{Duration, Instant};
 
 // Helper to measure execution time with tolerance
 fn assert_duration_within_tolerance(
@@ -75,7 +75,10 @@ fn test_sequence_empty() {
     }
 
     let duration = start.elapsed();
-    assert!(duration < Duration::from_millis(10), "Empty sequence should complete instantly");
+    assert!(
+        duration < Duration::from_millis(10),
+        "Empty sequence should complete instantly"
+    );
 }
 
 #[test]
@@ -86,7 +89,9 @@ fn test_sequence_single_action() {
 
     thread::spawn(move || {
         *executed_clone.lock().unwrap() = true;
-    }).join().unwrap();
+    })
+    .join()
+    .unwrap();
 
     assert!(*executed.lock().unwrap(), "Single action should execute");
 }
@@ -116,11 +121,7 @@ fn test_sequence_error_propagation() {
     // Test that errors in a sequence are handled gracefully
     let execution_count = Arc::new(Mutex::new(0));
 
-    let actions = vec![
-        Ok("action1"),
-        Err("error in action2"),
-        Ok("action3"),
-    ];
+    let actions = vec![Ok("action1"), Err("error in action2"), Ok("action3")];
 
     for action in actions {
         match action {
@@ -160,12 +161,7 @@ fn test_delay_accuracy_100ms() {
     thread::sleep(Duration::from_millis(100));
     let duration = start.elapsed();
 
-    assert_duration_within_tolerance(
-        duration,
-        100,
-        10,
-        "100ms delay",
-    );
+    assert_duration_within_tolerance(duration, 100, 10, "100ms delay");
 }
 
 #[test]
@@ -174,12 +170,7 @@ fn test_delay_accuracy_500ms() {
     thread::sleep(Duration::from_millis(500));
     let duration = start.elapsed();
 
-    assert_duration_within_tolerance(
-        duration,
-        500,
-        10,
-        "500ms delay",
-    );
+    assert_duration_within_tolerance(duration, 500, 10, "500ms delay");
 }
 
 #[test]
@@ -347,12 +338,7 @@ fn test_mouse_click_in_sequence() {
 
     let duration = start.elapsed();
 
-    assert_duration_within_tolerance(
-        duration,
-        100,
-        10,
-        "Click sequence with delay",
-    );
+    assert_duration_within_tolerance(duration, 100, 10, "Click sequence with delay");
 }
 
 // F19: Repeat Action Tests
@@ -387,12 +373,7 @@ fn test_repeat_with_delay() {
     let duration = start.elapsed();
     let expected_ms = repeat_count * delay_ms;
 
-    assert_duration_within_tolerance(
-        duration,
-        expected_ms,
-        20,
-        "Repeat with delays",
-    );
+    assert_duration_within_tolerance(duration, expected_ms, 20, "Repeat with delays");
 }
 
 #[test]
@@ -462,7 +443,10 @@ fn test_conditional_app_condition_negative() {
 
     let should_execute = current_app == condition_app;
 
-    assert!(!should_execute, "Condition should not match for different app");
+    assert!(
+        !should_execute,
+        "Condition should not match for different app"
+    );
 }
 
 #[test]
@@ -488,7 +472,10 @@ fn test_conditional_time_condition_range() {
 
     let should_execute = current_hour >= start_hour && current_hour <= end_hour;
 
-    assert!(should_execute, "Current hour should be within 24-hour range");
+    assert!(
+        should_execute,
+        "Current hour should be within 24-hour range"
+    );
 }
 
 #[test]
@@ -533,7 +520,10 @@ fn test_conditional_modifier_condition_negative() {
 
     let should_execute = shift_pressed && condition_modifier == "shift";
 
-    assert!(!should_execute, "Should not execute when shift is not pressed");
+    assert!(
+        !should_execute,
+        "Should not execute when shift is not pressed"
+    );
 }
 
 #[test]
@@ -578,7 +568,10 @@ fn test_conditional_multiple_conditions_one_false() {
 
     let should_execute = app_matches && time_matches && mode_matches;
 
-    assert!(!should_execute, "Any false condition should prevent execution");
+    assert!(
+        !should_execute,
+        "Any false condition should prevent execution"
+    );
 }
 
 #[test]
@@ -604,7 +597,10 @@ fn test_conditional_complex_logic() {
     // Execute if: weekday AND work hours AND (vscode active OR shift pressed)
     let should_execute = is_weekday && is_work_hours && (is_vscode_active || shift_pressed);
 
-    assert!(should_execute, "Complex condition should evaluate correctly");
+    assert!(
+        should_execute,
+        "Complex condition should evaluate correctly"
+    );
 }
 
 // Integration Tests: Combined Orchestration
@@ -623,10 +619,7 @@ fn test_complex_action_sequence() {
     for i in 0..3 {
         // Repeat 3 times
         let msg = format!("repeat_{}", i);
-        execution_log
-            .lock()
-            .unwrap()
-            .push(msg);
+        execution_log.lock().unwrap().push(msg);
         thread::sleep(Duration::from_millis(30));
     }
 
@@ -673,7 +666,10 @@ fn test_conditional_in_sequence() {
     // Conditional
     let condition = true;
     if condition {
-        execution_log.lock().unwrap().push("conditional_action".to_string());
+        execution_log
+            .lock()
+            .unwrap()
+            .push("conditional_action".to_string());
     }
 
     execution_log.lock().unwrap().push("action2".to_string());

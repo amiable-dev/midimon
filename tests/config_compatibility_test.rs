@@ -298,7 +298,11 @@ modifiers = []
     assert_eq!(config.modes.len(), 2, "Should have 2 modes");
     assert_eq!(config.modes[0].name, "Mode1");
     assert_eq!(config.modes[1].name, "Mode2");
-    assert_eq!(config.global_mappings.len(), 1, "Should have 1 global mapping");
+    assert_eq!(
+        config.global_mappings.len(),
+        1,
+        "Should have 1 global mapping"
+    );
 }
 
 /// Test ID: CFG-008
@@ -333,8 +337,15 @@ modifiers = []
 
     let config = result.unwrap();
     assert_eq!(config.modes.len(), 1, "Should have 1 mode (even if empty)");
-    assert!(config.modes[0].mappings.is_empty(), "Mode should have no mappings");
-    assert_eq!(config.global_mappings.len(), 1, "Should have 1 global mapping");
+    assert!(
+        config.modes[0].mappings.is_empty(),
+        "Mode should have no mappings"
+    );
+    assert_eq!(
+        config.global_mappings.len(),
+        1,
+        "Should have 1 global mapping"
+    );
 }
 
 /// Test ID: CFG-009
@@ -479,7 +490,10 @@ fn test_regression_all_config_files_parse() {
                 config_file
             );
         } else {
-            println!("{} successfully parsed (v0.2.0+ features available)", config_file);
+            println!(
+                "{} successfully parsed (v0.2.0+ features available)",
+                config_file
+            );
         }
     }
 }

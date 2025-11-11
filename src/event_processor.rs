@@ -1,33 +1,83 @@
 // Copyright 2025 Amiable
 // SPDX-License-Identifier: MIT
 
+use colored::Colorize;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use colored::Colorize;
 
 #[derive(Debug, Clone)]
 pub enum MidiEvent {
-    NoteOn { note: u8, velocity: u8, time: Instant },
-    NoteOff { note: u8, time: Instant },
-    ControlChange { cc: u8, value: u8, time: Instant },
-    Aftertouch { pressure: u8, time: Instant },
-    PitchBend { value: u16, time: Instant },
-    ProgramChange { program: u8, time: Instant },
+    NoteOn {
+        note: u8,
+        velocity: u8,
+        time: Instant,
+    },
+    NoteOff {
+        note: u8,
+        time: Instant,
+    },
+    ControlChange {
+        cc: u8,
+        value: u8,
+        time: Instant,
+    },
+    Aftertouch {
+        pressure: u8,
+        time: Instant,
+    },
+    PitchBend {
+        value: u16,
+        time: Instant,
+    },
+    ProgramChange {
+        program: u8,
+        time: Instant,
+    },
 }
 
 #[derive(Debug, Clone)]
 pub enum ProcessedEvent {
-    ShortPress { note: u8 },
-    MediumPress { note: u8, duration_ms: u128 },
-    LongPress { note: u8, duration_ms: u128 },
-    HoldDetected { note: u8 },
-    PadPressed { note: u8, velocity: u8, velocity_level: VelocityLevel },
-    PadReleased { note: u8, hold_duration_ms: u128 },
-    EncoderTurned { cc: u8, value: u8, direction: EncoderDirection, delta: u8 },
-    DoubleTap { note: u8 },
-    ChordDetected { notes: Vec<u8> },
-    AftertouchChanged { pressure: u8 },
-    PitchBendMoved { value: u16 },
+    ShortPress {
+        note: u8,
+    },
+    MediumPress {
+        note: u8,
+        duration_ms: u128,
+    },
+    LongPress {
+        note: u8,
+        duration_ms: u128,
+    },
+    HoldDetected {
+        note: u8,
+    },
+    PadPressed {
+        note: u8,
+        velocity: u8,
+        velocity_level: VelocityLevel,
+    },
+    PadReleased {
+        note: u8,
+        hold_duration_ms: u128,
+    },
+    EncoderTurned {
+        cc: u8,
+        value: u8,
+        direction: EncoderDirection,
+        delta: u8,
+    },
+    DoubleTap {
+        note: u8,
+    },
+    ChordDetected {
+        notes: Vec<u8>,
+    },
+    AftertouchChanged {
+        pressure: u8,
+    },
+    PitchBendMoved {
+        value: u16,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -72,7 +122,11 @@ impl EventProcessor {
         let mut results = Vec::new();
 
         match event {
-            MidiEvent::NoteOn { note, velocity, time } => {
+            MidiEvent::NoteOn {
+                note,
+                velocity,
+                time,
+            } => {
                 self.note_press_times.insert(note, time);
                 self.held_notes.insert(note, time);
 
@@ -104,10 +158,11 @@ impl EventProcessor {
 
                 // Add to chord buffer
                 self.chord_buffer.push((note, time));
-                
+
                 // Check for chord (multiple notes pressed within chord_timeout)
-                self.chord_buffer.retain(|(_, t)| time.duration_since(*t) < self.chord_timeout);
-                
+                self.chord_buffer
+                    .retain(|(_, t)| time.duration_since(*t) < self.chord_timeout);
+
                 if self.chord_buffer.len() > 1 {
                     let notes: Vec<u8> = self.chord_buffer.iter().map(|(n, _)| *n).collect();
                     results.push(ProcessedEvent::ChordDetected { notes });
@@ -119,9 +174,9 @@ impl EventProcessor {
                     let duration = time.duration_since(press_time);
                     let duration_ms = duration.as_millis();
 
-                    results.push(ProcessedEvent::PadReleased { 
-                        note, 
-                        hold_duration_ms: duration_ms 
+                    results.push(ProcessedEvent::PadReleased {
+                        note,
+                        hold_duration_ms: duration_ms,
                     });
 
                     if duration_ms < 200 {
@@ -133,7 +188,7 @@ impl EventProcessor {
                     }
                 }
                 self.held_notes.remove(&note);
-                
+
                 // Remove from chord buffer
                 self.chord_buffer.retain(|(n, _)| *n != note);
             }
@@ -196,7 +251,11 @@ impl EventProcessor {
         let mode_str = format!("[Mode {}]", mode).cyan();
 
         let event_str = match event {
-            ProcessedEvent::PadPressed { note, velocity, velocity_level } => {
+            ProcessedEvent::PadPressed {
+                note,
+                velocity,
+                velocity_level,
+            } => {
                 let level_str = match velocity_level {
                     VelocityLevel::Soft => "SOFT".blue(),
                     VelocityLevel::Medium => "MED".yellow(),
@@ -204,17 +263,24 @@ impl EventProcessor {
                 };
                 format!("Pad {:3} ON  vel {:3} {}", note, velocity, level_str)
             }
-            ProcessedEvent::PadReleased { note, hold_duration_ms } => {
-                format!("Pad {:3} OFF (held {}ms)", note, hold_duration_ms).yellow().to_string()
-            }
+            ProcessedEvent::PadReleased {
+                note,
+                hold_duration_ms,
+            } => format!("Pad {:3} OFF (held {}ms)", note, hold_duration_ms)
+                .yellow()
+                .to_string(),
             ProcessedEvent::ShortPress { note } => {
                 format!("SHORT TAP   {:3}", note).green().to_string()
             }
             ProcessedEvent::MediumPress { note, duration_ms } => {
-                format!("MEDIUM PRESS {:3} ({}ms)", note, duration_ms).blue().to_string()
+                format!("MEDIUM PRESS {:3} ({}ms)", note, duration_ms)
+                    .blue()
+                    .to_string()
             }
             ProcessedEvent::LongPress { note, duration_ms } => {
-                format!("LONG PRESS  {:3} ({}ms)", note, duration_ms).magenta().to_string()
+                format!("LONG PRESS  {:3} ({}ms)", note, duration_ms)
+                    .magenta()
+                    .to_string()
             }
             ProcessedEvent::HoldDetected { note } => {
                 format!("HOLD ACTIVE {:3}", note).red().bold().to_string()
@@ -222,15 +288,23 @@ impl EventProcessor {
             ProcessedEvent::DoubleTap { note } => {
                 format!("DOUBLE TAP  {:3}", note).cyan().bold().to_string()
             }
-            ProcessedEvent::ChordDetected { notes } => {
-                format!("CHORD       {:?}", notes).purple().bold().to_string()
-            }
-            ProcessedEvent::EncoderTurned { cc, value, direction, delta } => {
+            ProcessedEvent::ChordDetected { notes } => format!("CHORD       {:?}", notes)
+                .purple()
+                .bold()
+                .to_string(),
+            ProcessedEvent::EncoderTurned {
+                cc,
+                value,
+                direction,
+                delta,
+            } => {
                 let dir_str = match direction {
                     EncoderDirection::Clockwise => "→",
                     EncoderDirection::CounterClockwise => "←",
                 };
-                format!("Encoder {:3} {} val {:3} (Δ{})", cc, dir_str, value, delta).cyan().to_string()
+                format!("Encoder {:3} {} val {:3} (Δ{})", cc, dir_str, value, delta)
+                    .cyan()
+                    .to_string()
             }
             ProcessedEvent::AftertouchChanged { pressure } => {
                 format!("Aftertouch  {:3}", pressure).purple().to_string()
@@ -240,6 +314,11 @@ impl EventProcessor {
             }
         };
 
-        println!("{} {} {}", timestamp.to_string().dimmed(), mode_str, event_str);
+        println!(
+            "{} {} {}",
+            timestamp.to_string().dimmed(),
+            mode_str,
+            event_str
+        );
     }
 }
