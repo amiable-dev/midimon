@@ -4,6 +4,14 @@ version = "0.1.0"
 license = "MIT"
 edition = "2024"
 
+[lib]
+name = "midimon"
+path = "src/lib.rs"
+
+[[bin]]
+name = "midimon"
+path = "src/main.rs"
+
 [dependencies]
 midir = "0.10"
 enigo = "0.6"
@@ -13,6 +21,12 @@ crossbeam-channel = "0.5"
 ctrlc = "3.4"
 colored = "3.0"
 chrono = "0.4"
+hidapi = { version = "2.6", features = ["macos-shared-device"] }
+quick-xml = { version = "0.37", features = ["serialize"] }
+
+[dev-dependencies]
+proptest = "1.5"
+rstest = "0.23"
 
 [profile.release]
 opt-level = 3

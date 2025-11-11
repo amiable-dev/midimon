@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct Config {
     pub device: DeviceConfig,
     pub modes: Vec<Mode>,
+    #[serde(default)]
     pub global_mappings: Vec<Mapping>,
 }
 
@@ -20,6 +21,7 @@ pub struct DeviceConfig {
 pub struct Mode {
     pub name: String,
     pub color: Option<String>,
+    #[serde(default)]
     pub mappings: Vec<Mapping>,
 }
 
