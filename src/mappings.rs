@@ -1,3 +1,6 @@
+// Copyright 2025 Amiable
+// SPDX-License-Identifier: MIT
+
 use std::collections::HashMap;
 use crate::config::{Config, Trigger, Mapping};
 use crate::actions::Action;

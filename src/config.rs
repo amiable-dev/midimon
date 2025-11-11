@@ -1,3 +1,6 @@
+// Copyright 2025 Amiable
+// SPDX-License-Identifier: MIT
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
