@@ -104,6 +104,12 @@ pub struct EventProcessor {
     hold_threshold: Duration,
 }
 
+impl Default for EventProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EventProcessor {
     pub fn new() -> Self {
         Self {
@@ -205,7 +211,7 @@ impl EventProcessor {
                         return results;
                     };
 
-                    let delta = (value as i16 - last_value as i16).abs() as u8;
+                    let delta = (value as i16 - last_value as i16).unsigned_abs() as u8;
 
                     results.push(ProcessedEvent::EncoderTurned {
                         cc,
