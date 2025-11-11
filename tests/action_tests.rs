@@ -93,14 +93,9 @@ fn test_launch_action_invalid_path() {
 #[test]
 fn test_launch_action_with_spaces_in_path() {
     // Test handling of paths with spaces
-    let app_with_spaces = if cfg!(target_os = "macos") {
-        "/System/Applications/App Store.app"
-    } else {
-        "Program Files"
-    };
-
     #[cfg(target_os = "macos")]
     {
+        let app_with_spaces = "/System/Applications/App Store.app";
         let result = Command::new("open")
             .arg("-a")
             .arg(app_with_spaces)
