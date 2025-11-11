@@ -6,6 +6,7 @@ This guide covers testing strategies for MIDIMon, including hardware-independent
 
 - [MIDI Device Simulator](#midi-device-simulator)
 - [Running Tests](#running-tests)
+- [End-to-End Test Suite](#end-to-end-test-suite)
 - [Code Coverage](#code-coverage)
 - [Test Reporting](#test-reporting)
 - [Writing Tests](#writing-tests)
@@ -119,6 +120,19 @@ Nextest provides:
 - Better output formatting with progress indicators
 - More detailed failure reporting
 - Per-test timing information
+
+## End-to-End Test Suite
+
+The E2E test suite (`tests/e2e_tests.rs`) provides comprehensive validation of the complete MIDIMon pipeline from MIDI input through event processing, mapping, and action execution. See [Integration Test Suites](#integration-test-suites) section below for full documentation of all E2E workflows, test architecture, and writing E2E tests.
+
+### Quick Start
+
+```bash
+# Run all E2E tests (20+ workflow tests)
+cargo test --test e2e_tests
+
+# Expected: 37 tests passed covering all critical workflows
+```
 
 ## Code Coverage
 
@@ -797,6 +811,206 @@ Ensure velocities match expected ranges:
 // Hard: 81-127
 ```
 
+## Integration Test Suites
+
+MIDIMon includes comprehensive integration test suites that verify complete feature sets without requiring physical hardware.
+
+### Event Processing Tests (AMI-117)
+
+Location: `tests/event_processing_tests.rs`
+
+Tests for aftertouch and pitch bend event processing:
+
+**Aftertouch Tests (26 tests)**:
+- Full pressure range validation (0-127)
+- Continuous pressure variation
+- Boundary value testing (min/max)
+- Aftertouch with note press scenarios
+- Multi-channel aftertouch support
+
+**Pitch Bend Tests (26 tests)**:
+- Center position verification (8192)
+- Full 14-bit range testing (0-16383)
+- Positive and negative bend ranges
+- Smooth sweep simulations
+- Pitch bend with note combinations
+- Multi-channel pitch bend support
+
+```bash
+# Run event processing tests
+cargo test --test event_processing_tests
+```
+
+### Action Tests (AMI-118)
+
+Location: `tests/action_tests.rs`
+
+Tests for application launch and volume control actions:
+
+**Launch Application Tests (14 tests)**:
+- Valid application path handling
+- Invalid path error handling
+- Paths with spaces
+- Process spawning verification
+- Permission denied scenarios
+- Concurrent process spawning
+- Platform-specific behavior detection
+
+**Volume Control Tests (14 tests)**:
+- Command detection (macOS, Linux, Windows)
+- Volume up/down command structure
+- Mute toggle command structure
+- Volume set command structure
+- Mock volume control execution
+- Shell command escaping
+
+```bash
+# Run action tests
+cargo test --test action_tests
+```
+
+### Action Orchestration Tests (AMI-119)
+
+Location: `tests/action_orchestration_tests.rs`
+
+Tests for complex action orchestration (38 tests):
+
+**Sequence Actions (F16)**:
+- Action ordering verification
+- Empty sequence handling
+- Single action sequences
+- Sequences with delays
+- Error propagation in sequences
+
+**Delay Actions (F17)**:
+- Timing accuracy (50ms, 100ms, 500ms)
+- Zero delay handling
+- Multiple sequential delays
+- Timing precision validation (±10ms tolerance)
+
+**MouseClick Actions (F18)**:
+- Click simulation structure
+- Coordinate validation
+- Button type validation (left, right, middle)
+- Click sequences with delays
+
+**Repeat Actions (F19)**:
+- Repeat count verification
+- Repeat with delays
+- Zero and single repetitions
+- High-volume repeat handling (100+ iterations)
+
+**Conditional Actions (F20)**:
+- Application-based conditions
+- Time-based conditions (hour ranges)
+- Modifier key conditions
+- Mode-based conditions
+- Multiple condition combinations (AND/OR logic)
+- Complex conditional expressions
+
+```bash
+# Run action orchestration tests
+cargo test --test action_orchestration_tests
+```
+
+### End-to-End Tests (AMI-120)
+
+Location: `tests/e2e_tests.rs`
+
+Comprehensive E2E testing of the complete MIDIMon pipeline (MIDI Input → Event Processing → Mapping → Action Execution):
+
+**Critical Workflows (20 tests)**:
+- Simple pad press → keystroke
+- Velocity-sensitive mapping (soft/medium/hard)
+- Long press detection (≥1000ms threshold)
+- Double-tap recognition (<300ms window)
+- Chord detection (<50ms window)
+- Mode switching via encoder
+- Mode-specific vs global mappings
+- Action sequences with delays
+- Conditional actions (app/time/mode)
+- Volume control via encoder
+
+**Performance & Edge Cases (5 tests)**:
+- Timing latency verification (<1ms)
+- Rapid note events (20+ events)
+- Invalid note range handling (0, 1, 126, 127)
+- Throughput testing (200 events <10ms)
+- Memory stability (1000 events)
+
+```bash
+# Run all E2E tests
+cargo test --test e2e_tests
+
+# Expected: 37 tests passed
+```
+
+### Test Coverage Summary
+
+Total test count: **183 tests**
+
+Breakdown by suite:
+- `integration_tests.rs`: 29 tests (basic event processing)
+- `event_processing_tests.rs`: 26 tests (aftertouch & pitch bend)
+- `action_tests.rs`: 14 tests (launch & volume control)
+- `action_orchestration_tests.rs`: 38 tests (sequences & conditionals)
+- `e2e_tests.rs`: 37 tests (end-to-end critical workflows) ← **NEW**
+- `config_compatibility_test.rs`: 15 tests (config validation)
+- `midi_simulator.rs`: 12 tests (simulator validation)
+- Additional unit tests: 12 tests (various modules)
+
+### Running All Integration Tests
+
+```bash
+# Run all integration tests
+cargo test --test integration_tests \
+           --test event_processing_tests \
+           --test action_tests \
+           --test action_orchestration_tests
+
+# Run all tests with coverage
+cargo test --all-features
+```
+
+### Writing New Integration Tests
+
+When adding new integration tests:
+
+1. **Use the MIDI simulator** for all MIDI event generation
+2. **Test edge cases** (boundary values, timing variations)
+3. **Include negative tests** (error conditions, invalid inputs)
+4. **Verify timing** with tolerance (±10-35ms for CI stability)
+5. **Document test purpose** with clear comments
+6. **Group related tests** into logical test modules
+
+Example template:
+
+```rust
+#[test]
+fn test_feature_name() {
+    let sim = MidiSimulator::new(0);
+
+    // Setup: Generate test events
+    sim.note_on(60, 80);
+
+    // Execute: Perform action
+    let events = sim.get_events();
+
+    // Verify: Check results
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0][0] & 0xF0, 0x90); // Note On
+}
+```
+
+### CI/CD Integration
+
+All integration tests run automatically in GitHub Actions:
+
+- **No hardware required**: Uses MIDI simulator
+- **Fast execution**: <5 seconds total for all tests
+- **Timing tolerance**: Increased for CI environments (±35ms)
+- **Platform coverage**: Tests run on macOS, Linux, Windows
+
 ## Related Documentation
 
 - [Event Processing Architecture](../architecture/event-processing.md)
@@ -813,6 +1027,11 @@ See the integration tests in `tests/integration_tests.rs` for complete examples 
 - Chord detection
 - Encoder simulation
 - Complex multi-event scenarios
+
+Additional examples in specialized test suites:
+- `tests/event_processing_tests.rs`: Aftertouch and pitch bend
+- `tests/action_tests.rs`: Application launch and volume control
+- `tests/action_orchestration_tests.rs`: Action sequences and conditionals
 
 ## Support
 

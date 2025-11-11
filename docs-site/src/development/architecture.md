@@ -232,38 +232,107 @@ Trait-based abstraction (`PadFeedback`) supports:
 
 ## Future Architecture (Phase 2+)
 
-The roadmap includes migrating to a **workspace structure** with separate crates:
+The roadmap includes migrating to a **workspace structure** with separate crates. See [Workspace Structure Design](../../docs/workspace-structure.md) for complete details (AMI-124).
 
 ### Target Structure
 
 ```
 midimon/
-├── midimon-core/        # Pure Rust engine (UI-free)
-├── midimon-cli/         # CLI binary (current functionality)
-├── midimon-daemon/      # Background service (macOS menu bar)
-└── midimon-gui/         # Tauri UI (config editor)
+├── Cargo.toml                      # Workspace root manifest
+├── midimon-core/                   # Pure Rust engine (UI-free)
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs                  # Public API
+│       ├── engine.rs               # MidiMonEngine
+│       ├── config.rs               # Config types
+│       ├── events.rs               # Event types
+│       ├── mappings.rs             # Mapping engine
+│       ├── actions.rs              # Action execution
+│       ├── feedback.rs             # LED feedback
+│       ├── device_profile.rs       # NI profile parser
+│       └── error.rs                # Error types
+├── midimon-daemon/                 # CLI binary (current main.rs)
+│   ├── Cargo.toml
+│   └── src/
+│       ├── main.rs                 # CLI entry point
+│       ├── cli.rs                  # Argument parsing
+│       ├── debug.rs                # Debug output
+│       └── bin/                    # Diagnostic tools
+├── midimon-gui/                    # Tauri UI (Phase 4)
+│   ├── Cargo.toml
+│   ├── src-tauri/
+│   └── ui/
+└── config/                         # Config templates
+    ├── default.toml
+    ├── examples/
+    └── device_templates/
+```
+
+### Workspace Dependency Graph
+
+```mermaid
+graph TD
+    A[midimon-gui<br/>Tauri UI] -->|depends on| C[midimon-core<br/>Engine Library]
+    B[midimon-daemon<br/>CLI Binary] -->|depends on| C
+    C -->|no dependencies on| A
+    C -->|no dependencies on| B
+
+    style C fill:#4a90e2,stroke:#2e5f8a,stroke-width:3px,color:#fff
+    style A fill:#50c878,stroke:#2d7a4d,stroke-width:2px,color:#fff
+    style B fill:#50c878,stroke:#2d7a4d,stroke-width:2px,color:#fff
 ```
 
 ### Phase 2: Core Library Extraction
 
-**Goal**: Extract engine logic into reusable `midimon-core` crate.
+**Goal**: Extract engine logic into reusable `midimon-core` crate (AMI-123, AMI-124).
 
-**Public API**:
+**Public API** (from [API Design](../../docs/api-design.md)):
 ```rust
 pub struct MidiMonEngine;
 impl MidiMonEngine {
-    pub fn new(config: Config) -> Result<Self>;
-    pub fn start(&mut self) -> Result<()>;
-    pub fn stop(&mut self) -> Result<()>;
-    pub fn reload_config(&mut self, config: Config) -> Result<()>;
+    pub fn new(config: Config) -> Result<Self, EngineError>;
+    pub fn start(&mut self) -> Result<(), EngineError>;
+    pub fn stop(&mut self) -> Result<(), EngineError>;
+    pub fn reload_config(&mut self, config: Config) -> Result<(), EngineError>;
+    pub fn current_mode(&self) -> u8;
+    pub fn set_mode(&mut self, mode: u8) -> Result<(), EngineError>;
+    pub fn config(&self) -> Config;
+    pub fn stats(&self) -> EngineStats;
+
+    // Callbacks for integration
+    pub fn on_mode_change<F>(&mut self, callback: F)
+    where F: Fn(u8) + Send + 'static;
+
+    pub fn on_action<F>(&mut self, callback: F)
+    where F: Fn(&ProcessedEvent, &Action) + Send + 'static;
 }
 ```
 
+**Module Separation**:
+- **Public Modules**: `config`, `engine`, `events`, `actions`, `feedback`, `device`, `error`
+- **Private Modules**: `event_processor`, `timing`, `chord`, `velocity`
+
 **Benefits**:
 - Reusable engine for CLI, daemon, GUI
-- Zero UI dependencies in core
-- Clean API boundaries
+- Zero UI dependencies in core (no `colored`, `chrono` for display)
+- Clean API boundaries with trait-based abstractions
 - Easier testing and integration
+- Thread-safe with Arc/RwLock for shared state
+
+**Build Commands**:
+```bash
+# Build core library only
+cargo build -p midimon-core
+
+# Build CLI daemon
+cargo build -p midimon-daemon --release
+
+# Run with new structure
+cargo run -p midimon-daemon --release -- 2 --led reactive
+
+# Test workspace
+cargo test --workspace
+```
 
 ### Phase 3: Daemon and Menu Bar
 
@@ -272,18 +341,46 @@ impl MidiMonEngine {
 **Features**:
 - System tray icon with status
 - Quick actions (Pause, Reload, Open Config)
-- Config hot-reloading via `notify`
-- Auto-start via LaunchAgent
+- Config hot-reloading via `notify` crate
+- Auto-start via LaunchAgent or Tauri autostart plugin
+- Frontmost app detection for per-app profiles
+
+**Integration Pattern**:
+```rust
+use midimon_core::{Config, MidiMonEngine};
+
+fn main() -> Result<()> {
+    let config = Config::load("config.toml")?;
+    let mut engine = MidiMonEngine::new(config)?;
+
+    // Register callbacks for UI updates
+    engine.on_mode_change(|mode| {
+        update_menu_bar_icon(mode);
+    });
+
+    engine.start()?;
+    Ok(())
+}
+```
 
 ### Phase 4: GUI Configuration
 
 **Goal**: Add `midimon-gui` with Tauri-based visual config editor.
 
 **Features**:
-- Visual device mapping
+- Visual device mapping with SVG pad layouts
 - MIDI Learn mode (click → press → bind)
-- Profile management
-- Live event console
+- Profile management (import/export/share)
+- Live event console with filtering
+- Velocity curve editor
+- Test bindings without saving
+
+**UI Components**:
+- Device visualizer (16-pad grid for Maschine Mikro MK3)
+- Mapping editor (trigger → action configuration)
+- Profile switcher (per-app profiles)
+- Event log (real-time MIDI/HID events)
+- Settings panel (advanced timing, thresholds)
 
 ## Configuration Backward Compatibility
 
