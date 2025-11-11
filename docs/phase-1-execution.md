@@ -135,6 +135,24 @@ Follow template in phase-execution-template.md for each issue.
 - Migration planning must update docs-site/src/development/architecture.md
 - Target: 85%+ test coverage (current baseline: 73.5%)
 
+**Definition of Done (Every Issue)**:
+Before marking any issue as "Done" in Linear, MUST validate:
+1. **Acceptance Criteria**: All acceptance criteria from Linear issue are met
+2. **Success Criteria**: All success criteria checkboxes are completed
+3. **Deliverables**: All required deliverables are created and committed
+4. **Testing**: Tests pass (if code changes)
+5. **Documentation**: docs-site/ updated per Documentation Site Update Policy
+6. **Review**: Code/content reviewed (self-review minimum, PR review ideal)
+7. **Quality**: No known critical bugs or incomplete implementations
+8. **Validation**: Manually verify the implementation works as specified
+
+**Validation Process**:
+- Read the complete Linear issue description
+- Check off each acceptance criteria item
+- Verify all task breakdown checkboxes are complete
+- Test the implementation manually
+- Only then mark issue as "Done"
+
 ### Step 4: Phase Completion
 
 #### Verification Checklist

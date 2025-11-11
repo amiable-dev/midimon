@@ -113,8 +113,17 @@ For each issue in dependency order:
    - Add examples to configuration/ or reference/
    - Update troubleshooting if applicable
 4. **Verify**: Run `cd docs-site && mdbook build` to verify no errors
-5. **Update Linear**: Set issue status to "Done"
-6. **Report Progress**: Log completion and next steps
+5. **Validate Definition of Done** (REQUIRED before marking "Done"):
+   - [ ] All acceptance criteria from Linear issue are met
+   - [ ] All success criteria checkboxes are completed
+   - [ ] All required deliverables are created and committed
+   - [ ] Tests pass (if code changes)
+   - [ ] Documentation site updated per policy
+   - [ ] Code/content reviewed (self-review minimum, PR review ideal)
+   - [ ] No known critical bugs or incomplete implementations
+   - [ ] Manually verified the implementation works as specified
+6. **Update Linear**: Set issue status to "Done" (only after validation)
+7. **Report Progress**: Log completion and next steps
 
 #### Post-Execution
 - Unblock dependent issues

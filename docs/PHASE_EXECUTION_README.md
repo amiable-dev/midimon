@@ -122,7 +122,8 @@ Claude will guide you through:
 1. **Analysis**: List issues, create dependency graph
 2. **Planning**: Present execution plan for approval
 3. **Execution**: Work through issues in dependency order
-4. **Completion**: Verify criteria met, update docs, create tag
+4. **Validation**: Verify Definition of Done for each issue before marking complete
+5. **Completion**: Verify criteria met, update docs, create tag
 
 ### Step 6: Monitor Progress
 Review progress reports and address any blockers.
@@ -174,13 +175,31 @@ Each phase has specific success criteria defined in:
 - Phase-specific execution plan
 
 ### Common Metrics
-- ✅ All issues marked "Done" in Linear
+- ✅ All issues marked "Done" in Linear (with Definition of Done validated)
 - ✅ All success criteria met
 - ✅ Test coverage targets achieved (if applicable)
 - ✅ Documentation site fully updated
 - ✅ No critical bugs or blockers
 - ✅ Performance metrics within targets
 - ✅ Phase review meeting completed
+
+### Definition of Done (Every Issue)
+Before marking any issue as "Done" in Linear, MUST validate:
+1. **Acceptance Criteria**: All acceptance criteria from Linear issue are met
+2. **Success Criteria**: All success criteria checkboxes are completed
+3. **Deliverables**: All required deliverables are created and committed
+4. **Testing**: Tests pass (if code changes)
+5. **Documentation**: docs-site/ updated per Documentation Site Update Policy
+6. **Review**: Code/content reviewed (self-review minimum, PR review ideal)
+7. **Quality**: No known critical bugs or incomplete implementations
+8. **Validation**: Manually verify the implementation works as specified
+
+**Validation Process**:
+- Read the complete Linear issue description
+- Check off each acceptance criteria item
+- Verify all task breakdown checkboxes are complete
+- Test the implementation manually
+- Only then mark issue as "Done"
 
 ## 🚨 Troubleshooting
 

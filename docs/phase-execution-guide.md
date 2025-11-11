@@ -61,7 +61,18 @@ Then copy the entire content and use it as your prompt to Claude Code.
    - Report progress regularly
    ```
 
-6. **Complete Step 4: Closeout**
+6. **Validate Completion (Definition of Done)**
+   Before marking any issue as "Done" in Linear, MUST validate:
+   - **Acceptance Criteria**: All acceptance criteria from Linear issue are met
+   - **Success Criteria**: All success criteria checkboxes are completed
+   - **Deliverables**: All required deliverables are created and committed
+   - **Testing**: Tests pass (if code changes)
+   - **Documentation**: docs-site/ updated per Documentation Site Update Policy
+   - **Review**: Code/content reviewed (self-review minimum, PR review ideal)
+   - **Quality**: No known critical bugs or incomplete implementations
+   - **Validation**: Manually verify the implementation works as specified
+
+7. **Complete Step 4: Closeout**
    - Verify all completion criteria met
    - Update documentation
    - Create git tag
