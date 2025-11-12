@@ -920,18 +920,16 @@ fn test_global_mappings_work_in_all_modes() {
             Mode {
                 name: "Mode1".to_string(),
                 color: None,
-                mappings: vec![
-                    Mapping {
-                        trigger: Trigger::Note {
-                            note: 127,
-                            velocity_min: Some(1),
-                        },
-                        action: ActionConfig::Shell {
-                            command: "exit".to_string(),
-                        },
-                        description: None,
+                mappings: vec![Mapping {
+                    trigger: Trigger::Note {
+                        note: 127,
+                        velocity_min: Some(1),
                     },
-                ],
+                    action: ActionConfig::Shell {
+                        command: "exit".to_string(),
+                    },
+                    description: None,
+                }],
             },
         ],
         global_mappings: vec![Mapping {

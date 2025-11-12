@@ -1,0 +1,55 @@
+[package]
+name = "midimon-daemon"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "MIDIMon CLI daemon and diagnostic tools"
+
+[[bin]]
+name = "midimon"
+path = "src/main.rs"
+
+# Diagnostic tools
+[[bin]]
+name = "midi_diagnostic"
+path = "src/bin/midi_diagnostic.rs"
+
+[[bin]]
+name = "led_diagnostic"
+path = "src/bin/led_diagnostic.rs"
+
+[[bin]]
+name = "led_tester"
+path = "src/bin/led_tester.rs"
+
+[[bin]]
+name = "pad_mapper"
+path = "src/bin/pad_mapper.rs"
+
+[[bin]]
+name = "test_midi"
+path = "src/bin/test_midi.rs"
+
+[[bin]]
+name = "midi_simulator"
+path = "src/bin/midi_simulator.rs"
+
+[dependencies]
+# Core engine
+midimon-core = { path = "../midimon-core" }
+
+# CLI dependencies
+colored.workspace = true
+chrono.workspace = true
+ctrlc.workspace = true
+
+# MIDI I/O and threading
+midir.workspace = true
+crossbeam-channel.workspace = true
+
+# HID device access (for LED diagnostic tools)
+hidapi.workspace = true
+
+[dev-dependencies]
+rstest.workspace = true

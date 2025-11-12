@@ -1,0 +1,125 @@
+// Copyright 2025 Amiable
+// SPDX-License-Identifier: MIT
+
+//! MIDIMon Core Engine
+//!
+//! Pure Rust MIDI mapping engine with zero UI dependencies.
+//!
+//! This library provides the core functionality for processing MIDI events,
+//! mapping them to actions, and executing those actions. It's designed to be
+//! embedded in applications that need MIDI controller mapping capabilities.
+//!
+//! # Architecture
+//!
+//! The engine follows a three-stage processing pipeline:
+//!
+//! 1. **MIDI Input** → [`MidiEvent`] (raw MIDI bytes converted to structured events)
+//! 2. **Event Processing** → [`ProcessedEvent`] (adds timing, velocity, chord detection)
+//! 3. **Mapping & Execution** → [`Action`] (matches events to actions and executes them)
+//!
+//! # Quick Start
+//!
+//! ```rust,no_run
+//! use midimon_core::{Config, MappingEngine, EventProcessor, ActionExecutor};
+//!
+//! // Load configuration
+//! let config = Config::load("config.toml").expect("Failed to load config");
+//!
+//! // Create engine components
+//! let mut event_processor = EventProcessor::new();
+//! let mut mapping_engine = MappingEngine::new();
+//! let mut action_executor = ActionExecutor::new();
+//!
+//! // Process MIDI events (in your event loop)
+//! // let midi_event = ...; // from your MIDI input
+//! // let processed = event_processor.process(midi_event);
+//! // if let Some(action) = mapping_engine.map_event(&processed, &config) {
+//! //     action_executor.execute(&action);
+//! // }
+//! ```
+//!
+//! # Features
+//!
+//! ## Trigger Types
+//!
+//! - **Note**: Basic note on/off with optional velocity range
+//! - **VelocityRange**: Different actions for soft/medium/hard presses
+//! - **LongPress**: Hold detection with configurable duration
+//! - **DoubleTap**: Quick double-tap detection
+//! - **NoteChord**: Multiple notes pressed simultaneously
+//! - **EncoderTurn**: Encoder rotation with direction
+//! - **Aftertouch**: Pressure sensitivity
+//! - **PitchBend**: Touch strip control
+//! - **CC**: Control change messages
+//!
+//! ## Action Types
+//!
+//! - **Keystroke**: Keyboard shortcuts with modifiers
+//! - **Text**: Type text strings
+//! - **Launch**: Open applications
+//! - **Shell**: Execute shell commands
+//! - **VolumeControl**: System volume control
+//! - **ModeChange**: Switch between mapping modes
+//! - **Sequence**: Chain multiple actions
+//! - **Delay**: Timing control
+//! - **MouseClick**: Mouse simulation
+//! - **Repeat**: Repeat an action N times
+//! - **Conditional**: Conditional execution
+//!
+//! ## System Features
+//!
+//! - **Multi-mode operation**: Switch between different mapping sets
+//! - **Global mappings**: Work across all modes
+//! - **Device profiles**: Support for device-specific configurations
+//! - **LED feedback**: RGB LED control via HID or MIDI
+//! - **Zero UI dependencies**: Pure engine library
+//!
+//! # Examples
+//!
+//! See the `midimon-daemon` package for a complete CLI implementation.
+
+#![allow(dead_code, unused_variables, unused_imports)]
+// TODO: Re-enable missing_docs after adding documentation to all public items
+#![allow(missing_docs)]
+
+// Public modules
+pub mod actions;
+pub mod config;
+pub mod device;
+pub mod engine;
+pub mod error;
+pub mod event_processor;
+pub mod events;
+pub mod feedback;
+pub mod mapping; // Public for advanced event processing
+
+// Private modules (implementation details)
+mod midi_feedback;
+mod mikro_leds;
+
+// Re-exports for convenience
+
+// Engine
+pub use engine::MidiMonEngine;
+
+// Configuration
+pub use config::{ActionConfig, Config, DeviceConfig, Mapping, Mode, Trigger};
+
+// Events
+pub use event_processor::EventProcessor;
+pub use events::{EncoderDirection, MidiEvent, ProcessedEvent, VelocityLevel};
+
+// Actions
+pub use actions::{Action, ActionExecutor};
+
+// Feedback
+pub use feedback::{LightingScheme, PadFeedback};
+
+// Device Profiles
+pub use device::{DeviceProfile, PadPageMapping};
+
+// Errors
+pub use error::{ActionError, ConfigError, EngineError, FeedbackError, ProfileError};
+
+// Mapping
+pub use mapping::MappingEngine;
