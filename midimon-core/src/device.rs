@@ -18,6 +18,7 @@ pub struct NiControllerProfile {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct MidiMap {
     #[serde(rename = "@type")]
     pub map_type: String,
@@ -27,9 +28,6 @@ pub struct MidiMap {
 
     #[serde(rename = "velocitycurve", default)]
     pub velocity_curve: Option<u8>,
-
-    #[serde(rename = "controls", default, skip)]
-    _controls: (), // Skip controls parsing for now since we only need pad pages
 
     pub groups: Groups,
 }
@@ -184,11 +182,10 @@ impl DeviceProfile {
                 .children
                 .iter()
                 .filter_map(|child| {
-                    if let PadOrLed::Pad(pad) = child {
-                        if pad.subtype == "trigger" && pad.note.is_some() {
+                    if let PadOrLed::Pad(pad) = child
+                        && pad.subtype == "trigger" && pad.note.is_some() {
                             return Some(pad);
                         }
-                    }
                     None
                 })
                 .collect();
@@ -208,7 +205,7 @@ impl DeviceProfile {
                     // Track which page(s) contain this note
                     note_to_page
                         .entry(note)
-                        .or_insert_with(Vec::new)
+                        .or_default()
                         .push(pad_pages.len());
                 }
             }

@@ -46,6 +46,7 @@ pub enum Brightness {
 
 // RGB struct for API compatibility
 #[derive(Debug, Clone, Copy)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct RGB {
     pub r: u8,
     pub g: u8,

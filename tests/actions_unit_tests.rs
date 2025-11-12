@@ -1079,7 +1079,7 @@ fn test_arrow_keys() {
 // ============================================================================
 
 #[test]
-#[cfg_attr(all(target_os = "linux", not(feature = "ci-headless")), ignore)]
+#[cfg_attr(target_os = "linux", ignore = "Requires display server")]
 fn test_action_executor_new() {
     // Test that ActionExecutor can be created
     // Note: We can't test actual execution without mocking enigo

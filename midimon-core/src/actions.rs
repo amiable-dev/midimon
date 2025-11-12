@@ -29,6 +29,12 @@ pub struct ActionExecutor {
     enigo: Enigo,
 }
 
+impl Default for ActionExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ActionExecutor {
     pub fn new() -> Self {
         Self {

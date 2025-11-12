@@ -36,7 +36,7 @@ pub enum LightingScheme {
 }
 
 impl LightingScheme {
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "off" => Some(Self::Off),
             "static" => Some(Self::Static(0)),

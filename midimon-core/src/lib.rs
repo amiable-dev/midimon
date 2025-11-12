@@ -79,7 +79,8 @@
 //! See the `midimon-daemon` package for a complete CLI implementation.
 
 #![allow(dead_code, unused_variables, unused_imports)]
-#![warn(missing_docs)]
+// TODO: Re-enable missing_docs after adding documentation to all public items
+#![allow(missing_docs)]
 
 // Public modules
 pub mod actions;

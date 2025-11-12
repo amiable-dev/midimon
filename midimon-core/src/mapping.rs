@@ -11,6 +11,12 @@ pub struct MappingEngine {
     global_mappings: Vec<CompiledMapping>,
 }
 
+impl Default for MappingEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 struct CompiledMapping {
     trigger: CompiledTrigger,
     action: Action,
