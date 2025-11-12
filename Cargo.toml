@@ -12,6 +12,30 @@ authors = ["MIDIMon Contributors"]
 license = "MIT"
 repository = "https://github.com/amiable-dev/midimon"
 
+# Root package for backward compatibility tests
+[package]
+name = "midimon"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "MIDIMon - MIDI controller mapping system (compatibility package)"
+
+[lib]
+name = "midimon"
+path = "src/lib.rs"
+
+[dependencies]
+# Re-export midimon_core for backward compatibility
+midimon-core = { path = "midimon-core" }
+
+[dev-dependencies]
+proptest.workspace = true
+rstest.workspace = true
+chrono.workspace = true
+enigo.workspace = true
+toml.workspace = true
+
 [workspace.dependencies]
 # Core dependencies (used by midimon-core)
 serde = { version = "1.0", features = ["derive"] }

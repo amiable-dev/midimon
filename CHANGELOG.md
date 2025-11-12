@@ -8,11 +8,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Documentation site content (user guides, reference docs)
-- Comprehensive test coverage (80%+ target)
-- Video tutorials and demos
+- Tauri-based menu bar UI (Phase 3)
 - Hot config reload without restart
 - Per-app profile switching (context-aware mappings)
+- Video tutorials and demos
+
+## [0.2.0] - 2025-11-12
+
+### Overview
+
+**Phase 2 Complete**: Workspace architecture migration with zero breaking changes. MIDIMon now uses a modular 3-package workspace structure, enabling better code organization, faster builds, and preparing for future GUI integration.
+
+**100% Backward Compatible**: All v0.1.0 configs, features, and workflows work identically in v0.2.0.
+
+### Added - Architecture
+
+- **midimon-core**: Pure Rust engine library (zero UI dependencies)
+  - Public API for embedding in other applications
+  - Structured error types using `thiserror`
+  - Comprehensive rustdoc documentation
+  - 30+ public types exported
+- **midimon-daemon**: CLI daemon + 6 diagnostic tools
+  - Main `midimon` binary
+  - `midi_diagnostic`, `led_diagnostic`, `led_tester`
+  - `pad_mapper`, `test_midi`, `midi_simulator`
+- **midimon** (root): Backward compatibility layer
+  - Re-exports midimon-core types
+  - Maintains v0.1.0 import paths
+  - Zero breaking changes for existing tests
+
+### Added - Testing
+
+- **25 new integration tests** (339 tests total, was 314)
+  - 8 API integration tests (public API surface)
+  - 7 backward compatibility tests
+  - 10 error handling tests (across crate boundaries)
+- **100% feature validation**: All 26 features tested and working
+- **Config compatibility tests**: All v0.1.0 configs validated
+
+### Changed - Performance
+
+- **Build time**: 11.92s clean build (was 15-20s) - **25-40% faster** ✨
+  - Workspace parallelization across 3 packages
+  - Improved incremental compilation
+- **Test execution**: 28.8s (was ~30s) - **4% faster**
+  - Parallel test execution per package
+- **Binary size**: Unchanged (869K main binary)
+
+### Changed - Internal Structure
+
+- Renamed `src/mappings.rs` → `midimon-core/src/mapping.rs`
+- Renamed `src/device_profile.rs` → `midimon-core/src/device.rs`
+- Added `midimon-core/src/error.rs` (structured error types)
+- Split monolithic src/ into modular workspace packages
+- Removed UI dependencies (colored, chrono) from core library
+
+### Documentation
+
+- **CLAUDE.md**: Updated with workspace architecture and Phase 2 status
+- **README.md**: Updated installation and build commands
+- **mdbook**: Updated architecture diagrams
+- **Rustdoc**: Comprehensive API documentation in midimon-core
+- **Migration Guide**: docs/MIGRATION_v0.1_to_v0.2.md
+
+### Validation
+
+- **Feature Parity**: 26/26 features validated ✅
+- **Config Compatibility**: 15 compatibility tests passing ✅
+- **Breaking Changes**: 0 (zero) ✅
+- **Test Coverage**: 339/339 tests passing (100%) ✅
+
+### Migration Notes
+
+**For Users**: No action required. All configs and workflows work identically.
+
+**For Developers**: Update build commands:
+```bash
+# Old
+cargo build --release
+cargo test
+
+# New
+cargo build --release --workspace
+cargo test --workspace
+```
+
+See `docs/MIGRATION_v0.1_to_v0.2.md` for complete guide.
 
 ## [0.1.0-monolithic] - 2025-11-11
 

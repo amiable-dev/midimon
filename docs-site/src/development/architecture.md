@@ -1,36 +1,61 @@
 # Architecture Overview
 
-## Current Architecture (Phase 1)
+## Current Architecture (v0.2.0 - Phase 2)
 
-MIDIMon is currently implemented as a **single-binary Rust application** with all functionality in one crate. This design prioritizes rapid development and feature validation.
+MIDIMon uses a **Cargo workspace architecture** with three packages. Phase 2 migration completed successfully with zero breaking changes.
+
+### Workspace Packages
+
+1. **midimon-core**: Pure Rust engine library (zero UI dependencies)
+2. **midimon-daemon**: CLI daemon + 6 diagnostic tools
+3. **midimon**: Backward compatibility layer for existing tests
 
 ### System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        MIDIMon CLI                          │
-│                    (Single Binary)                          │
+│                    midimon-daemon                           │
+│              (CLI Daemon + Diagnostic Tools)                │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
+│   main.rs       6 diagnostic binaries                      │
+│   (daemon)      (tools for MIDI/LED testing)               │
+│                                                             │
+│                      ▼  imports                             │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────┐
+│                    midimon-core                             │
+│              (Pure Rust Engine Library)                     │
+├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐  │
-│  │   Config    │───▶│    Engine    │◀──▶│  Feedback    │  │
-│  │   Loader    │    │              │    │   System     │  │
+│  │   Config    │───▶│    Mapping   │◀──▶│  Feedback    │  │
+│  │   Loader    │    │    Engine    │    │   System     │  │
 │  └─────────────┘    └──────────────┘    └──────────────┘  │
 │         │                   │                    │         │
 │         │                   │                    │         │
 │         ▼                   ▼                    ▼         │
 │  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐  │
-│  │  Mappings   │    │    Event     │    │  HID/MIDI    │  │
-│  │   Engine    │    │  Processor   │    │   LEDs       │  │
+│  │   Events    │    │    Event     │    │  HID/MIDI    │  │
+│  │   Types     │    │  Processor   │    │   LEDs       │  │
 │  └─────────────┘    └──────────────┘    └──────────────┘  │
-│         │                   │                              │
-│         │                   │                              │
-│         ▼                   ▼                              │
-│  ┌─────────────┐    ┌──────────────┐                      │
-│  │   Actions   │    │  Device I/O  │                      │
-│  │  Executor   │    │ (midir/HID)  │                      │
-│  └─────────────┘    └──────────────┘                      │
+│         │                   │                    │         │
+│         │                   │                    │         │
+│         ▼                   ▼                    ▼         │
+│  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐  │
+│  │   Actions   │    │    Device    │    │    Error     │  │
+│  │  Executor   │    │   Profiles   │    │    Types     │  │
+│  └─────────────┘    └──────────────┘    └──────────────┘  │
 │                                                             │
+│  Zero UI dependencies • Public API • Reusable library      │
+└─────────────────────────────────────────────────────────────┘
+                       ▲
+┌──────────────────────┴──────────────────────────────────────┐
+│                      midimon (root)                         │
+│               (Backward Compatibility Layer)                │
+├─────────────────────────────────────────────────────────────┤
+│  Re-exports midimon_core types for existing tests          │
+│  Maintains v0.1.0 import paths • Zero breaking changes     │
 └─────────────────────────────────────────────────────────────┘
 ```
 

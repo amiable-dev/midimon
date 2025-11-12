@@ -1,22 +1,41 @@
 // Copyright 2025 Amiable
 // SPDX-License-Identifier: MIT
 
-//! MIDIMon Library
+//! MIDIMon Library (Compatibility Layer)
 //!
-//! This library exposes core types and functionality for testing
-//! and future modularization into midimon-core.
+//! This module provides backward compatibility for tests written against
+//! the old monolithic structure. It re-exports types from midimon_core.
+//!
+//! New code should use midimon_core directly instead of this module.
 
-pub mod config;
-pub mod event_processor;
-pub mod actions;
-pub mod mappings;
-pub mod feedback;
-pub mod device_profile;
-pub mod mikro_leds;
-pub mod midi_feedback;
+// Re-export everything from midimon_core for backward compatibility
+pub use midimon_core::*;
 
-// Re-export commonly used types for convenience
-pub use config::{ActionConfig, Config, DeviceConfig, Mapping, Mode, Trigger};
-pub use event_processor::{
-    EncoderDirection, EventProcessor, MidiEvent, ProcessedEvent, VelocityLevel,
-};
+// Module aliases for backward compatibility with old test imports
+pub mod config {
+    pub use midimon_core::config::*;
+}
+
+pub mod event_processor {
+    pub use midimon_core::event_processor::*;
+}
+
+pub mod actions {
+    pub use midimon_core::actions::*;
+}
+
+pub mod mappings {
+    pub use midimon_core::mapping::*;
+}
+
+pub mod feedback {
+    pub use midimon_core::feedback::*;
+}
+
+pub mod device_profile {
+    pub use midimon_core::device::*;
+}
+
+// Note: mikro_leds and midi_feedback are private implementation details
+// in midimon_core and are not re-exported. Tests should use the public
+// PadFeedback trait instead.

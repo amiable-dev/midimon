@@ -6,7 +6,9 @@
 [![codecov](https://codecov.io/gh/amiable-dev/midimon/branch/main/graph/badge.svg)](https://codecov.io/gh/amiable-dev/midimon)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://amiable-dev.github.io/midimon/)
 
-Transform MIDI controllers into advanced macro pads with velocity sensitivity, LED feedback, and visual configuration.
+Transform MIDI controllers into advanced macro pads with velocity sensitivity, LED feedback, and modular architecture.
+
+**v0.2.0**: Now with workspace architecture - pure Rust engine library + CLI daemon
 
 ![MIDIMon Demo](docs/images/hero-demo.gif)
 *Velocity-sensitive RGB LED feedback on Native Instruments Maschine Mikro MK3*
@@ -72,12 +74,20 @@ chmod +x midimon-*
 git clone https://github.com/amiable-dev/midimon.git
 cd midimon
 
-# Build the project
-cargo build --release
+# Build the workspace (all 3 packages)
+cargo build --release --workspace
 
-# Run the main application
-cargo run --release 2  # Connect to port 2 (Maschine Mikro MK3)
+# Run the main daemon
+cargo run --release --bin midimon 2  # Connect to port 2
+
+# Or run directly
+./target/release/midimon 2
 ```
+
+**Workspace Structure** (v0.2.0):
+- `midimon-core`: Pure Rust engine library (zero UI dependencies)
+- `midimon-daemon`: CLI daemon + 6 diagnostic tools
+- `midimon`: Backward compatibility layer
 
 **Requirements:**
 - Rust 1.70+ ([Install via rustup](https://rustup.rs/))
