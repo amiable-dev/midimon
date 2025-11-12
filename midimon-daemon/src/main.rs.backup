@@ -8,15 +8,23 @@ use midir::{MidiInput, MidiInputConnection};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-// Import from midimon_core instead of inline modules
-use midimon_core::{
-    Config,
-    MidiEvent,
-    actions::ActionExecutor,
-    mapping::MappingEngine,
-};
+mod actions;
+mod config;
+mod mappings;
+
+use actions::ActionExecutor;
+use config::Config;
+use mappings::MappingEngine;
+
+#[derive(Debug, Clone)]
+pub enum MidiEvent {
+    NoteOn { note: u8, velocity: u8 },
+    NoteOff { note: u8 },
+    ControlChange { cc: u8, value: u8 },
+    ProgramChange { program: u8 },
+}
 
 pub struct MidiMacroPad {
     config: Config,
@@ -83,25 +91,18 @@ impl MidiMacroPad {
             port,
             "midi-macro-pad",
             move |_timestamp, message, _| {
-                let now = Instant::now();
                 let event = match message[0] & 0xF0 {
                     0x90 if message[2] > 0 => Some(MidiEvent::NoteOn {
                         note: message[1],
                         velocity: message[2],
-                        time: now,
                     }),
-                    0x80 | 0x90 => Some(MidiEvent::NoteOff {
-                        note: message[1],
-                        time: now,
-                    }),
+                    0x80 | 0x90 => Some(MidiEvent::NoteOff { note: message[1] }),
                     0xB0 => Some(MidiEvent::ControlChange {
                         cc: message[1],
                         value: message[2],
-                        time: now,
                     }),
                     0xC0 => Some(MidiEvent::ProgramChange {
                         program: message[1],
-                        time: now,
                     }),
                     _ => None,
                 };
@@ -179,21 +180,15 @@ impl MidiMacroPad {
         let mode_str = format!("[Mode {}]", mode).cyan();
 
         let event_str = match event {
-            MidiEvent::NoteOn { note, velocity, .. } => {
+            MidiEvent::NoteOn { note, velocity } => {
                 format!("Note ON  {:3} vel {:3}", note, velocity).green()
             }
-            MidiEvent::NoteOff { note, .. } => format!("Note OFF {:3}        ", note).yellow(),
-            MidiEvent::ControlChange { cc, value, .. } => {
+            MidiEvent::NoteOff { note } => format!("Note OFF {:3}        ", note).yellow(),
+            MidiEvent::ControlChange { cc, value } => {
                 format!("CC       {:3} val {:3}", cc, value).blue()
             }
-            MidiEvent::ProgramChange { program, .. } => {
+            MidiEvent::ProgramChange { program } => {
                 format!("Program  {:3}        ", program).magenta()
-            }
-            MidiEvent::Aftertouch { pressure, .. } => {
-                format!("Aftertouch   {:3}    ", pressure).cyan()
-            }
-            MidiEvent::PitchBend { value, .. } => {
-                format!("PitchBend    {:5}   ", value).magenta()
             }
         };
 
@@ -208,7 +203,7 @@ impl MidiMacroPad {
     fn check_mode_change(event: &MidiEvent, config: &Config) -> Option<u8> {
         // Use CC 0 for mode changes (bank select)
         match event {
-            MidiEvent::ControlChange { cc: 0, value, .. } => {
+            MidiEvent::ControlChange { cc: 0, value } => {
                 if (*value as usize) < config.modes.len() {
                     Some(*value)
                 } else {

@@ -593,8 +593,11 @@ version = "0.2.0"
 dependencies = [
  "chrono",
  "colored",
+ "crossbeam-channel",
  "ctrlc",
+ "hidapi",
  "midimon-core",
+ "midir",
  "rstest",
 ]
 
