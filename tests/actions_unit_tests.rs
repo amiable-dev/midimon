@@ -168,7 +168,12 @@ fn test_action_from_keystroke_config_modifier_variants() {
 
         match action {
             Action::Keystroke { modifiers, .. } => {
-                assert_eq!(modifiers.len(), 1, "Failed for modifiers: {:?}", modifiers_vec);
+                assert_eq!(
+                    modifiers.len(),
+                    1,
+                    "Failed for modifiers: {:?}",
+                    modifiers_vec
+                );
             }
             _ => panic!("Expected Keystroke action"),
         }
@@ -186,7 +191,11 @@ fn test_action_from_keystroke_config_invalid_modifier() {
 
     match action {
         Action::Keystroke { modifiers, .. } => {
-            assert_eq!(modifiers.len(), 0, "Invalid modifiers should be filtered out");
+            assert_eq!(
+                modifiers.len(),
+                0,
+                "Invalid modifiers should be filtered out"
+            );
         }
         _ => panic!("Expected Keystroke action"),
     }
@@ -289,7 +298,9 @@ fn test_action_from_launch_config_with_path() {
 #[test]
 fn test_action_from_shell_config() {
     let command = "echo 'Hello'".to_string();
-    let config = ActionConfig::Shell { command: command.clone() };
+    let config = ActionConfig::Shell {
+        command: command.clone(),
+    };
 
     let action: Action = config.into();
 
@@ -304,7 +315,9 @@ fn test_action_from_shell_config() {
 #[test]
 fn test_action_from_shell_config_complex() {
     let command = "ls -la | grep test && echo done".to_string();
-    let config = ActionConfig::Shell { command: command.clone() };
+    let config = ActionConfig::Shell {
+        command: command.clone(),
+    };
 
     let action: Action = config.into();
 
@@ -318,9 +331,7 @@ fn test_action_from_shell_config_complex() {
 
 #[test]
 fn test_action_from_sequence_config_empty() {
-    let config = ActionConfig::Sequence {
-        actions: vec![],
-    };
+    let config = ActionConfig::Sequence { actions: vec![] };
 
     let action: Action = config.into();
 
@@ -335,9 +346,9 @@ fn test_action_from_sequence_config_empty() {
 #[test]
 fn test_action_from_sequence_config_single() {
     let config = ActionConfig::Sequence {
-        actions: vec![
-            ActionConfig::Text { text: "test".to_string() },
-        ],
+        actions: vec![ActionConfig::Text {
+            text: "test".to_string(),
+        }],
     };
 
     let action: Action = config.into();
@@ -354,9 +365,13 @@ fn test_action_from_sequence_config_single() {
 fn test_action_from_sequence_config_multiple() {
     let config = ActionConfig::Sequence {
         actions: vec![
-            ActionConfig::Text { text: "Hello".to_string() },
+            ActionConfig::Text {
+                text: "Hello".to_string(),
+            },
             ActionConfig::Delay { ms: 100 },
-            ActionConfig::Text { text: "World".to_string() },
+            ActionConfig::Text {
+                text: "World".to_string(),
+            },
         ],
     };
 
@@ -379,14 +394,22 @@ fn test_action_from_sequence_config_multiple() {
 fn test_action_from_sequence_config_nested() {
     let config = ActionConfig::Sequence {
         actions: vec![
-            ActionConfig::Text { text: "outer".to_string() },
+            ActionConfig::Text {
+                text: "outer".to_string(),
+            },
             ActionConfig::Sequence {
                 actions: vec![
-                    ActionConfig::Text { text: "inner1".to_string() },
-                    ActionConfig::Text { text: "inner2".to_string() },
+                    ActionConfig::Text {
+                        text: "inner1".to_string(),
+                    },
+                    ActionConfig::Text {
+                        text: "inner2".to_string(),
+                    },
                 ],
             },
-            ActionConfig::Text { text: "final".to_string() },
+            ActionConfig::Text {
+                text: "final".to_string(),
+            },
         ],
     };
 
@@ -576,8 +599,16 @@ fn test_action_clone_keystroke() {
     let cloned = action.clone();
 
     match (action, cloned) {
-        (Action::Keystroke { keys: k1, modifiers: m1 },
-         Action::Keystroke { keys: k2, modifiers: m2 }) => {
+        (
+            Action::Keystroke {
+                keys: k1,
+                modifiers: m1,
+            },
+            Action::Keystroke {
+                keys: k2,
+                modifiers: m2,
+            },
+        ) => {
             assert_eq!(k1.len(), k2.len());
             assert_eq!(m1.len(), m2.len());
         }
@@ -600,10 +631,7 @@ fn test_action_clone_text() {
 
 #[test]
 fn test_action_clone_sequence() {
-    let action = Action::Sequence(vec![
-        Action::Text("test".to_string()),
-        Action::Delay(100),
-    ]);
+    let action = Action::Sequence(vec![Action::Text("test".to_string()), Action::Delay(100)]);
 
     let cloned = action.clone();
 
@@ -655,9 +683,7 @@ fn test_action_debug_format_shell() {
 
 #[test]
 fn test_action_debug_format_sequence() {
-    let action = Action::Sequence(vec![
-        Action::Text("test".to_string()),
-    ]);
+    let action = Action::Sequence(vec![Action::Text("test".to_string())]);
     let debug_str = format!("{:?}", action);
     assert!(debug_str.contains("Sequence"));
 }
@@ -695,8 +721,16 @@ fn test_action_config_clone() {
     let cloned = config.clone();
 
     match (config, cloned) {
-        (ActionConfig::Keystroke { keys: k1, modifiers: m1 },
-         ActionConfig::Keystroke { keys: k2, modifiers: m2 }) => {
+        (
+            ActionConfig::Keystroke {
+                keys: k1,
+                modifiers: m1,
+            },
+            ActionConfig::Keystroke {
+                keys: k2,
+                modifiers: m2,
+            },
+        ) => {
             assert_eq!(k1, k2);
             assert_eq!(m1, m2);
         }
@@ -822,7 +856,11 @@ fn test_parse_modifiers_duplicate() {
 fn test_parse_modifiers_mixed_valid_invalid() {
     let config = ActionConfig::Keystroke {
         keys: "a".to_string(),
-        modifiers: vec!["cmd".to_string(), "invalid".to_string(), "shift".to_string()],
+        modifiers: vec![
+            "cmd".to_string(),
+            "invalid".to_string(),
+            "shift".to_string(),
+        ],
     };
 
     let action: Action = config.into();
@@ -860,11 +898,16 @@ fn test_parse_mouse_button_case_insensitive() {
 
         match action {
             Action::MouseClick { button, .. } => {
-                assert!(matches!((button, expected),
-                    (enigo::Button::Left, enigo::Button::Left) |
-                    (enigo::Button::Right, enigo::Button::Right) |
-                    (enigo::Button::Middle, enigo::Button::Middle)
-                ), "Failed for button: {}", button_str);
+                assert!(
+                    matches!(
+                        (button, expected),
+                        (enigo::Button::Left, enigo::Button::Left)
+                            | (enigo::Button::Right, enigo::Button::Right)
+                            | (enigo::Button::Middle, enigo::Button::Middle)
+                    ),
+                    "Failed for button: {}",
+                    button_str
+                );
             }
             _ => panic!("Expected MouseClick action"),
         }
@@ -897,17 +940,13 @@ fn test_parse_mouse_button_empty_string() {
 #[test]
 fn test_deeply_nested_sequences() {
     let config = ActionConfig::Sequence {
-        actions: vec![
-            ActionConfig::Sequence {
-                actions: vec![
-                    ActionConfig::Sequence {
-                        actions: vec![
-                            ActionConfig::Text { text: "deep".to_string() },
-                        ],
-                    },
-                ],
-            },
-        ],
+        actions: vec![ActionConfig::Sequence {
+            actions: vec![ActionConfig::Sequence {
+                actions: vec![ActionConfig::Text {
+                    text: "deep".to_string(),
+                }],
+            }],
+        }],
     };
 
     let action: Action = config.into();
@@ -934,9 +973,15 @@ fn test_sequence_with_all_action_types() {
                 keys: "a".to_string(),
                 modifiers: vec![],
             },
-            ActionConfig::Text { text: "test".to_string() },
-            ActionConfig::Launch { app: "Calculator".to_string() },
-            ActionConfig::Shell { command: "echo test".to_string() },
+            ActionConfig::Text {
+                text: "test".to_string(),
+            },
+            ActionConfig::Launch {
+                app: "Calculator".to_string(),
+            },
+            ActionConfig::Shell {
+                command: "echo test".to_string(),
+            },
             ActionConfig::Delay { ms: 100 },
             ActionConfig::MouseClick {
                 button: "left".to_string(),
@@ -1034,9 +1079,11 @@ fn test_arrow_keys() {
 // ============================================================================
 
 #[test]
+#[cfg_attr(all(target_os = "linux", not(feature = "ci-headless")), ignore)]
 fn test_action_executor_new() {
     // Test that ActionExecutor can be created
     // Note: We can't test actual execution without mocking enigo
+    // Skipped on Linux CI (no display server)
     use midimon::actions::ActionExecutor;
 
     let executor = ActionExecutor::new();
@@ -1083,10 +1130,7 @@ fn test_execute_sequence_action() {
     use midimon::actions::{Action, ActionExecutor};
 
     let mut executor = ActionExecutor::new();
-    let action = Action::Sequence(vec![
-        Action::Delay(1),
-        Action::Delay(1),
-    ]);
+    let action = Action::Sequence(vec![Action::Delay(1), Action::Delay(1)]);
 
     executor.execute(action);
 }
@@ -1206,7 +1250,10 @@ fn test_keystroke_with_numbers() {
 
 #[test]
 fn test_keystroke_with_special_characters() {
-    let chars = vec!["!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "=", "[", "]", "\\", ";", "'", ",", ".", "/"];
+    let chars = vec![
+        "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "=", "[", "]", "\\", ";", "'", ",",
+        ".", "/",
+    ];
 
     for ch in chars {
         let config = ActionConfig::Keystroke {
@@ -1267,7 +1314,9 @@ fn test_modifier_all_variants_combined() {
 #[test]
 fn test_text_with_very_long_string() {
     let long_text = "a".repeat(10000);
-    let config = ActionConfig::Text { text: long_text.clone() };
+    let config = ActionConfig::Text {
+        text: long_text.clone(),
+    };
 
     let action: Action = config.into();
 
@@ -1297,7 +1346,9 @@ fn test_text_with_unicode_characters() {
 
 #[test]
 fn test_launch_empty_string() {
-    let config = ActionConfig::Launch { app: "".to_string() };
+    let config = ActionConfig::Launch {
+        app: "".to_string(),
+    };
 
     let action: Action = config.into();
 
@@ -1311,7 +1362,9 @@ fn test_launch_empty_string() {
 
 #[test]
 fn test_shell_empty_command() {
-    let config = ActionConfig::Shell { command: "".to_string() };
+    let config = ActionConfig::Shell {
+        command: "".to_string(),
+    };
 
     let action: Action = config.into();
 
@@ -1326,7 +1379,9 @@ fn test_shell_empty_command() {
 #[test]
 fn test_shell_with_pipes_and_redirects() {
     let command = "cat file.txt | grep pattern > output.txt 2>&1".to_string();
-    let config = ActionConfig::Shell { command: command.clone() };
+    let config = ActionConfig::Shell {
+        command: command.clone(),
+    };
 
     let action: Action = config.into();
 
@@ -1506,7 +1561,11 @@ fn test_modifier_parsing_whitespace() {
     match action {
         Action::Keystroke { modifiers, .. } => {
             // Whitespace is NOT trimmed - these will fail to parse
-            assert_eq!(modifiers.len(), 0, "Modifiers with whitespace should not parse");
+            assert_eq!(
+                modifiers.len(),
+                0,
+                "Modifiers with whitespace should not parse"
+            );
         }
         _ => panic!("Expected Keystroke action"),
     }
@@ -1516,9 +1575,15 @@ fn test_modifier_parsing_whitespace() {
 fn test_sequence_preserves_order() {
     let config = ActionConfig::Sequence {
         actions: vec![
-            ActionConfig::Text { text: "first".to_string() },
-            ActionConfig::Text { text: "second".to_string() },
-            ActionConfig::Text { text: "third".to_string() },
+            ActionConfig::Text {
+                text: "first".to_string(),
+            },
+            ActionConfig::Text {
+                text: "second".to_string(),
+            },
+            ActionConfig::Text {
+                text: "third".to_string(),
+            },
         ],
     };
 
@@ -1636,9 +1701,13 @@ fn test_complex_real_world_sequence() {
     // Simulate a real-world use case: opening an app, waiting, typing, and pressing enter
     let config = ActionConfig::Sequence {
         actions: vec![
-            ActionConfig::Launch { app: "TextEdit".to_string() },
+            ActionConfig::Launch {
+                app: "TextEdit".to_string(),
+            },
             ActionConfig::Delay { ms: 1000 },
-            ActionConfig::Text { text: "Hello, World!".to_string() },
+            ActionConfig::Text {
+                text: "Hello, World!".to_string(),
+            },
             ActionConfig::Delay { ms: 100 },
             ActionConfig::Keystroke {
                 keys: "return".to_string(),

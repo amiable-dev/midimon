@@ -3,9 +3,7 @@
 
 //! Test error handling across crate boundaries
 
-use midimon_core::{
-    Config, ConfigError, EngineError, ActionError, FeedbackError, ProfileError,
-};
+use midimon_core::{ActionError, Config, ConfigError, EngineError, FeedbackError, ProfileError};
 use std::error::Error;
 
 #[test]
@@ -75,7 +73,7 @@ fn test_engine_error_from_config_error() {
     let engine_err = EngineError::from(config_err);
 
     match engine_err {
-        EngineError::ConfigError(_) => {},
+        EngineError::ConfigError(_) => {}
         _ => panic!("Expected ConfigError variant"),
     }
 }
@@ -105,9 +103,9 @@ fn test_config_load_invalid_file() {
             // Should be an IO error or parse error
             let err_str = e.to_string();
             assert!(
-                err_str.contains("IO error") ||
-                err_str.contains("No such file") ||
-                err_str.contains("Parse error")
+                err_str.contains("IO error")
+                    || err_str.contains("No such file")
+                    || err_str.contains("Parse error")
             );
         }
     }

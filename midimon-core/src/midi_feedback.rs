@@ -10,9 +10,7 @@ pub struct MidiFeedback {
 
 impl MidiFeedback {
     pub fn new() -> Self {
-        Self {
-            connection: None,
-        }
+        Self { connection: None }
     }
 
     pub fn connect(&mut self, port_index: usize) -> Result<(), Box<dyn Error>> {
@@ -33,7 +31,12 @@ impl MidiFeedback {
         Ok(())
     }
 
-    pub fn send_note_on(&mut self, note: u8, velocity: u8, channel: u8) -> Result<(), Box<dyn Error>> {
+    pub fn send_note_on(
+        &mut self,
+        note: u8,
+        velocity: u8,
+        channel: u8,
+    ) -> Result<(), Box<dyn Error>> {
         if let Some(ref mut conn) = self.connection {
             let msg = [0x90 | (channel - 1), note, velocity];
             conn.send(&msg)?;

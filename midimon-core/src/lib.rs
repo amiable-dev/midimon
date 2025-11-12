@@ -82,19 +82,19 @@
 #![warn(missing_docs)]
 
 // Public modules
-pub mod config;
-pub mod engine;
-pub mod events;
 pub mod actions;
-pub mod mapping;
-pub mod feedback;
+pub mod config;
 pub mod device;
+pub mod engine;
 pub mod error;
-pub mod event_processor;  // Public for advanced event processing
+pub mod event_processor;
+pub mod events;
+pub mod feedback;
+pub mod mapping; // Public for advanced event processing
 
 // Private modules (implementation details)
-mod mikro_leds;
 mod midi_feedback;
+mod mikro_leds;
 
 // Re-exports for convenience
 
@@ -102,23 +102,23 @@ mod midi_feedback;
 pub use engine::MidiMonEngine;
 
 // Configuration
-pub use config::{Config, DeviceConfig, Mode, Mapping, Trigger, ActionConfig};
+pub use config::{ActionConfig, Config, DeviceConfig, Mapping, Mode, Trigger};
 
 // Events
-pub use events::{MidiEvent, ProcessedEvent, VelocityLevel, EncoderDirection};
 pub use event_processor::EventProcessor;
+pub use events::{EncoderDirection, MidiEvent, ProcessedEvent, VelocityLevel};
 
 // Actions
 pub use actions::{Action, ActionExecutor};
 
 // Feedback
-pub use feedback::{PadFeedback, LightingScheme};
+pub use feedback::{LightingScheme, PadFeedback};
 
 // Device Profiles
 pub use device::{DeviceProfile, PadPageMapping};
 
 // Errors
-pub use error::{EngineError, ConfigError, ActionError, FeedbackError, ProfileError};
+pub use error::{ActionError, ConfigError, EngineError, FeedbackError, ProfileError};
 
 // Mapping
 pub use mapping::MappingEngine;

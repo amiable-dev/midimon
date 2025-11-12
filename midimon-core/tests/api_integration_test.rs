@@ -4,30 +4,45 @@
 //! Integration test to verify public API exports work correctly
 
 use midimon_core::{
+    // Actions
+    Action,
+    ActionConfig,
+
+    ActionError,
+    ActionExecutor,
+
+    // Configuration
+    Config,
+    ConfigError,
+    DeviceConfig,
+    // Device Profiles
+    DeviceProfile,
+    EncoderDirection,
+    // Errors
+    EngineError,
+    EventProcessor,
+
+    FeedbackError,
+    LightingScheme,
+
+    Mapping,
+    // Mapping
+    MappingEngine,
+    // Events
+    MidiEvent,
     // Engine
     MidiMonEngine,
 
-    // Configuration
-    Config, DeviceConfig, Mode, Mapping, Trigger, ActionConfig,
-
-    // Events
-    MidiEvent, ProcessedEvent, VelocityLevel, EncoderDirection,
-    EventProcessor,
-
-    // Actions
-    Action, ActionExecutor,
-
+    Mode,
     // Feedback
-    PadFeedback, LightingScheme,
+    PadFeedback,
+    PadPageMapping,
 
-    // Device Profiles
-    DeviceProfile, PadPageMapping,
+    ProcessedEvent,
+    ProfileError,
 
-    // Errors
-    EngineError, ConfigError, ActionError, FeedbackError, ProfileError,
-
-    // Mapping
-    MappingEngine,
+    Trigger,
+    VelocityLevel,
 };
 
 #[test]
@@ -71,9 +86,9 @@ fn test_event_processor_creation() {
 fn test_velocity_level_enum() {
     // Verify VelocityLevel variants are accessible
     match VelocityLevel::Soft {
-        VelocityLevel::Soft => {},
-        VelocityLevel::Medium => {},
-        VelocityLevel::Hard => {},
+        VelocityLevel::Soft => {}
+        VelocityLevel::Medium => {}
+        VelocityLevel::Hard => {}
     }
 }
 
@@ -81,8 +96,8 @@ fn test_velocity_level_enum() {
 fn test_encoder_direction_enum() {
     // Verify EncoderDirection variants are accessible
     match EncoderDirection::Clockwise {
-        EncoderDirection::Clockwise => {},
-        EncoderDirection::CounterClockwise => {},
+        EncoderDirection::Clockwise => {}
+        EncoderDirection::CounterClockwise => {}
     }
 }
 

@@ -307,10 +307,6 @@ impl EventProcessor {
             }
         };
 
-        println!(
-            "{} {}",
-            mode_str,
-            event_str
-        );
+        println!("{} {}", mode_str, event_str);
     }
 }

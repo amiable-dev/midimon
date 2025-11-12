@@ -11,12 +11,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 // Import from midimon_core instead of inline modules
-use midimon_core::{
-    Config,
-    MidiEvent,
-    actions::ActionExecutor,
-    mapping::MappingEngine,
-};
+use midimon_core::{Config, MidiEvent, actions::ActionExecutor, mapping::MappingEngine};
 
 pub struct MidiMacroPad {
     config: Config,
@@ -192,9 +187,7 @@ impl MidiMacroPad {
             MidiEvent::Aftertouch { pressure, .. } => {
                 format!("Aftertouch   {:3}    ", pressure).cyan()
             }
-            MidiEvent::PitchBend { value, .. } => {
-                format!("PitchBend    {:5}   ", value).magenta()
-            }
+            MidiEvent::PitchBend { value, .. } => format!("PitchBend    {:5}   ", value).magenta(),
         };
 
         println!(

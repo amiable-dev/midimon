@@ -4,12 +4,12 @@
 //! Test backward compatibility layer - verifies old import paths work
 
 // Test old-style imports through the compatibility layer
-use midimon::config::{Config, Trigger, ActionConfig};
-use midimon::event_processor::EventProcessor;
 use midimon::actions::{Action, ActionExecutor};
-use midimon::mappings::MappingEngine;
-use midimon::feedback::{PadFeedback, LightingScheme};
+use midimon::config::{ActionConfig, Config, Trigger};
 use midimon::device_profile::{DeviceProfile, PadPageMapping};
+use midimon::event_processor::EventProcessor;
+use midimon::feedback::{LightingScheme, PadFeedback};
+use midimon::mappings::MappingEngine;
 
 #[test]
 fn test_config_module_accessible() {
@@ -55,7 +55,7 @@ fn test_device_profile_module_accessible() {
 #[test]
 fn test_root_level_imports_work() {
     // Test that root-level re-exports also work
-    use midimon::{Config, MidiEvent, ProcessedEvent, ActionExecutor};
+    use midimon::{ActionExecutor, Config, MidiEvent, ProcessedEvent};
 
     let _: Option<Config> = None;
     let _: Option<MidiEvent> = None;

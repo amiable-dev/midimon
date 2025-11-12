@@ -1,9 +1,9 @@
 // Copyright 2025 Amiable
 // SPDX-License-Identifier: MIT
 
-use std::error::Error;
-use crate::mikro_leds::{MikroMK3LEDs, RGB};
 use crate::midi_feedback::MidiFeedback;
+use crate::mikro_leds::{MikroMK3LEDs, RGB};
+use std::error::Error;
 
 /// Unified trait for device feedback (LEDs, visual indicators)
 pub trait PadFeedback: Send {
@@ -15,7 +15,8 @@ pub trait PadFeedback: Send {
     fn flash_pad(&mut self, pad: u8, color: RGB, duration_ms: u64) -> Result<(), Box<dyn Error>>;
     fn ripple_effect(&mut self, start_pad: u8, color: RGB) -> Result<(), Box<dyn Error>>;
     fn clear_all(&mut self) -> Result<(), Box<dyn Error>>;
-    fn show_long_press_feedback(&mut self, pad: u8, elapsed_ms: u128) -> Result<(), Box<dyn Error>>;
+    fn show_long_press_feedback(&mut self, pad: u8, elapsed_ms: u128)
+    -> Result<(), Box<dyn Error>>;
     fn run_scheme(&mut self, scheme: &LightingScheme) -> Result<(), Box<dyn Error>>;
 }
 
@@ -23,15 +24,15 @@ pub trait PadFeedback: Send {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LightingScheme {
     Off,
-    Static(u8),           // Static color based on mode
-    Breathing,            // Slow breathing effect
-    Pulse,                // Fast pulse effect
-    Rainbow,              // Rainbow cycle
-    Wave,                 // Wave pattern
-    Sparkle,              // Random sparkles
-    Reactive,             // React to MIDI events only
-    VuMeter,              // VU meter style (bottom-up)
-    Spiral,               // Spiral pattern
+    Static(u8), // Static color based on mode
+    Breathing,  // Slow breathing effect
+    Pulse,      // Fast pulse effect
+    Rainbow,    // Rainbow cycle
+    Wave,       // Wave pattern
+    Sparkle,    // Random sparkles
+    Reactive,   // React to MIDI events only
+    VuMeter,    // VU meter style (bottom-up)
+    Spiral,     // Spiral pattern
 }
 
 impl LightingScheme {
@@ -53,8 +54,16 @@ impl LightingScheme {
 
     pub fn list_all() -> Vec<&'static str> {
         vec![
-            "off", "static", "breathing", "pulse", "rainbow", 
-            "wave", "sparkle", "reactive", "vumeter", "spiral"
+            "off",
+            "static",
+            "breathing",
+            "pulse",
+            "rainbow",
+            "wave",
+            "sparkle",
+            "reactive",
+            "vumeter",
+            "spiral",
         ]
     }
 }
@@ -93,7 +102,11 @@ impl PadFeedback for MikroMK3LEDs {
         self.clear_all()
     }
 
-    fn show_long_press_feedback(&mut self, pad: u8, _elapsed_ms: u128) -> Result<(), Box<dyn Error>> {
+    fn show_long_press_feedback(
+        &mut self,
+        pad: u8,
+        _elapsed_ms: u128,
+    ) -> Result<(), Box<dyn Error>> {
         self.show_long_press_feedback(pad)
     }
 
@@ -159,7 +172,11 @@ impl PadFeedback for MidiFeedback {
         Ok(())
     }
 
-    fn show_long_press_feedback(&mut self, pad: u8, _elapsed_ms: u128) -> Result<(), Box<dyn Error>> {
+    fn show_long_press_feedback(
+        &mut self,
+        pad: u8,
+        _elapsed_ms: u128,
+    ) -> Result<(), Box<dyn Error>> {
         self.send_note_on(pad + 36, 127, 1)?;
         Ok(())
     }
@@ -177,9 +194,16 @@ impl PadFeedback for MidiFeedback {
 }
 
 /// Factory function to create the appropriate feedback device
-pub fn create_feedback_device(device_name: &str, midi_port: Option<usize>, enable_hid: bool) -> Box<dyn PadFeedback> {
+pub fn create_feedback_device(
+    device_name: &str,
+    midi_port: Option<usize>,
+    enable_hid: bool,
+) -> Box<dyn PadFeedback> {
     // Use HID for Mikro MK3 only if explicitly enabled
-    if enable_hid && device_name.to_lowercase().contains("maschine") && device_name.to_lowercase().contains("mikro") {
+    if enable_hid
+        && device_name.to_lowercase().contains("maschine")
+        && device_name.to_lowercase().contains("mikro")
+    {
         Box::new(MikroMK3LEDs::new())
     } else if let Some(port) = midi_port {
         let mut midi_fb = MidiFeedback::new();

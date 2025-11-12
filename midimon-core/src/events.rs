@@ -7,6 +7,4 @@
 //! They will be moved here during the refactoring phase.
 //! For now, this module re-exports them from event_processor for the public API.
 
-pub use crate::event_processor::{
-    EncoderDirection, MidiEvent, ProcessedEvent, VelocityLevel,
-};
+pub use crate::event_processor::{EncoderDirection, MidiEvent, ProcessedEvent, VelocityLevel};
