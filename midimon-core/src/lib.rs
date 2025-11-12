@@ -18,19 +18,35 @@ pub mod mapping;
 pub mod feedback;
 pub mod device;
 pub mod error;
+pub mod event_processor;  // Public for advanced event processing
 
 // Private modules (implementation details)
-mod event_processor;
 mod mikro_leds;
 mod midi_feedback;
 
 // Re-exports for convenience
+
+// Engine
 pub use engine::MidiMonEngine;
-pub use config::Config;
+
+// Configuration
+pub use config::{Config, DeviceConfig, Mode, Mapping, Trigger, ActionConfig};
+
+// Events
 pub use events::{MidiEvent, ProcessedEvent, VelocityLevel, EncoderDirection};
+pub use event_processor::EventProcessor;
+
+// Actions
+pub use actions::{Action, ActionExecutor};
+
+// Feedback
+pub use feedback::{PadFeedback, LightingScheme};
+
+// Device Profiles
+pub use device::{DeviceProfile, PadPageMapping};
+
+// Errors
 pub use error::{EngineError, ConfigError, ActionError, FeedbackError, ProfileError};
 
-// Note: actions and feedback re-exports will be added once we verify the types exist
-// pub use actions::{Action, VolumeAction};
-// pub use feedback::{FeedbackController, RGB, LightingScheme};
-// pub use device::{DeviceProfile, PadPageMapping};
+// Mapping
+pub use mapping::MappingEngine;
