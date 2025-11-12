@@ -183,9 +183,11 @@ impl DeviceProfile {
                 .iter()
                 .filter_map(|child| {
                     if let PadOrLed::Pad(pad) = child
-                        && pad.subtype == "trigger" && pad.note.is_some() {
-                            return Some(pad);
-                        }
+                        && pad.subtype == "trigger"
+                        && pad.note.is_some()
+                    {
+                        return Some(pad);
+                    }
                     None
                 })
                 .collect();
@@ -203,10 +205,7 @@ impl DeviceProfile {
                     pad_to_note.push(note);
 
                     // Track which page(s) contain this note
-                    note_to_page
-                        .entry(note)
-                        .or_default()
-                        .push(pad_pages.len());
+                    note_to_page.entry(note).or_default().push(pad_pages.len());
                 }
             }
 

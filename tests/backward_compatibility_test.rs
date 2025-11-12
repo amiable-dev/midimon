@@ -26,7 +26,10 @@ fn test_event_processor_module_accessible() {
 }
 
 #[test]
-#[cfg_attr(target_os = "linux", ignore = "Requires display server for ActionExecutor")]
+#[cfg_attr(
+    target_os = "linux",
+    ignore = "Requires display server for ActionExecutor"
+)]
 fn test_actions_module_accessible() {
     // Verify actions types accessible via old path
     let _executor = ActionExecutor::new();
@@ -54,7 +57,10 @@ fn test_device_profile_module_accessible() {
 }
 
 #[test]
-#[cfg_attr(target_os = "linux", ignore = "Requires display server for ActionExecutor")]
+#[cfg_attr(
+    target_os = "linux",
+    ignore = "Requires display server for ActionExecutor"
+)]
 fn test_root_level_imports_work() {
     // Test that root-level re-exports also work
     use midimon::{ActionExecutor, Config, MidiEvent, ProcessedEvent};
