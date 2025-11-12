@@ -56,6 +56,10 @@ fn test_all_types_accessible() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "linux",
+    ignore = "Requires display server for ActionExecutor"
+)]
 fn test_action_executor_creation() {
     // Verify ActionExecutor can be created
     let _executor = ActionExecutor::new();
