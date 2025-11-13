@@ -12,8 +12,10 @@ jobs:
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
     steps:
       - name: Get version from tag
@@ -38,7 +40,7 @@ jobs:
             CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
           fi
 
-          # Save changelog to file
+          # Save changelog to file for reuse
           echo "$CHANGELOG" > changelog.txt
 
           # Also output for GitHub
@@ -48,12 +50,9 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ steps.get_version.outputs.version }}
+          name: Release ${{ steps.get_version.outputs.version }}
           body: |
             ## What's Changed
 
@@ -62,11 +61,16 @@ jobs:
             ## Installation
 
             Download the appropriate binary for your platform below:
-            - **macOS (Apple Silicon)**: midimon-aarch64-apple-darwin
-            - **macOS (Intel)**: midimon-x86_64-apple-darwin
-            - **Linux**: midimon-x86_64-unknown-linux-gnu
+            - **macOS (Apple Silicon)**: midimon-aarch64-apple-darwin.tar.gz
+            - **macOS (Intel)**: midimon-x86_64-apple-darwin.tar.gz
+            - **Linux**: midimon-x86_64-unknown-linux-gnu.tar.gz
 
-            Make it executable: `chmod +x midimon-*`
+            Extract and make it executable:
+            ```bash
+            tar xzf midimon-*.tar.gz
+            chmod +x midimon
+            sudo mv midimon /usr/local/bin/
+            ```
 
             See [README.md](https://github.com/amiable-dev/midimon#installation) for full installation instructions.
 
@@ -75,11 +79,14 @@ jobs:
             🤖 Generated with Claude Code
           draft: false
           prerelease: ${{ contains(github.ref, 'pre') || contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+          generate_release_notes: true
 
   build-release:
     name: Build Release (${{ matrix.target }})
     needs: create-release
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -108,7 +115,7 @@ jobs:
           sudo apt-get install -y libasound2-dev libudev-dev pkg-config
 
       - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }} --package midimon-daemon
 
       - name: Strip binary (Linux/macOS)
         if: runner.os != 'Windows'
@@ -120,22 +127,9 @@ jobs:
           tar czf midimon-${{ matrix.target }}.tar.gz ${{ matrix.binary_name }}
           shasum -a 256 midimon-${{ matrix.target }}.tar.gz > midimon-${{ matrix.target }}.tar.gz.sha256
 
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: target/${{ matrix.target }}/release/midimon-${{ matrix.target }}.tar.gz
-          asset_name: midimon-${{ matrix.target }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Checksum
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: target/${{ matrix.target }}/release/midimon-${{ matrix.target }}.tar.gz.sha256
-          asset_name: midimon-${{ matrix.target }}.tar.gz.sha256
-          asset_content_type: text/plain
+          files: |
+            target/${{ matrix.target }}/release/midimon-${{ matrix.target }}.tar.gz
+            target/${{ matrix.target }}/release/midimon-${{ matrix.target }}.tar.gz.sha256

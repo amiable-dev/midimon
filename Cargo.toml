@@ -6,7 +6,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.0"
+version = "1.0.0"
 edition = "2024"
 authors = ["MIDIMon Contributors"]
 license = "MIT"
@@ -52,6 +52,7 @@ enigo = "0.6"
 colored = "3.0"
 chrono = "0.4"
 ctrlc = "3.4"
+clap = { version = "4.5", features = ["derive", "cargo"] }
 
 # Testing
 proptest = "1.5"

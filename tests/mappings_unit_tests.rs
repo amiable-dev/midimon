@@ -68,6 +68,8 @@ fn create_test_config() -> Config {
             },
             description: Some("Global exit".to_string()),
         }],
+        advanced_settings: Default::default(),
+        logging: None,
     }
 }
 
@@ -115,6 +117,8 @@ fn test_load_empty_config() {
         },
         modes: vec![],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -180,6 +184,8 @@ fn test_load_config_with_multiple_modes() {
             },
         ],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -233,6 +239,8 @@ fn test_compile_note_trigger_with_velocity_min() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -277,6 +285,8 @@ fn test_compile_note_trigger_without_velocity_min() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -320,6 +330,8 @@ fn test_compile_cc_trigger_with_value_min() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -364,6 +376,8 @@ fn test_compile_cc_trigger_without_value_min() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -398,6 +412,7 @@ fn test_compile_note_chord_trigger() {
             mappings: vec![Mapping {
                 trigger: Trigger::NoteChord {
                     notes: vec![60, 64, 67],
+                    timeout_ms: None,
                 },
                 action: ActionConfig::Text {
                     text: "chord".to_string(),
@@ -406,6 +421,8 @@ fn test_compile_note_chord_trigger() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -449,6 +466,8 @@ fn test_note_trigger_matches_exact_note() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -493,6 +512,8 @@ fn test_note_trigger_velocity_threshold() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -545,6 +566,8 @@ fn test_cc_trigger_matches_exact_cc() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -589,6 +612,8 @@ fn test_cc_trigger_value_threshold() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -641,6 +666,8 @@ fn test_trigger_does_not_match_wrong_event_type() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -684,6 +711,8 @@ fn test_trigger_does_not_match_aftertouch() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -718,6 +747,8 @@ fn test_trigger_does_not_match_pitch_bend() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -772,6 +803,8 @@ fn test_mode_specific_mappings() {
             },
         ],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -826,6 +859,8 @@ fn test_mode_isolation() {
             },
         ],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -873,6 +908,8 @@ fn test_nonexistent_mode_falls_back_to_global() {
             },
             description: None,
         }],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -942,6 +979,8 @@ fn test_global_mappings_work_in_all_modes() {
             },
             description: None,
         }],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -991,6 +1030,8 @@ fn test_mode_specific_overrides_global() {
             },
             description: None,
         }],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1063,6 +1104,8 @@ fn test_multiple_global_mappings() {
                 description: None,
             },
         ],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1111,6 +1154,8 @@ fn test_compile_keystroke_action() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1148,6 +1193,8 @@ fn test_compile_text_action() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1185,6 +1232,8 @@ fn test_compile_launch_action() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1222,6 +1271,8 @@ fn test_compile_shell_action() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1267,6 +1318,8 @@ fn test_compile_sequence_action() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1302,6 +1355,8 @@ fn test_compile_delay_action() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1341,6 +1396,8 @@ fn test_compile_mouse_click_action() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1394,6 +1451,8 @@ fn test_first_matching_trigger_wins() {
             ],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1432,6 +1491,8 @@ fn test_no_mapping_returns_none() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1460,6 +1521,8 @@ fn test_mode_without_mappings_returns_none() {
             mappings: vec![],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1500,6 +1563,8 @@ fn test_note_zero_is_valid() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1536,6 +1601,8 @@ fn test_note_127_is_valid() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1572,6 +1639,8 @@ fn test_velocity_zero_does_not_match_default() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1609,6 +1678,8 @@ fn test_velocity_one_matches_default() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1646,6 +1717,8 @@ fn test_cc_zero_is_valid() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1682,6 +1755,8 @@ fn test_cc_127_is_valid() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
@@ -1718,6 +1793,8 @@ fn test_description_is_optional() {
             }],
         }],
         global_mappings: vec![],
+        advanced_settings: Default::default(),
+        logging: None,
     };
 
     engine.load_from_config(&config);
