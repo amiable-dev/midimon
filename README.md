@@ -6,9 +6,9 @@
 [![codecov](https://codecov.io/gh/amiable-dev/midimon/branch/main/graph/badge.svg)](https://codecov.io/gh/amiable-dev/midimon)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://amiable-dev.github.io/midimon/)
 
-Transform MIDI controllers into advanced macro pads with velocity sensitivity, LED feedback, and modular architecture.
+Transform MIDI controllers into advanced macro pads with velocity sensitivity, LED feedback, and daemon architecture with hot-reload.
 
-**v0.2.0**: Now with workspace architecture - pure Rust engine library + CLI daemon
+**v1.0.0**: Production-ready daemon with 0-10ms config reloads, IPC control, and auto-start support
 
 ![MIDIMon Demo](docs/images/hero-demo.gif)
 *Velocity-sensitive RGB LED feedback on Native Instruments Maschine Mikro MK3*
@@ -16,10 +16,13 @@ Transform MIDI controllers into advanced macro pads with velocity sensitivity, L
 ## Features
 
 ### Core Features
+- **Background Daemon** - Runs as a system service with auto-start
+- **Hot-Reload** - Configuration changes detected and applied in 0-10ms
+- **IPC Control** - Control daemon via `midimonctl` CLI
 - **Multi-mode operation** - Switch between different mapping sets
 - **Configurable mappings** - Easy TOML-based configuration
-- **Low latency** - Sub-millisecond response time
-- **Cross-platform** - Works on macOS, Linux, and Windows
+- **Ultra-low latency** - Sub-millisecond MIDI response, <20ms config reload
+- **Cross-platform** - Works on macOS and Linux (systemd/launchd)
 
 ### Enhanced Event Detection
 - **Velocity Sensitivity** - Different actions for soft/medium/hard presses
@@ -58,14 +61,22 @@ Transform MIDI controllers into advanced macro pads with velocity sensitivity, L
 Download the latest release for your platform:
 - [macOS (Intel)](https://github.com/amiable-dev/midimon/releases/latest/download/midimon-macos-intel)
 - [macOS (Apple Silicon)](https://github.com/amiable-dev/midimon/releases/latest/download/midimon-macos-arm)
+- [Linux (x86_64)](https://github.com/amiable-dev/midimon/releases/latest/download/midimon-linux-x86_64)
 
 ```bash
-# Make it executable
-chmod +x midimon-*
+# Install binaries
+sudo install -m 755 midimon /usr/local/bin/
+sudo install -m 755 midimonctl /usr/local/bin/
 
-# Run
-./midimon-* 2  # Connect to MIDI port 2
+# macOS: Install as LaunchAgent
+launchctl load ~/Library/LaunchAgents/com.amiable.midimon.plist
+
+# Linux: Install as systemd service
+systemctl --user enable midimon
+systemctl --user start midimon
 ```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete installation and service setup guides.
 
 ### From Source
 
@@ -77,29 +88,53 @@ cd midimon
 # Build the workspace (all 3 packages)
 cargo build --release --workspace
 
-# Run the main daemon
-cargo run --release --bin midimon 2  # Connect to port 2
+# Install binaries
+sudo install -m 755 target/release/midimon /usr/local/bin/
+sudo install -m 755 target/release/midimonctl /usr/local/bin/
 
-# Or run directly
-./target/release/midimon 2
+# Install man pages
+sudo mkdir -p /usr/local/share/man/man1
+sudo install -m 644 midimon-daemon/docs/*.1 /usr/local/share/man/man1/
 ```
 
-**Workspace Structure** (v0.2.0):
+**Workspace Structure** (v1.0.0):
 - `midimon-core`: Pure Rust engine library (zero UI dependencies)
-- `midimon-daemon`: CLI daemon + 6 diagnostic tools
+- `midimon-daemon`: Background daemon with IPC server + 6 diagnostic tools
 - `midimon`: Backward compatibility layer
 
 **Requirements:**
 - Rust 1.70+ ([Install via rustup](https://rustup.rs/))
-- macOS 10.15+ (Linux/Windows support planned)
+- macOS 11+ or Linux with systemd
 
 ## Quick Start
 
+### Daemon Mode (Recommended)
+
+1. **Install binaries** (see Installation above)
+2. **Create config** at `~/.config/midimon/config.toml`
+3. **Start daemon**:
+   ```bash
+   # macOS
+   launchctl load ~/Library/LaunchAgents/com.amiable.midimon.plist
+
+   # Linux
+   systemctl --user start midimon
+   ```
+4. **Control daemon**:
+   ```bash
+   midimonctl status   # Check daemon status
+   midimonctl reload   # Reload configuration
+   midimonctl ping     # Test connectivity
+   ```
+5. **Edit config** - Changes are auto-detected and reloaded in <10ms!
+
+### Manual Mode (Development/Testing)
+
 1. **Connect your MIDI controller** (e.g., Native Instruments Maschine Mikro MK3)
 2. **Install necessary drivers** (Native Instruments Controller Editor for NI devices)
-3. **Run the application**:
+3. **Run directly**:
    ```bash
-   cargo run --release [port_number]
+   midimon --config config.toml --log-level debug
    ```
 4. **Press pads** to trigger macros!
 
@@ -204,12 +239,54 @@ type = "VolumeControl"
 action = "Up"
 ```
 
+## Daemon Control
+
+### midimonctl CLI
+
+Control the daemon from the command line:
+
+```bash
+# Check daemon status
+midimonctl status
+
+# Reload configuration
+midimonctl reload
+
+# Test connectivity
+midimonctl ping
+
+# Stop daemon
+midimonctl stop
+
+# Validate config before applying
+midimonctl validate --config new-config.toml
+
+# JSON output for scripting
+midimonctl --json status | jq .data.uptime_secs
+```
+
+### Performance Monitoring
+
+```bash
+# View reload performance
+midimonctl status | grep -A5 "Reload Performance"
+
+# Output includes:
+# - Last reload time (ms)
+# - Average reload time
+# - Fastest/slowest reloads
+# - Performance grade (A-F)
+```
+
+See `man midimonctl` for full command reference.
+
 ## Diagnostic Tools
 
 ### MIDI Diagnostic Tool
 Visualize all MIDI events from your controller:
 ```bash
-cargo run --bin midi_diagnostic 2
+midi_diagnostic 2  # If installed
+# Or: cargo run --bin midi_diagnostic 2
 ```
 
 Features:
@@ -221,7 +298,8 @@ Features:
 ### Test MIDI Ports
 List all available MIDI devices:
 ```bash
-cargo run --bin test_midi
+test_midi  # If installed
+# Or: cargo run --bin test_midi
 ```
 
 ## Action Types
@@ -334,10 +412,24 @@ midimon/
 
 ## Performance
 
-- **Response Time**: < 1ms typical latency
+- **MIDI Event Latency**: < 1ms typical
+- **Config Reload Time**: 0-10ms typical (Grade A: <20ms target)
+- **Startup Time**: < 500ms
 - **Memory Usage**: 5-10MB
 - **CPU Usage**: < 1% idle, < 5% active
 - **Binary Size**: ~3-5MB (release build with LTO)
+
+Run benchmarks:
+```bash
+cargo bench --package midimon-daemon
+```
+
+Typical benchmark results (Apple M1):
+- 2 modes, 10 mappings: 0-2ms reload
+- 5 modes, 50 mappings: 2-5ms reload
+- 10 modes, 100 mappings: 5-8ms reload
+
+All achieve **Grade A** performance (<20ms).
 
 ## Contributing
 
@@ -352,10 +444,12 @@ Check out [good first issues](https://github.com/amiable-dev/midimon/labels/good
 
 ## Documentation
 
+- **[Deployment Guide](DEPLOYMENT.md)** - Complete installation and service setup
 - **[Full Documentation](https://amiable-dev.github.io/midimon/)** - Complete user guide
 - **[LED Feedback System](LED_FEEDBACK.md)** - LED control documentation
 - **[Configuration Reference](docs/configuration.md)** - TOML configuration guide
 - **[API Documentation](https://docs.rs/midimon)** - Rust API docs
+- **Man Pages**: `man midimon`, `man midimonctl`
 
 ## Community & Support
 
@@ -365,29 +459,33 @@ Check out [good first issues](https://github.com/amiable-dev/midimon/labels/good
 
 ## Roadmap
 
-### Current: Phase 0 - v0.1.0-monolithic
-- ✅ Single-binary implementation with all core features
-- ✅ Velocity sensitivity, long press, double-tap, chords
-- ✅ Full RGB LED feedback for Maschine Mikro MK3
-- ✅ Multi-mode operation
-- ✅ Device profile support (.ncmm3)
+### ✅ Phase 1 - v0.2.0 (Complete)
+- Workspace architecture (midimon-core, midimon-daemon, midimon)
+- Pure Rust engine library with zero UI dependencies
+- 339 tests, all passing
 
-### Phase 1 - v0.2.0
-- 📋 Complete feature specifications
-- 📋 85%+ test coverage
-- 📋 Comprehensive documentation
+### ✅ Phase 2 - v1.0.0 (Complete)
+- Background daemon with IPC server
+- Config hot-reload with 0-10ms latency
+- CLI control tool (midimonctl)
+- systemd/launchd integration
+- Comprehensive documentation and deployment guides
 
-### Phase 2 - v1.0.0
-- 🔮 Monorepo migration (midimon-core, midimon-daemon, midimon-gui)
-- 🔮 Background daemon with menu bar
-- 🔮 Config hot-reload
+### 🚀 Phase 3 - v1.5.0 (Future)
+- Tauri-based visual configurator
+- Menu bar UI for quick access
+- MIDI Learn mode (click → press → auto-map)
+- Per-app profiles with frontmost app detection
+- Advanced conditional mappings
 
-### Phase 3 - v1.5.0
-- 🔮 Tauri-based visual configurator
-- 🔮 MIDI Learn mode
-- 🔮 Per-app profiles
+### 🔮 Phase 4 - v2.0.0 (Vision)
+- Virtual MIDI output for DAW integration
+- Profile sharing/export
+- Live event console
+- WebSocket API
+- Plugin system
 
-See [docs/implementation-roadmap.md](docs/implementation-roadmap.md) for full roadmap.
+See [.research/](https://github.com/amiable-dev/midimon/tree/main/.research) for detailed implementation proposals.
 
 ## License
 
