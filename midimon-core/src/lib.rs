@@ -95,7 +95,8 @@ pub mod mapping; // Public for advanced event processing
 
 // Private modules (implementation details)
 mod midi_feedback;
-mod mikro_leds;
+pub mod mikro_leds;
+pub mod logging; // Structured logging with tracing
 
 // Re-exports for convenience
 
@@ -103,17 +104,17 @@ mod mikro_leds;
 pub use engine::MidiMonEngine;
 
 // Configuration
-pub use config::{ActionConfig, Config, DeviceConfig, Mapping, Mode, Trigger};
+pub use config::{ActionConfig, Config, DeviceConfig, Mapping, Mode, Trigger, LoggingConfig};
 
 // Events
 pub use event_processor::EventProcessor;
-pub use events::{EncoderDirection, MidiEvent, ProcessedEvent, VelocityLevel};
+pub use events::{EncoderDirection, InputEvent, MidiEvent, ProcessedEvent, VelocityLevel};
 
 // Actions
 pub use actions::{Action, ActionExecutor};
 
 // Feedback
-pub use feedback::{LightingScheme, PadFeedback};
+pub use feedback::{FeedbackManager, LightingScheme, PadFeedback};
 
 // Device Profiles
 pub use device::{DeviceProfile, PadPageMapping};

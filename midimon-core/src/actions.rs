@@ -140,6 +140,12 @@ impl From<ActionConfig> for Action {
                 x,
                 y,
             },
+            // VolumeControl, ModeChange, Repeat, and Conditional are not yet implemented in Action enum
+            // Stub these out as Shell commands for now
+            ActionConfig::VolumeControl { .. } => Action::Shell("true".to_string()),
+            ActionConfig::ModeChange { .. } => Action::Shell("true".to_string()),
+            ActionConfig::Repeat { action, .. } => (*action).into(),
+            ActionConfig::Conditional { then_action, .. } => (*then_action).into(),
         }
     }
 }

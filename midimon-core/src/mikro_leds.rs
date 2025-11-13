@@ -3,6 +3,7 @@
 
 use hidapi::{HidApi, HidDevice};
 use std::error::Error;
+use tracing::{debug, error, warn};
 
 // Native Instruments Vendor ID
 const NI_VENDOR_ID: u16 = 0x17CC;
@@ -104,7 +105,7 @@ impl MikroMK3LEDs {
     }
 
     pub fn connect(&mut self) -> Result<(), Box<dyn Error>> {
-        println!("Connecting to Mikro MK3 LEDs...");
+        debug!("Connecting to Mikro MK3 LEDs...");
 
         let api = HidApi::new()?;
 
@@ -113,17 +114,17 @@ impl MikroMK3LEDs {
                 && device_info.product_id() == MIKRO_MK3_PRODUCT_ID
             {
                 let interface_number = device_info.interface_number();
-                println!("  Found Mikro MK3 on interface {}", interface_number);
+                debug!(interface = interface_number, "Found Mikro MK3 device");
 
                 if interface_number == 0 {
                     match device_info.open_device(&api) {
                         Ok(dev) => {
                             self.device = Some(dev);
-                            println!("✓ Connected to Mikro MK3 LED interface");
+                            debug!("Successfully connected to Mikro MK3 LED interface");
                             return Ok(());
                         }
                         Err(e) => {
-                            eprintln!("Failed to open Mikro MK3: {}", e);
+                            error!("Failed to open Mikro MK3: {}", e);
                         }
                     }
                 }
@@ -162,9 +163,13 @@ impl MikroMK3LEDs {
         let offset = PAD_LED_OFFSET + led_position as usize;
         self.buffer[offset] = Self::encode_pad(color, brightness);
 
-        eprintln!(
-            "LED UPDATE: Pad {} → LED {} (buffer[{}]) = {:?} @ {:?}",
-            pad_index, led_position, offset, color, brightness
+        debug!(
+            pad = pad_index,
+            led = led_position,
+            offset = offset,
+            ?color,
+            ?brightness,
+            "LED update"
         );
 
         self.write_buffer()
@@ -194,19 +199,18 @@ impl MikroMK3LEDs {
         let mut data = vec![LED_REPORT_ID];
         data.extend_from_slice(&self.buffer);
 
-        eprintln!(
-            "LED UPDATE: Writing {} bytes (pads: {:02X?})",
-            data.len(),
-            &self.buffer[PAD_LED_OFFSET..PAD_LED_OFFSET + 16]
+        debug!(
+            bytes = data.len(),
+            "Writing LED buffer to device"
         );
 
         match device.write(&data) {
             Ok(bytes_written) => {
-                eprintln!("LED UPDATE: Successfully wrote {} bytes", bytes_written);
+                debug!(bytes_written, "Successfully wrote LED buffer");
                 Ok(())
             }
             Err(e) => {
-                eprintln!("LED ERROR: Failed to write: {}", e);
+                error!("Failed to write LED buffer: {}", e);
                 Err(e.into())
             }
         }

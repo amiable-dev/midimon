@@ -3,6 +3,7 @@
 
 use midir::{MidiOutput, MidiOutputConnection};
 use std::error::Error;
+use tracing::info;
 
 pub struct MidiFeedback {
     connection: Option<MidiOutputConnection>,
@@ -23,7 +24,7 @@ impl MidiFeedback {
 
         let port = &ports[port_index];
         let port_name = midi_out.port_name(port)?;
-        println!("Feedback connected to: {}", port_name);
+        info!("MIDI feedback connected to: {}", port_name);
 
         let conn = midi_out.connect(port, "feedback")?;
         self.connection = Some(conn);

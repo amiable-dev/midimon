@@ -43,6 +43,7 @@ midimon-core = { path = "../midimon-core" }
 colored.workspace = true
 chrono.workspace = true
 ctrlc.workspace = true
+clap.workspace = true
 
 # MIDI I/O and threading
 midir.workspace = true
