@@ -8,7 +8,7 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use midimon_daemon::{get_socket_path, IpcClient, IpcCommand};
+use midimon_daemon::{IpcClient, IpcCommand, get_socket_path};
 use serde_json::Value;
 use std::path::PathBuf;
 
@@ -156,13 +156,25 @@ async fn handle_status(client: &mut IpcClient, json: bool) -> Result<()> {
                     println!("Last Reload:     {} ms", last);
                 }
                 if let Some(avg) = reload_stats.get("avg_reload_ms").and_then(|v| v.as_u64()) {
-                    let grade = if avg < 20 { "A".green() } else if avg < 50 { "B".yellow() } else { "C".red() };
+                    let grade = if avg < 20 {
+                        "A".green()
+                    } else if avg < 50 {
+                        "B".yellow()
+                    } else {
+                        "C".red()
+                    };
                     println!("Average:         {} ms (grade: {})", avg, grade);
                 }
-                if let Some(fastest) = reload_stats.get("fastest_reload_ms").and_then(|v| v.as_u64()) {
+                if let Some(fastest) = reload_stats
+                    .get("fastest_reload_ms")
+                    .and_then(|v| v.as_u64())
+                {
                     println!("Fastest:         {} ms", fastest);
                 }
-                if let Some(slowest) = reload_stats.get("slowest_reload_ms").and_then(|v| v.as_u64()) {
+                if let Some(slowest) = reload_stats
+                    .get("slowest_reload_ms")
+                    .and_then(|v| v.as_u64())
+                {
                     println!("Slowest:         {} ms", slowest);
                 }
             }
@@ -190,7 +202,10 @@ async fn handle_reload(client: &mut IpcClient, json: bool) -> Result<()> {
         println!("{}", "✓ Configuration reloaded successfully".green());
 
         if let Some(duration) = data.get("reload_duration_ms").and_then(|v| v.as_u64()) {
-            let grade = data.get("performance_grade").and_then(|v| v.as_str()).unwrap_or("?");
+            let grade = data
+                .get("performance_grade")
+                .and_then(|v| v.as_str())
+                .unwrap_or("?");
             let grade_colored = match grade {
                 "A" => grade.green(),
                 "B" => grade.yellow(),
@@ -281,11 +296,18 @@ async fn handle_ping(client: &mut IpcClient, json: bool) -> Result<()> {
     if json {
         let mut resp_json = serde_json::to_value(&response)?;
         if let Some(obj) = resp_json.as_object_mut() {
-            obj.insert("latency_ms".to_string(), serde_json::json!(latency.as_millis()));
+            obj.insert(
+                "latency_ms".to_string(),
+                serde_json::json!(latency.as_millis()),
+            );
         }
         println!("{}", serde_json::to_string_pretty(&resp_json)?);
     } else {
-        println!("{} ({:.2} ms)", "✓ Daemon is responding".green(), latency.as_secs_f64() * 1000.0);
+        println!(
+            "{} ({:.2} ms)",
+            "✓ Daemon is responding".green(),
+            latency.as_secs_f64() * 1000.0
+        );
     }
 
     Ok(())

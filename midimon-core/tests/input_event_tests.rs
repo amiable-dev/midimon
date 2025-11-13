@@ -100,10 +100,7 @@ fn test_aftertouch_conversion() {
 #[test]
 fn test_pitch_bend_conversion() {
     let time = Instant::now();
-    let midi = MidiEvent::PitchBend {
-        value: 12000,
-        time,
-    };
+    let midi = MidiEvent::PitchBend { value: 12000, time };
 
     let input: InputEvent = midi.into();
 
@@ -196,10 +193,7 @@ fn test_pitch_bend_range_preservation() {
     }
 
     // Test center pitch bend (8192 = neutral)
-    let midi_center = MidiEvent::PitchBend {
-        value: 8192,
-        time,
-    };
+    let midi_center = MidiEvent::PitchBend { value: 8192, time };
     let input_center: InputEvent = midi_center.into();
     if let InputEvent::PitchBend { value, .. } = input_center {
         assert_eq!(value, 8192, "Center pitch bend should be preserved");
@@ -208,10 +202,7 @@ fn test_pitch_bend_range_preservation() {
     }
 
     // Test maximum pitch bend (16383 = full up)
-    let midi_max = MidiEvent::PitchBend {
-        value: 16383,
-        time,
-    };
+    let midi_max = MidiEvent::PitchBend { value: 16383, time };
     let input_max: InputEvent = midi_max.into();
     if let InputEvent::PitchBend { value, .. } = input_max {
         assert_eq!(value, 16383, "Maximum pitch bend should be preserved");
@@ -236,14 +227,8 @@ fn test_timestamp_accessor() {
             value: 64,
             time,
         },
-        InputEvent::Aftertouch {
-            pressure: 50,
-            time,
-        },
-        InputEvent::PitchBend {
-            value: 8192,
-            time,
-        },
+        InputEvent::Aftertouch { pressure: 50, time },
+        InputEvent::PitchBend { value: 8192, time },
         InputEvent::ProgramChange { program: 1, time },
         InputEvent::ControlChange {
             control: 7,
@@ -284,20 +269,8 @@ fn test_event_type_strings() {
             },
             "EncoderTurned",
         ),
-        (
-            InputEvent::Aftertouch {
-                pressure: 50,
-                time,
-            },
-            "Aftertouch",
-        ),
-        (
-            InputEvent::PitchBend {
-                value: 8192,
-                time,
-            },
-            "PitchBend",
-        ),
+        (InputEvent::Aftertouch { pressure: 50, time }, "Aftertouch"),
+        (InputEvent::PitchBend { value: 8192, time }, "PitchBend"),
         (
             InputEvent::ProgramChange { program: 1, time },
             "ProgramChange",
@@ -377,9 +350,7 @@ fn test_batch_conversion() {
 
     // Verify encoder event
     match &input_events[2] {
-        InputEvent::EncoderTurned {
-            encoder, value, ..
-        } => {
+        InputEvent::EncoderTurned { encoder, value, .. } => {
             assert_eq!(*encoder, 1);
             assert_eq!(*value, 64);
         }

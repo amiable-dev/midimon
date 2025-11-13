@@ -17,10 +17,10 @@
 //! - Median latency: <300μs
 //! - Worst case (with 50 mappings): <500μs
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use midimon_core::{
-    ActionConfig, Config, DeviceConfig, EventProcessor, MappingEngine, Mapping, MidiEvent,
-    Mode, Trigger, ActionExecutor,
+    ActionConfig, ActionExecutor, Config, DeviceConfig, EventProcessor, Mapping, MappingEngine,
+    MidiEvent, Mode, Trigger,
 };
 use std::time::Instant;
 
@@ -255,22 +255,18 @@ fn bench_velocity_sensitive_processing(c: &mut Criterion) {
         let mut engine = MappingEngine::new();
         engine.load_from_config(&config);
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(label),
-            velocity,
-            |b, &vel| {
-                b.iter(|| {
-                    let midi_event = black_box(MidiEvent::NoteOn {
-                        note: 36,
-                        velocity: vel,
-                        time: black_box(now),
-                    });
+        group.bench_with_input(BenchmarkId::from_parameter(label), velocity, |b, &vel| {
+            b.iter(|| {
+                let midi_event = black_box(MidiEvent::NoteOn {
+                    note: 36,
+                    velocity: vel,
+                    time: black_box(now),
+                });
 
-                    let _processed = processor.process(midi_event.clone());
-                    let _action = engine.get_action(&midi_event, 0);
-                })
-            },
-        );
+                let _processed = processor.process(midi_event.clone());
+                let _action = engine.get_action(&midi_event, 0);
+            })
+        });
     }
 
     group.finish();

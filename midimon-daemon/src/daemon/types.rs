@@ -251,9 +251,9 @@ impl ReloadMetrics {
     /// Get performance grade (A/B/C/D/F)
     pub fn performance_grade(&self) -> char {
         match self.duration_ms {
-            0..=20 => 'A',   // Excellent
-            21..=50 => 'B',  // Good (target)
-            51..=100 => 'C', // Acceptable
+            0..=20 => 'A',    // Excellent
+            21..=50 => 'B',   // Good (target)
+            51..=100 => 'C',  // Acceptable
             101..=200 => 'D', // Poor
             _ => 'F',         // Unacceptable
         }

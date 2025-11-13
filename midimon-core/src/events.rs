@@ -163,10 +163,9 @@ impl From<MidiEvent> for InputEvent {
             },
             MidiEvent::Aftertouch { pressure, time } => InputEvent::Aftertouch { pressure, time },
             MidiEvent::PitchBend { value, time } => InputEvent::PitchBend { value, time },
-            MidiEvent::ProgramChange { program, time } => InputEvent::ProgramChange {
-                program,
-                time,
-            },
+            MidiEvent::ProgramChange { program, time } => {
+                InputEvent::ProgramChange { program, time }
+            }
         }
     }
 }

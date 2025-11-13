@@ -11,9 +11,9 @@
 //! - Global + mode-specific search: <400μs
 //! - Large mapping set (50+ mappings): <500μs
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use midimon_core::{
-    Config, MappingEngine, MidiEvent, Trigger, ActionConfig, Mapping, Mode, DeviceConfig,
+    ActionConfig, Config, DeviceConfig, Mapping, MappingEngine, MidiEvent, Mode, Trigger,
 };
 use std::time::Instant;
 

@@ -14,11 +14,11 @@ pub mod types;
 pub use config_watcher::ConfigWatcher;
 pub use engine_manager::EngineManager;
 pub use error::{DaemonError, IpcErrorCode, Result};
-pub use ipc::{create_success_response, IpcClient, IpcServer};
-pub use service::{run_daemon, run_daemon_with_config, DaemonService};
+pub use ipc::{IpcClient, IpcServer, create_success_response};
+pub use service::{DaemonService, run_daemon, run_daemon_with_config};
 pub use state::{
-    calculate_checksum, get_socket_path, get_state_dir, ConfigInfo, DaemonInfo, EngineInfo,
-    PersistedState, StateManager,
+    ConfigInfo, DaemonInfo, EngineInfo, PersistedState, StateManager, calculate_checksum,
+    get_socket_path, get_state_dir,
 };
 pub use types::{
     DaemonCommand, DaemonStatistics, DeviceStatus, ErrorDetails, ErrorEntry, IpcCommand,

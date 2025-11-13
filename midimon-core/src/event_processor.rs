@@ -264,24 +264,13 @@ impl EventProcessor {
                     VelocityLevel::Medium => "MED",
                     VelocityLevel::Hard => "HARD",
                 };
-                debug!(
-                    mode,
-                    note,
-                    velocity,
-                    level = level_str,
-                    "Pad pressed"
-                );
+                debug!(mode, note, velocity, level = level_str, "Pad pressed");
             }
             ProcessedEvent::PadReleased {
                 note,
                 hold_duration_ms,
             } => {
-                debug!(
-                    mode,
-                    note,
-                    hold_duration_ms,
-                    "Pad released"
-                );
+                debug!(mode, note, hold_duration_ms, "Pad released");
             }
             ProcessedEvent::ShortPress { note } => {
                 debug!(mode, note, "Short tap detected");

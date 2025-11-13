@@ -12,7 +12,7 @@
 //! - Chord detection: <300μs
 //! - Double-tap detection: <150μs
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use midimon_core::{EventProcessor, MidiEvent};
 use std::time::Instant;
 
@@ -66,20 +66,16 @@ fn bench_velocity_detection(c: &mut Criterion) {
 
     for (velocity, label) in &[(20u8, "soft"), (60u8, "medium"), (100u8, "hard")] {
         let mut processor = EventProcessor::new();
-        group.bench_with_input(
-            BenchmarkId::from_parameter(label),
-            velocity,
-            |b, &vel| {
-                b.iter(|| {
-                    let event = black_box(MidiEvent::NoteOn {
-                        note: 36,
-                        velocity: vel,
-                        time: black_box(now),
-                    });
-                    processor.process(event)
-                })
-            },
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(label), velocity, |b, &vel| {
+            b.iter(|| {
+                let event = black_box(MidiEvent::NoteOn {
+                    note: 36,
+                    velocity: vel,
+                    time: black_box(now),
+                });
+                processor.process(event)
+            })
+        });
     }
     group.finish();
 }

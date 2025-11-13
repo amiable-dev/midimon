@@ -5,9 +5,9 @@
 
 use crate::daemon::error::{DaemonError, Result};
 use crate::daemon::types::DaemonCommand;
-use notify::event::{ModifyKind, EventKind};
+use notify::event::{EventKind, ModifyKind};
 use notify::{Event, RecommendedWatcher, RecursiveMode};
-use notify_debouncer_full::{new_debouncer, DebounceEventResult, Debouncer, FileIdMap};
+use notify_debouncer_full::{DebounceEventResult, Debouncer, FileIdMap, new_debouncer};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tokio::sync::{broadcast, mpsc};
@@ -60,7 +60,8 @@ impl ConfigWatcher {
                     }
                 }
             },
-        ).map_err(|e| DaemonError::FileWatcher(format!("Failed to create debouncer: {}", e)))?;
+        )
+        .map_err(|e| DaemonError::FileWatcher(format!("Failed to create debouncer: {}", e)))?;
 
         Ok(Self {
             config_path,
@@ -74,7 +75,8 @@ impl ConfigWatcher {
     /// Start watching the config file
     pub async fn watch(&mut self) -> Result<()> {
         // Get the parent directory to watch (watching the file directly may not work on all systems)
-        let watch_path = self.config_path
+        let watch_path = self
+            .config_path
             .parent()
             .ok_or_else(|| DaemonError::FileWatcher("No parent directory".to_string()))?;
 
@@ -85,7 +87,9 @@ impl ConfigWatcher {
         if let Some(ref mut debouncer) = self.debouncer {
             debouncer
                 .watch(watch_path, RecursiveMode::NonRecursive)
-                .map_err(|e| DaemonError::FileWatcher(format!("Failed to watch directory: {}", e)))?;
+                .map_err(|e| {
+                    DaemonError::FileWatcher(format!("Failed to watch directory: {}", e))
+                })?;
         }
 
         // Event loop
@@ -135,8 +139,7 @@ impl Drop for ConfigWatcher {
 fn should_reload(event: &Event, config_path: &Path) -> bool {
     // Check if the event is a modification
     match event.kind {
-        EventKind::Modify(ModifyKind::Data(_)) |
-        EventKind::Modify(ModifyKind::Any) => {
+        EventKind::Modify(ModifyKind::Data(_)) | EventKind::Modify(ModifyKind::Any) => {
             // Check if the event is for our config file
             event.paths.iter().any(|p| p == config_path)
         }
@@ -201,10 +204,7 @@ mod tests {
         }
 
         // Wait for debounce + processing (longer timeout for CI)
-        let result = tokio::time::timeout(
-            Duration::from_secs(3),
-            cmd_rx.recv()
-        ).await;
+        let result = tokio::time::timeout(Duration::from_secs(3), cmd_rx.recv()).await;
 
         // Should receive a config changed command
         assert!(result.is_ok(), "Timeout waiting for config change event");

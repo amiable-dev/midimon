@@ -205,10 +205,7 @@ impl MikroMK3LEDs {
         let mut data = vec![LED_REPORT_ID];
         data.extend_from_slice(&self.buffer);
 
-        debug!(
-            bytes = data.len(),
-            "Writing LED buffer to device"
-        );
+        debug!(bytes = data.len(), "Writing LED buffer to device");
 
         match device.write(&data) {
             Ok(bytes_written) => {

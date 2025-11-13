@@ -46,9 +46,18 @@ color = "blue"
 
             // Vary the trigger types for realistic scenarios
             let trigger_type = match mapping_idx % 4 {
-                0 => format!(r#"{{ type = "Note", note = {}, velocity_min = 0, velocity_max = 127 }}"#, note),
-                1 => format!(r#"{{ type = "VelocityRange", note = {}, velocity_ranges = [{{level = "Soft", action_index = 0}}, {{level = "Hard", action_index = 1}}] }}"#, note),
-                2 => format!(r#"{{ type = "LongPress", note = {}, duration_ms = 2000 }}"#, note),
+                0 => format!(
+                    r#"{{ type = "Note", note = {}, velocity_min = 0, velocity_max = 127 }}"#,
+                    note
+                ),
+                1 => format!(
+                    r#"{{ type = "VelocityRange", note = {}, velocity_ranges = [{{level = "Soft", action_index = 0}}, {{level = "Hard", action_index = 1}}] }}"#,
+                    note
+                ),
+                2 => format!(
+                    r#"{{ type = "LongPress", note = {}, duration_ms = 2000 }}"#,
+                    note
+                ),
                 _ => format!(r#"{{ type = "EncoderTurn", cc = 1, direction = "Clockwise" }}"#),
             };
 
@@ -119,8 +128,10 @@ fn main() {
     println!("  1. Config Load   - Parse TOML file");
     println!("  2. Engine Compile - Build mapping engine");
     println!("  3. Swap          - Atomic data swap (measured in production)\n");
-    println!("\n{:<40} {:>8} {:>10} {:>10} {:>6} {:>6}",
-             "Test Case", "Total", "Load", "Compile", "Grade", "Status");
+    println!(
+        "\n{:<40} {:>8} {:>10} {:>10} {:>6} {:>6}",
+        "Test Case", "Total", "Load", "Compile", "Grade", "Status"
+    );
     println!("{}", "─".repeat(86));
 
     let test_cases = vec![
@@ -147,7 +158,11 @@ fn main() {
             'F'
         };
 
-        let status = if avg_total < 50 { "✓ PASS" } else { "✗ FAIL" };
+        let status = if avg_total < 50 {
+            "✓ PASS"
+        } else {
+            "✗ FAIL"
+        };
 
         println!(
             "{:<40} {:>6} ms {:>8} ms {:>8} ms {:>6} {:>6}",

@@ -94,9 +94,9 @@ pub mod feedback;
 pub mod mapping; // Public for advanced event processing
 
 // Private modules (implementation details)
+pub mod logging;
 mod midi_feedback;
-pub mod mikro_leds;
-pub mod logging; // Structured logging with tracing
+pub mod mikro_leds; // Structured logging with tracing
 
 // Re-exports for convenience
 
@@ -104,7 +104,7 @@ pub mod logging; // Structured logging with tracing
 pub use engine::MidiMonEngine;
 
 // Configuration
-pub use config::{ActionConfig, Config, DeviceConfig, Mapping, Mode, Trigger, LoggingConfig};
+pub use config::{ActionConfig, Config, DeviceConfig, LoggingConfig, Mapping, Mode, Trigger};
 
 // Events
 pub use event_processor::EventProcessor;

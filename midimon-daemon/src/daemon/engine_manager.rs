@@ -5,7 +5,7 @@
 
 use crate::daemon::error::{DaemonError, IpcErrorCode, Result};
 use crate::daemon::ipc::create_success_response;
-use crate::daemon::state::{calculate_checksum, ConfigInfo, EngineInfo};
+use crate::daemon::state::{ConfigInfo, EngineInfo, calculate_checksum};
 use crate::daemon::types::{
     DaemonCommand, DaemonStatistics, DeviceStatus, ErrorDetails, ErrorEntry, IpcCommand,
     IpcResponse, LifecycleState, ReloadMetrics, ResponseStatus,
@@ -15,7 +15,7 @@ use serde_json::json;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
-use tokio::sync::{broadcast, mpsc, Mutex, RwLock};
+use tokio::sync::{Mutex, RwLock, broadcast, mpsc};
 use tracing::{debug, error, info, warn};
 
 /// Engine manager coordinating MIDIMon engine with daemon lifecycle
@@ -28,7 +28,8 @@ pub struct EngineManager {
     #[allow(dead_code)] // Reserved for future direct event processing integration
     event_processor: Arc<RwLock<EventProcessor>>,
     mapping_engine: Arc<RwLock<MappingEngine>>,
-    #[allow(dead_code)] // Reserved for future direct action execution integration (uses Mutex as ActionExecutor is not Sync)
+    #[allow(dead_code)]
+    // Reserved for future direct action execution integration (uses Mutex as ActionExecutor is not Sync)
     action_executor: Arc<Mutex<ActionExecutor>>,
 
     /// Lifecycle state
@@ -108,8 +109,7 @@ impl EngineManager {
                     info!("Config file changed: {:?}", path);
                     if let Err(e) = self.reload_config().await {
                         error!("Config reload failed: {}", e);
-                        self.log_error("ConfigReloadFailed", e.to_string())
-                            .await;
+                        self.log_error("ConfigReloadFailed", e.to_string()).await;
                     }
                 }
 
@@ -125,8 +125,12 @@ impl EngineManager {
                     info!("Device reconnected");
                     self.transition_state(LifecycleState::Running).await?;
                     // TODO: Update device status with actual device info
-                    self.update_device_status(true, Some("Maschine Mikro MK3".to_string()), Some(0))
-                        .await;
+                    self.update_device_status(
+                        true,
+                        Some("Maschine Mikro MK3".to_string()),
+                        Some(0),
+                    )
+                    .await;
                 }
 
                 DaemonCommand::DeviceReconnectionFailed => {
@@ -269,12 +273,9 @@ impl EngineManager {
 
                 match Config::load(path.to_str().unwrap_or("")) {
                     Ok(config) => {
-                        let total_mappings: usize = config
-                            .modes
-                            .iter()
-                            .map(|m| m.mappings.len())
-                            .sum::<usize>()
-                            + config.global_mappings.len();
+                        let total_mappings: usize =
+                            config.modes.iter().map(|m| m.mappings.len()).sum::<usize>()
+                                + config.global_mappings.len();
 
                         create_success_response(
                             &id,
@@ -498,12 +499,8 @@ mod tests {
         let (_cmd_tx, cmd_rx) = mpsc::channel(10);
         let (shutdown_tx, _shutdown_rx) = broadcast::channel(1);
 
-        let manager = EngineManager::new(
-            config,
-            PathBuf::from("/tmp/test.toml"),
-            cmd_rx,
-            shutdown_tx,
-        );
+        let manager =
+            EngineManager::new(config, PathBuf::from("/tmp/test.toml"), cmd_rx, shutdown_tx);
 
         assert!(manager.is_ok());
     }
@@ -514,13 +511,9 @@ mod tests {
         let (_cmd_tx, cmd_rx) = mpsc::channel(10);
         let (shutdown_tx, _shutdown_rx) = broadcast::channel(1);
 
-        let manager = EngineManager::new(
-            config,
-            PathBuf::from("/tmp/test.toml"),
-            cmd_rx,
-            shutdown_tx,
-        )
-        .unwrap();
+        let manager =
+            EngineManager::new(config, PathBuf::from("/tmp/test.toml"), cmd_rx, shutdown_tx)
+                .unwrap();
 
         // Initial state should be Init
         let state = manager.get_state().await;
@@ -540,13 +533,9 @@ mod tests {
         let (_cmd_tx, cmd_rx) = mpsc::channel(10);
         let (shutdown_tx, _shutdown_rx) = broadcast::channel(1);
 
-        let manager = EngineManager::new(
-            config,
-            PathBuf::from("/tmp/test.toml"),
-            cmd_rx,
-            shutdown_tx,
-        )
-        .unwrap();
+        let manager =
+            EngineManager::new(config, PathBuf::from("/tmp/test.toml"), cmd_rx, shutdown_tx)
+                .unwrap();
 
         // Invalid transition: Init -> Running (must go through Starting)
         let result = manager.transition_state(LifecycleState::Running).await;
@@ -559,17 +548,11 @@ mod tests {
         let (_cmd_tx, cmd_rx) = mpsc::channel(10);
         let (shutdown_tx, _shutdown_rx) = broadcast::channel(1);
 
-        let manager = EngineManager::new(
-            config,
-            PathBuf::from("/tmp/test.toml"),
-            cmd_rx,
-            shutdown_tx,
-        )
-        .unwrap();
+        let manager =
+            EngineManager::new(config, PathBuf::from("/tmp/test.toml"), cmd_rx, shutdown_tx)
+                .unwrap();
 
-        manager
-            .log_error("TestError", "This is a test error")
-            .await;
+        manager.log_error("TestError", "This is a test error").await;
 
         let errors = manager.get_recent_errors().await;
         assert_eq!(errors.len(), 1);
@@ -583,13 +566,9 @@ mod tests {
         let (_cmd_tx, cmd_rx) = mpsc::channel(10);
         let (shutdown_tx, _shutdown_rx) = broadcast::channel(1);
 
-        let manager = EngineManager::new(
-            config,
-            PathBuf::from("/tmp/test.toml"),
-            cmd_rx,
-            shutdown_tx,
-        )
-        .unwrap();
+        let manager =
+            EngineManager::new(config, PathBuf::from("/tmp/test.toml"), cmd_rx, shutdown_tx)
+                .unwrap();
 
         // Wait a bit to accumulate uptime
         tokio::time::sleep(Duration::from_millis(100)).await;

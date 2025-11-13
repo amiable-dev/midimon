@@ -7,7 +7,7 @@ use crate::daemon::config_watcher::ConfigWatcher;
 use crate::daemon::engine_manager::EngineManager;
 use crate::daemon::error::{DaemonError, Result};
 use crate::daemon::ipc::IpcServer;
-use crate::daemon::state::{get_state_dir, DaemonInfo, PersistedState, StateManager};
+use crate::daemon::state::{DaemonInfo, PersistedState, StateManager, get_state_dir};
 use crate::daemon::types::DaemonCommand;
 use midimon_core::Config;
 use std::path::PathBuf;
@@ -139,14 +139,14 @@ impl DaemonService {
     async fn signal_handler(command_tx: mpsc::Sender<DaemonCommand>) {
         #[cfg(unix)]
         {
-            use tokio::signal::unix::{signal, SignalKind};
+            use tokio::signal::unix::{SignalKind, signal};
 
-            let mut sigterm = signal(SignalKind::terminate())
-                .expect("Failed to install SIGTERM handler");
-            let mut sigint = signal(SignalKind::interrupt())
-                .expect("Failed to install SIGINT handler");
-            let mut sighup = signal(SignalKind::hangup())
-                .expect("Failed to install SIGHUP handler");
+            let mut sigterm =
+                signal(SignalKind::terminate()).expect("Failed to install SIGTERM handler");
+            let mut sigint =
+                signal(SignalKind::interrupt()).expect("Failed to install SIGINT handler");
+            let mut sighup =
+                signal(SignalKind::hangup()).expect("Failed to install SIGHUP handler");
 
             tokio::select! {
                 _ = sigterm.recv() => {
@@ -204,7 +204,13 @@ impl DaemonService {
         let statistics = engine_manager.get_statistics().await;
         let last_errors = engine_manager.get_recent_errors().await;
 
-        let state = PersistedState::new(daemon_info, config_info, engine_info, statistics, last_errors);
+        let state = PersistedState::new(
+            daemon_info,
+            config_info,
+            engine_info,
+            statistics,
+            last_errors,
+        );
 
         state_manager.save(state).await
     }
@@ -264,7 +270,9 @@ mod tests {
         let config_path = temp_dir.path().join("config.toml");
 
         // Create a minimal config file
-        std::fs::write(&config_path, r#"
+        std::fs::write(
+            &config_path,
+            r#"
             [device]
             name = "Test"
             auto_connect = true
@@ -272,7 +280,9 @@ mod tests {
             [[modes]]
             name = "Default"
             color = "blue"
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
 
         let result = DaemonService::new(config_path);
         assert!(result.is_ok());
@@ -283,7 +293,9 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let config_path = temp_dir.path().join("config.toml");
 
-        std::fs::write(&config_path, r#"
+        std::fs::write(
+            &config_path,
+            r#"
             [device]
             name = "Test"
             auto_connect = true
@@ -291,7 +303,9 @@ mod tests {
             [[modes]]
             name = "Default"
             color = "blue"
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
 
         let daemon = DaemonService::new(config_path).unwrap();
         let state_manager = daemon.state_manager();
@@ -306,7 +320,9 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let config_path = temp_dir.path().join("config.toml");
 
-        std::fs::write(&config_path, r#"
+        std::fs::write(
+            &config_path,
+            r#"
             [device]
             name = "Test"
             auto_connect = true
@@ -314,7 +330,9 @@ mod tests {
             [[modes]]
             name = "Default"
             color = "blue"
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
 
         let daemon = DaemonService::new(config_path).unwrap();
         let _sender = daemon.command_sender();

@@ -365,11 +365,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Display LED scheme if specified
     if let Some(led) = args.led {
-        println!(
-            "{} {:?}",
-            "LED scheme:".cyan(),
-            led
-        );
+        println!("{} {:?}", "LED scheme:".cyan(), led);
         // Note: LED scheme integration would go here
         // This would require passing the scheme to the feedback system
     }
@@ -382,11 +378,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             profile.display().to_string().yellow()
         );
         if let Some(ref page) = args.pad_page {
-            println!(
-                "{} {}",
-                "Pad page:".cyan(),
-                page.yellow()
-            );
+            println!("{} {}", "Pad page:".cyan(), page.yellow());
         }
         // Note: Profile loading would go here
         // This would require integrating with the device profile system

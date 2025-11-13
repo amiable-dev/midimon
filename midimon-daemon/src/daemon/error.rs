@@ -29,10 +29,7 @@ pub enum DaemonError {
     MenuBar(String),
 
     #[error("Invalid state transition: {from:?} → {to:?}")]
-    InvalidStateTransition {
-        from: String,
-        to: String,
-    },
+    InvalidStateTransition { from: String, to: String },
 
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),

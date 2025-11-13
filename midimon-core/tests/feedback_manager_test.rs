@@ -46,7 +46,11 @@ impl PadFeedback for MockFeedback {
         Ok(())
     }
 
-    fn set_pad_color(&mut self, pad: u8, color: midimon_core::mikro_leds::RGB) -> Result<(), Box<dyn Error>> {
+    fn set_pad_color(
+        &mut self,
+        pad: u8,
+        color: midimon_core::mikro_leds::RGB,
+    ) -> Result<(), Box<dyn Error>> {
         self.state
             .lock()
             .unwrap()
@@ -78,11 +82,20 @@ impl PadFeedback for MockFeedback {
         Ok(())
     }
 
-    fn flash_pad(&mut self, _pad: u8, _color: midimon_core::mikro_leds::RGB, _duration_ms: u64) -> Result<(), Box<dyn Error>> {
+    fn flash_pad(
+        &mut self,
+        _pad: u8,
+        _color: midimon_core::mikro_leds::RGB,
+        _duration_ms: u64,
+    ) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 
-    fn ripple_effect(&mut self, _start_pad: u8, _color: midimon_core::mikro_leds::RGB) -> Result<(), Box<dyn Error>> {
+    fn ripple_effect(
+        &mut self,
+        _start_pad: u8,
+        _color: midimon_core::mikro_leds::RGB,
+    ) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 
@@ -91,7 +104,11 @@ impl PadFeedback for MockFeedback {
         Ok(())
     }
 
-    fn show_long_press_feedback(&mut self, pad: u8, _elapsed_ms: u128) -> Result<(), Box<dyn Error>> {
+    fn show_long_press_feedback(
+        &mut self,
+        pad: u8,
+        _elapsed_ms: u128,
+    ) -> Result<(), Box<dyn Error>> {
         self.state.lock().unwrap().long_press_pads.push(pad);
         Ok(())
     }
@@ -142,11 +159,7 @@ fn test_feedback_manager_on_mode_change() {
     let mock_state = mock.state.clone();
     let mut manager = FeedbackManager::new(Box::new(mock));
 
-    let color = midimon_core::mikro_leds::RGB {
-        r: 255,
-        g: 0,
-        b: 0,
-    };
+    let color = midimon_core::mikro_leds::RGB { r: 255, g: 0, b: 0 };
     manager.on_mode_change(2, color).unwrap();
 
     assert_eq!(manager.current_mode(), 2);
@@ -272,7 +285,7 @@ fn test_feedback_manager_multiple_pads_different_velocities() {
     let mut manager = FeedbackManager::new(Box::new(mock));
 
     // Press multiple pads with different velocities
-    manager.on_pad_press(0, 50).unwrap();  // Soft
+    manager.on_pad_press(0, 50).unwrap(); // Soft
     manager.on_pad_press(1, 100).unwrap(); // Medium
     manager.on_pad_press(2, 127).unwrap(); // Hard
 
@@ -320,11 +333,7 @@ fn test_feedback_manager_sequential_operations() {
     // Create a sequence of operations
     assert_eq!(manager.current_mode(), 0);
 
-    let color = midimon_core::mikro_leds::RGB {
-        r: 0,
-        g: 255,
-        b: 0,
-    };
+    let color = midimon_core::mikro_leds::RGB { r: 0, g: 255, b: 0 };
     manager.on_mode_change(1, color).unwrap();
     assert_eq!(manager.current_mode(), 1);
 

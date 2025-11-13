@@ -13,7 +13,9 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use tracing_appender::rolling;
-use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, fmt::writer::BoxMakeWriter};
+use tracing_subscriber::{
+    EnvFilter, fmt, fmt::writer::BoxMakeWriter, layer::SubscriberExt, util::SubscriberInitExt,
+};
 
 /// Logging configuration
 ///
@@ -215,10 +217,7 @@ pub fn init_logging(config: &LoggingConfig) -> Result<(), Box<dyn std::error::Er
         // Console only
         match config.format.as_str() {
             "json" => {
-                let console_layer = fmt::layer()
-                    .json()
-                    .with_target(true)
-                    .with_thread_ids(true);
+                let console_layer = fmt::layer().json().with_target(true).with_thread_ids(true);
 
                 tracing_subscriber::registry()
                     .with(filter)
@@ -261,8 +260,7 @@ fn build_env_filter(default_level: &str) -> Result<EnvFilter, Box<dyn std::error
         (None, false) => default_level.to_string(),
     };
 
-    Ok(EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new(&filter_str))?)
+    Ok(EnvFilter::try_from_default_env().or_else(|_| EnvFilter::try_new(&filter_str))?)
 }
 
 #[cfg(test)]

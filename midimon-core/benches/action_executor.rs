@@ -16,9 +16,9 @@
 //! - Delay action: <100μs (excluding the actual delay)
 //! - Shell command launch: <1ms (OS dependent)
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-use midimon_core::actions::{Action, ActionExecutor};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use enigo::Key;
+use midimon_core::actions::{Action, ActionExecutor};
 
 /// Benchmark simple keystroke action execution
 /// Tests pressing a single key without modifiers.
@@ -75,7 +75,10 @@ fn bench_text_action(c: &mut Criterion) {
     let test_cases = vec![
         ("single_char", "a"),
         ("short_word", "hello"),
-        ("long_sentence", "The quick brown fox jumps over the lazy dog"),
+        (
+            "long_sentence",
+            "The quick brown fox jumps over the lazy dog",
+        ),
     ];
 
     for (label, text) in test_cases {

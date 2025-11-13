@@ -5,9 +5,7 @@
 
 use crate::daemon::error::{DaemonError, IpcErrorCode, Result};
 use crate::daemon::state::get_socket_path;
-use crate::daemon::types::{
-    DaemonCommand, ErrorDetails, IpcRequest, IpcResponse, ResponseStatus,
-};
+use crate::daemon::types::{DaemonCommand, ErrorDetails, IpcRequest, IpcResponse, ResponseStatus};
 use serde_json::json;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{UnixListener, UnixStream};
@@ -106,10 +104,7 @@ impl IpcServer {
 }
 
 /// Handle a single client connection
-async fn handle_client(
-    stream: UnixStream,
-    command_tx: mpsc::Sender<DaemonCommand>,
-) -> Result<()> {
+async fn handle_client(stream: UnixStream, command_tx: mpsc::Sender<DaemonCommand>) -> Result<()> {
     let (reader, writer) = stream.into_split();
     let mut reader = BufReader::new(reader);
     let mut writer = writer;
@@ -148,26 +143,22 @@ async fn handle_client(
             .map_err(|_| DaemonError::ChannelSend)?;
 
         // Wait for response with timeout
-        let response = match tokio::time::timeout(
-            std::time::Duration::from_secs(10),
-            response_rx,
-        )
-        .await
-        {
-            Ok(Ok(resp)) => resp,
-            Ok(Err(_)) => create_error_response(
-                "unknown",
-                IpcErrorCode::InternalError,
-                "Response channel closed".to_string(),
-                None,
-            ),
-            Err(_) => create_error_response(
-                "unknown",
-                IpcErrorCode::Timeout,
-                "Request timed out".to_string(),
-                None,
-            ),
-        };
+        let response =
+            match tokio::time::timeout(std::time::Duration::from_secs(10), response_rx).await {
+                Ok(Ok(resp)) => resp,
+                Ok(Err(_)) => create_error_response(
+                    "unknown",
+                    IpcErrorCode::InternalError,
+                    "Response channel closed".to_string(),
+                    None,
+                ),
+                Err(_) => create_error_response(
+                    "unknown",
+                    IpcErrorCode::Timeout,
+                    "Request timed out".to_string(),
+                    None,
+                ),
+            };
 
         // Send response
         send_response(&mut writer, &response).await?;
@@ -216,10 +207,7 @@ fn create_error_response(
 }
 
 /// Create a success response
-pub fn create_success_response(
-    id: &str,
-    data: Option<serde_json::Value>,
-) -> IpcResponse {
+pub fn create_success_response(id: &str, data: Option<serde_json::Value>) -> IpcResponse {
     IpcResponse {
         id: id.to_string(),
         status: ResponseStatus::Success,

@@ -228,7 +228,9 @@ fn validate_trigger(trigger: &Trigger) -> Result<(), ConfigError> {
                 )));
             }
             if let Some(dir) = direction
-                && dir != "Clockwise" && dir != "CounterClockwise" {
+                && dir != "Clockwise"
+                && dir != "CounterClockwise"
+            {
                 return Err(ConfigError::InvalidTrigger(format!(
                     "Invalid direction: '{}' (must be 'Clockwise' or 'CounterClockwise')",
                     dir
@@ -258,7 +260,9 @@ fn validate_action(action: &ActionConfig) -> Result<(), ConfigError> {
     match action {
         ActionConfig::Keystroke { keys, modifiers } => {
             if keys.is_empty() {
-                return Err(ConfigError::InvalidAction("Keystroke requires keys".to_string()));
+                return Err(ConfigError::InvalidAction(
+                    "Keystroke requires keys".to_string(),
+                ));
             }
             // Validate modifiers are known
             let valid_modifiers = ["cmd", "shift", "alt", "ctrl", "fn"];
@@ -274,7 +278,9 @@ fn validate_action(action: &ActionConfig) -> Result<(), ConfigError> {
         }
         ActionConfig::Text { text } => {
             if text.is_empty() {
-                return Err(ConfigError::InvalidAction("Text action requires text".to_string()));
+                return Err(ConfigError::InvalidAction(
+                    "Text action requires text".to_string(),
+                ));
             }
         }
         ActionConfig::Launch { app } => {
@@ -303,7 +309,9 @@ fn validate_action(action: &ActionConfig) -> Result<(), ConfigError> {
         }
         ActionConfig::Delay { ms } => {
             if *ms == 0 {
-                return Err(ConfigError::InvalidAction("Delay must be > 0 ms".to_string()));
+                return Err(ConfigError::InvalidAction(
+                    "Delay must be > 0 ms".to_string(),
+                ));
             }
         }
         ActionConfig::MouseClick { button, .. } => {
@@ -384,10 +392,12 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Duplicate mode name"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Duplicate mode name")
+        );
     }
 
     #[test]
@@ -426,7 +436,12 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Invalid direction"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid direction")
+        );
     }
 
     #[test]
