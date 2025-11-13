@@ -22,9 +22,31 @@ crossbeam-channel.workspace = true
 thiserror.workspace = true
 rand.workspace = true
 
+# Structured logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+tracing-appender = "0.2"
+
 [dev-dependencies]
 proptest.workspace = true
 rstest.workspace = true
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "event_processing"
+harness = false
+
+[[bench]]
+name = "mapping_engine"
+harness = false
+
+[[bench]]
+name = "action_executor"
+harness = false
+
+[[bench]]
+name = "end_to_end"
+harness = false
 
 [features]
 default = []

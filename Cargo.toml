@@ -52,6 +52,7 @@ enigo = "0.6"
 colored = "3.0"
 chrono = "0.4"
 ctrlc = "3.4"
+clap = { version = "4.5", features = ["derive", "cargo"] }
 
 # Testing
 proptest = "1.5"

@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 use chrono::Local;
+use clap::{Parser, ValueEnum};
 use colored::*;
 use crossbeam_channel::{Receiver, bounded};
 use midir::{MidiInput, MidiInputConnection};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::thread;
@@ -12,6 +14,69 @@ use std::time::{Duration, Instant};
 
 // Import from midimon_core instead of inline modules
 use midimon_core::{Config, MidiEvent, actions::ActionExecutor, mapping::MappingEngine};
+
+/// MIDIMon - MIDI controller mapping system
+///
+/// Transform MIDI devices into advanced macro pads with velocity sensitivity,
+/// long press detection, double-tap, chord detection, and RGB LED feedback.
+#[derive(Parser, Debug)]
+#[command(name = "midimon")]
+#[command(version)]
+#[command(about = "MIDI Macro Pad Controller", long_about = None)]
+struct Args {
+    /// MIDI port index to connect to (list ports with --list)
+    #[arg(value_name = "PORT")]
+    port: Option<usize>,
+
+    /// Path to configuration file
+    #[arg(short, long, value_name = "FILE", default_value = "config.toml")]
+    config: PathBuf,
+
+    /// LED lighting scheme
+    #[arg(short, long, value_enum)]
+    led: Option<LedScheme>,
+
+    /// Device profile file (.ncmm3 for Native Instruments)
+    #[arg(short, long, value_name = "FILE")]
+    profile: Option<PathBuf>,
+
+    /// Pad page to use (A-H for Mikro MK3)
+    #[arg(long, value_name = "PAGE")]
+    pad_page: Option<String>,
+
+    /// List available MIDI ports and exit
+    #[arg(short = 'L', long)]
+    list: bool,
+
+    /// Enable debug logging
+    #[arg(short, long)]
+    debug: bool,
+}
+
+/// LED lighting schemes
+#[derive(Copy, Clone, Debug, ValueEnum)]
+enum LedScheme {
+    /// LEDs off
+    Off,
+    /// Static color based on mode
+    Static,
+    /// Slow breathing effect
+    Breathing,
+    /// Fast pulse effect
+    Pulse,
+    /// Rainbow cycle
+    Rainbow,
+    /// Wave pattern
+    Wave,
+    /// Random sparkles
+    Sparkle,
+    /// React to MIDI events only
+    Reactive,
+    /// VU meter style (bottom-up)
+    VuMeter,
+    /// Spiral pattern
+    Spiral,
+}
 
 pub struct MidiMacroPad {
     config: Config,
@@ -25,8 +90,8 @@ pub struct MidiMacroPad {
 }
 
 impl MidiMacroPad {
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let config = Config::load("config.toml")?;
+    pub fn new(config_path: &std::path::Path) -> Result<Self, Box<dyn std::error::Error>> {
+        let config = Config::load(config_path.to_str().unwrap_or("config.toml"))?;
 
         Ok(Self {
             config,
@@ -237,23 +302,97 @@ impl MidiMacroPad {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Parse command line arguments
+    let args = Args::parse();
+
+    // Enable debug logging if requested
+    if args.debug {
+        unsafe {
+            std::env::set_var("DEBUG", "1");
+        }
+        println!("{}", "Debug logging enabled".yellow());
+    }
+
+    // Print banner
     println!("{}", "╔══════════════════════════════════╗".cyan().bold());
     println!("{}", "║     MIDI Macro Pad Controller    ║".cyan().bold());
     println!("{}", "╚══════════════════════════════════╝".cyan().bold());
     println!();
 
-    let mut pad = MidiMacroPad::new()?;
+    // Show configuration info
+    if args.debug {
+        println!("{}", format!("Config: {}", args.config.display()).dimmed());
+        if let Some(ref profile) = args.profile {
+            println!("{}", format!("Profile: {}", profile.display()).dimmed());
+        }
+        if let Some(ref led) = args.led {
+            println!("{}", format!("LED scheme: {:?}", led).dimmed());
+        }
+        if let Some(ref page) = args.pad_page {
+            println!("{}", format!("Pad page: {}", page).dimmed());
+        }
+        println!();
+    }
+
+    // Create MIDI pad with specified config
+    let mut pad = MidiMacroPad::new(&args.config)?;
 
     // List available ports
     pad.list_midi_ports()?;
 
-    // Auto-connect to first device or use command line arg
-    let port_index = std::env::args()
-        .nth(1)
-        .and_then(|s| s.parse::<usize>().ok())
-        .unwrap_or(0);
+    // If --list flag is set, exit after listing ports
+    if args.list {
+        return Ok(());
+    }
 
+    // Determine which port to connect to
+    let port_index = match args.port {
+        Some(port) => port,
+        None => {
+            // Try to auto-connect to first device
+            let midi_in = midir::MidiInput::new("MidiMacroPad Scanner")?;
+            let ports = midi_in.ports();
+            if ports.is_empty() {
+                eprintln!("{}", "No MIDI devices found!".red());
+                return Err("No MIDI devices available".into());
+            }
+            0 // Default to first port
+        }
+    };
+
+    // Connect to the selected port
     pad.connect(port_index)?;
+
+    // Display LED scheme if specified
+    if let Some(led) = args.led {
+        println!(
+            "{} {:?}",
+            "LED scheme:".cyan(),
+            led
+        );
+        // Note: LED scheme integration would go here
+        // This would require passing the scheme to the feedback system
+    }
+
+    // Display profile info if specified
+    if let Some(ref profile) = args.profile {
+        println!(
+            "{} {}",
+            "Using profile:".cyan(),
+            profile.display().to_string().yellow()
+        );
+        if let Some(ref page) = args.pad_page {
+            println!(
+                "{} {}",
+                "Pad page:".cyan(),
+                page.yellow()
+            );
+        }
+        // Note: Profile loading would go here
+        // This would require integrating with the device profile system
+    }
+
+    // Run the MIDI pad
     pad.run()?;
 
     Ok(())

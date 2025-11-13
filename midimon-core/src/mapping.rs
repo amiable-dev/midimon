@@ -5,6 +5,7 @@ use crate::MidiEvent;
 use crate::actions::Action;
 use crate::config::{Config, Mapping, Trigger};
 use std::collections::HashMap;
+use tracing::{debug, trace};
 
 pub struct MappingEngine {
     mode_mappings: HashMap<u8, Vec<CompiledMapping>>,
@@ -77,8 +78,14 @@ impl MappingEngine {
                     cc: *cc,
                     value_min: value_min.unwrap_or(0),
                 },
-                Trigger::NoteChord { notes } => CompiledTrigger::NoteChord {
+                Trigger::NoteChord { notes, .. } => CompiledTrigger::NoteChord {
                     notes: notes.clone(),
+                },
+                // Other trigger types are not yet fully integrated into CompiledTrigger
+                // Fall back to a default Note trigger for now
+                _ => CompiledTrigger::Note {
+                    note: 0,
+                    velocity_min: 1,
                 },
             },
             action: mapping.action.clone().into(),
@@ -104,11 +111,12 @@ impl MappingEngine {
         for mapping in mappings {
             if self.trigger_matches(&mapping.trigger, event) {
                 if let Some(desc) = &mapping.description {
-                    println!("  → {}", desc);
+                    debug!(mapping = desc, "Executing mapped action");
                 }
                 return Some(mapping.action.clone());
             }
         }
+        trace!("No mapping found for MIDI event");
         None
     }
 

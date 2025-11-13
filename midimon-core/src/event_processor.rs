@@ -3,6 +3,7 @@
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
+use tracing::{debug, trace};
 
 #[derive(Debug, Clone)]
 pub enum MidiEvent {
@@ -252,9 +253,7 @@ impl EventProcessor {
     }
 
     pub fn log_processed_event(event: &ProcessedEvent, mode: u8) {
-        let mode_str = format!("[Mode {}]", mode);
-
-        let event_str = match event {
+        match event {
             ProcessedEvent::PadPressed {
                 note,
                 velocity,
@@ -265,48 +264,68 @@ impl EventProcessor {
                     VelocityLevel::Medium => "MED",
                     VelocityLevel::Hard => "HARD",
                 };
-                format!("Pad {:3} ON  vel {:3} {}", note, velocity, level_str)
+                debug!(
+                    mode,
+                    note,
+                    velocity,
+                    level = level_str,
+                    "Pad pressed"
+                );
             }
             ProcessedEvent::PadReleased {
                 note,
                 hold_duration_ms,
-            } => format!("Pad {:3} OFF (held {}ms)", note, hold_duration_ms),
+            } => {
+                debug!(
+                    mode,
+                    note,
+                    hold_duration_ms,
+                    "Pad released"
+                );
+            }
             ProcessedEvent::ShortPress { note } => {
-                format!("SHORT TAP   {:3}", note)
+                debug!(mode, note, "Short tap detected");
             }
             ProcessedEvent::MediumPress { note, duration_ms } => {
-                format!("MEDIUM PRESS {:3} ({}ms)", note, duration_ms)
+                debug!(mode, note, duration_ms, "Medium press detected");
             }
             ProcessedEvent::LongPress { note, duration_ms } => {
-                format!("LONG PRESS  {:3} ({}ms)", note, duration_ms)
+                debug!(mode, note, duration_ms, "Long press detected");
             }
             ProcessedEvent::HoldDetected { note } => {
-                format!("HOLD ACTIVE {:3}", note)
+                debug!(mode, note, "Hold detected");
             }
             ProcessedEvent::DoubleTap { note } => {
-                format!("DOUBLE TAP  {:3}", note)
+                debug!(mode, note, "Double tap detected");
             }
-            ProcessedEvent::ChordDetected { notes } => format!("CHORD       {:?}", notes),
+            ProcessedEvent::ChordDetected { notes } => {
+                debug!(mode, ?notes, "Chord detected");
+            }
             ProcessedEvent::EncoderTurned {
                 cc,
                 value,
                 direction,
                 delta,
             } => {
-                let dir_str = match direction {
-                    EncoderDirection::Clockwise => "→",
-                    EncoderDirection::CounterClockwise => "←",
+                let direction_str = match direction {
+                    EncoderDirection::Clockwise => "clockwise",
+                    EncoderDirection::CounterClockwise => "counter-clockwise",
                 };
-                format!("Encoder {:3} {} val {:3} (Δ{})", cc, dir_str, value, delta)
+                debug!(
+                    mode,
+                    cc,
+                    value,
+                    direction = direction_str,
+                    delta,
+                    "Encoder turned"
+                );
             }
             ProcessedEvent::AftertouchChanged { pressure } => {
-                format!("Aftertouch  {:3}", pressure)
+                trace!(mode, pressure, "Aftertouch changed");
             }
             ProcessedEvent::PitchBendMoved { value } => {
-                format!("Pitch Bend  {:5}", value)
+                trace!(mode, value, "Pitch bend moved");
             }
         };
-
-        println!("{} {}", mode_str, event_str);
     }
 }
