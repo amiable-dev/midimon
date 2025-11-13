@@ -39,7 +39,7 @@ impl Config {
             Ok(config)
         } else {
             println!("Config file not found, creating default config...");
-            let config = Self::default();
+            let config = Self::default_config();
             config.save(path)?;
             Ok(config)
         }
@@ -80,7 +80,7 @@ impl Config {
     /// - Device name: "Mikro"
     /// - Two modes: "Default" and "Development"
     /// - Sample mappings for each mode
-    pub fn default() -> Self {
+    pub fn default_config() -> Self {
         Config {
             device: DeviceConfig {
                 name: "Mikro".to_string(),
@@ -227,13 +227,12 @@ fn validate_trigger(trigger: &Trigger) -> Result<(), ConfigError> {
                     cc
                 )));
             }
-            if let Some(dir) = direction {
-                if dir != "Clockwise" && dir != "CounterClockwise" {
-                    return Err(ConfigError::InvalidTrigger(format!(
-                        "Invalid direction: '{}' (must be 'Clockwise' or 'CounterClockwise')",
-                        dir
-                    )));
-                }
+            if let Some(dir) = direction
+                && dir != "Clockwise" && dir != "CounterClockwise" {
+                return Err(ConfigError::InvalidTrigger(format!(
+                    "Invalid direction: '{}' (must be 'Clockwise' or 'CounterClockwise')",
+                    dir
+                )));
             }
         }
         Trigger::CC { cc, .. } => {
@@ -367,7 +366,7 @@ mod tests {
 
     #[test]
     fn test_config_default() {
-        let config = Config::default();
+        let config = Config::default_config();
         assert_eq!(config.device.name, "Mikro");
         assert_eq!(config.modes.len(), 2);
         assert_eq!(config.modes[0].name, "Default");
@@ -376,7 +375,7 @@ mod tests {
 
     #[test]
     fn test_validate_duplicate_mode_names() {
-        let mut config = Config::default();
+        let mut config = Config::default_config();
         config.modes.push(Mode {
             name: "Default".to_string(),
             color: None,
@@ -393,7 +392,7 @@ mod tests {
 
     #[test]
     fn test_validate_invalid_note_number() {
-        let mut config = Config::default();
+        let mut config = Config::default_config();
         config.modes[0].mappings[0].trigger = Trigger::Note {
             note: 128,
             velocity_min: None,
@@ -406,7 +405,7 @@ mod tests {
 
     #[test]
     fn test_validate_invalid_modifier() {
-        let mut config = Config::default();
+        let mut config = Config::default_config();
         config.modes[0].mappings[0].action = ActionConfig::Keystroke {
             keys: "a".to_string(),
             modifiers: vec!["invalid_mod".to_string()],
@@ -419,7 +418,7 @@ mod tests {
 
     #[test]
     fn test_validate_invalid_direction() {
-        let mut config = Config::default();
+        let mut config = Config::default_config();
         config.modes[0].mappings[0].trigger = Trigger::EncoderTurn {
             cc: 1,
             direction: Some("Invalid".to_string()),
@@ -432,7 +431,7 @@ mod tests {
 
     #[test]
     fn test_validate_empty_keystroke_keys() {
-        let mut config = Config::default();
+        let mut config = Config::default_config();
         config.modes[0].mappings[0].action = ActionConfig::Keystroke {
             keys: String::new(),
             modifiers: vec![],
@@ -444,7 +443,7 @@ mod tests {
 
     #[test]
     fn test_validate_sequence_with_empty_actions() {
-        let mut config = Config::default();
+        let mut config = Config::default_config();
         config.modes[0].mappings[0].action = ActionConfig::Sequence { actions: vec![] };
 
         let result = config.validate();
@@ -453,14 +452,14 @@ mod tests {
 
     #[test]
     fn test_validate_valid_config() {
-        let config = Config::default();
+        let config = Config::default_config();
         let result = config.validate();
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_validate_encoder_direction_clockwise() {
-        let mut config = Config::default();
+        let mut config = Config::default_config();
         config.modes[0].mappings[0].trigger = Trigger::EncoderTurn {
             cc: 1,
             direction: Some("Clockwise".to_string()),
@@ -472,7 +471,7 @@ mod tests {
 
     #[test]
     fn test_validate_encoder_direction_counter_clockwise() {
-        let mut config = Config::default();
+        let mut config = Config::default_config();
         config.modes[0].mappings[0].trigger = Trigger::EncoderTurn {
             cc: 1,
             direction: Some("CounterClockwise".to_string()),
@@ -484,7 +483,7 @@ mod tests {
 
     #[test]
     fn test_validate_note_chord_with_empty_notes() {
-        let mut config = Config::default();
+        let mut config = Config::default_config();
         config.modes[0].mappings[0].trigger = Trigger::NoteChord {
             notes: vec![],
             timeout_ms: None,
@@ -496,7 +495,7 @@ mod tests {
 
     #[test]
     fn test_validate_invalid_mouse_button() {
-        let mut config = Config::default();
+        let mut config = Config::default_config();
         config.modes[0].mappings[0].action = ActionConfig::MouseClick {
             button: "invalid".to_string(),
             x: None,
@@ -509,7 +508,7 @@ mod tests {
 
     #[test]
     fn test_validate_volume_control_set_without_value() {
-        let mut config = Config::default();
+        let mut config = Config::default_config();
         config.modes[0].mappings[0].action = ActionConfig::VolumeControl {
             operation: "Set".to_string(),
             value: None,

@@ -206,7 +206,7 @@ fn bench_consecutive_notes(c: &mut Criterion) {
     let mut group = c.benchmark_group("event_processing::stream");
     group.measurement_time(std::time::Duration::from_secs(10));
 
-    let mut processor = EventProcessor::new();
+    let _processor = EventProcessor::new();
     let now = Instant::now();
     let notes = black_box(vec![36, 37, 38, 39, 40, 41, 42, 43]);
 

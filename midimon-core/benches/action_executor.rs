@@ -267,6 +267,7 @@ criterion_group!(
     bench_modified_keystroke,
     bench_text_action,
     bench_delay_action,
+    bench_shell_action,
     bench_sequence_action,
     bench_executor_creation,
     bench_dispatch_overhead,

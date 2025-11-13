@@ -63,12 +63,18 @@ pub struct MikroMK3LEDs {
     buffer: [u8; 80],
 }
 
-impl MikroMK3LEDs {
-    pub fn new() -> Self {
+impl Default for MikroMK3LEDs {
+    fn default() -> Self {
         Self {
             device: None,
             buffer: [0; 80],
         }
+    }
+}
+
+impl MikroMK3LEDs {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     fn encode_pad(color: PadColor, brightness: Brightness) -> u8 {
