@@ -29,7 +29,13 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::get_daemon_status,
             commands::reload_config,
+            commands::stop_daemon,
+            commands::validate_config,
+            commands::ping_daemon,
             commands::list_midi_devices,
+            commands::get_config,
+            commands::save_config,
+            commands::get_config_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

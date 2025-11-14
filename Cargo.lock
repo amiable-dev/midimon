@@ -2445,8 +2445,9 @@ name = "midimon-gui"
 version = "2.0.0"
 dependencies = [
  "anyhow",
- "interprocess",
+ "dirs 5.0.1",
  "midimon-core",
+ "midimon-daemon",
  "serde",
  "serde_json",
  "tauri",
@@ -2456,6 +2457,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]

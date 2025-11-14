@@ -27,9 +27,11 @@ tokio = { version = "1", features = ["full"] }
 
 # MIDIMon core integration
 midimon-core = { path = "../../midimon-core" }
+midimon-daemon = { path = "../../midimon-daemon" }
 
-# IPC client for daemon communication
-interprocess = "2.2"
+# Utilities
+uuid = { version = "1.0", features = ["v4", "serde"] }
+dirs = "5.0"
 
 # Error handling
 anyhow = "1.0"
