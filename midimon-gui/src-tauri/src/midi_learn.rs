@@ -7,6 +7,7 @@
 //! and converts it to trigger configuration suggestions.
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
@@ -78,7 +79,14 @@ pub enum LearnSessionState {
     Cancelled,
 }
 
-/// MIDI Learn session manager
+/// Event tracking for pattern detection
+#[derive(Debug, Clone)]
+struct EventRecord {
+    event: MidiEvent,
+    timestamp: Instant,
+}
+
+/// MIDI Learn session manager with advanced pattern detection
 #[derive(Clone)]
 pub struct MidiLearnSession {
     /// Unique session ID
@@ -91,6 +99,14 @@ pub struct MidiLearnSession {
     start_time: Arc<RwLock<Instant>>,
     /// Timeout duration
     timeout: Duration,
+    /// Event history for pattern detection
+    event_history: Arc<RwLock<Vec<EventRecord>>>,
+    /// Note press times for long press detection (note -> press time)
+    note_press_times: Arc<RwLock<HashMap<u8, Instant>>>,
+    /// Last note press times for double-tap detection (note -> last press time)
+    last_note_times: Arc<RwLock<HashMap<u8, Instant>>>,
+    /// Currently held notes for chord detection
+    held_notes: Arc<RwLock<Vec<u8>>>,
 }
 
 impl MidiLearnSession {
@@ -102,6 +118,10 @@ impl MidiLearnSession {
             result: Arc::new(RwLock::new(None)),
             start_time: Arc::new(RwLock::new(Instant::now())),
             timeout: Duration::from_secs(timeout_secs),
+            event_history: Arc::new(RwLock::new(Vec::new())),
+            note_press_times: Arc::new(RwLock::new(HashMap::new())),
+            last_note_times: Arc::new(RwLock::new(HashMap::new())),
+            held_notes: Arc::new(RwLock::new(Vec::new())),
         }
     }
 
@@ -154,12 +174,143 @@ impl MidiLearnSession {
 
     /// Capture a MIDI event and convert to trigger suggestion
     pub async fn capture_event(&self, event: MidiEvent) {
+        let state = self.state.read().await;
+        if *state != LearnSessionState::Waiting {
+            return;
+        }
+        drop(state); // Release read lock
+
+        let now = Instant::now();
+
+        // Record event in history
+        let mut history = self.event_history.write().await;
+        history.push(EventRecord {
+            event: event.clone(),
+            timestamp: now,
+        });
+        drop(history);
+
+        // Track note presses and releases for pattern detection
+        match &event {
+            MidiEvent::NoteOn { note, .. } => {
+                // Check for double-tap
+                let mut last_times = self.last_note_times.write().await;
+                if let Some(last_time) = last_times.get(note) {
+                    let gap = now.duration_since(*last_time);
+                    if gap <= Duration::from_millis(500) {
+                        // Double-tap detected!
+                        self.complete_learning(TriggerSuggestion::DoubleTap {
+                            note: *note,
+                            timeout_ms: gap.as_millis() as u64 + 50, // Add buffer
+                        }).await;
+                        return;
+                    }
+                }
+                last_times.insert(*note, now);
+                drop(last_times);
+
+                // Track press time for long press detection
+                let mut press_times = self.note_press_times.write().await;
+                press_times.insert(*note, now);
+                drop(press_times);
+
+                // Track held notes for chord detection
+                let mut held = self.held_notes.write().await;
+                if !held.contains(note) {
+                    held.push(*note);
+                }
+
+                // Check if this could be a chord (2+ notes pressed within 100ms)
+                if held.len() >= 2 {
+                    let history = self.event_history.read().await;
+                    let recent_notes: Vec<u8> = history
+                        .iter()
+                        .rev()
+                        .take_while(|r| now.duration_since(r.timestamp) <= Duration::from_millis(100))
+                        .filter_map(|r| match r.event {
+                            MidiEvent::NoteOn { note, .. } => Some(note),
+                            _ => None,
+                        })
+                        .collect();
+
+                    if recent_notes.len() >= 2 {
+                        // Chord detected!
+                        self.complete_learning(TriggerSuggestion::Chord {
+                            notes: held.clone(),
+                            window_ms: 100,
+                        }).await;
+                        return;
+                    }
+                }
+            }
+            MidiEvent::NoteOff { note, .. } => {
+                // Check if this was a long press
+                let mut press_times = self.note_press_times.write().await;
+                if let Some(press_time) = press_times.remove(note) {
+                    let duration = now.duration_since(press_time);
+                    if duration >= Duration::from_millis(1000) {
+                        // Long press detected!
+                        self.complete_learning(TriggerSuggestion::LongPress {
+                            note: *note,
+                            duration_ms: duration.as_millis() as u64,
+                        }).await;
+                        return;
+                    }
+                }
+
+                // Remove from held notes
+                let mut held = self.held_notes.write().await;
+                held.retain(|n| n != note);
+            }
+            MidiEvent::ControlChange { controller, value } => {
+                // Detect encoder direction by looking at value changes
+                let history = self.event_history.read().await;
+                let prev_cc: Option<u8> = history
+                    .iter()
+                    .rev()
+                    .skip(1) // Skip current event
+                    .find_map(|r| match r.event {
+                        MidiEvent::ControlChange { controller: cc, value: v } if cc == *controller => Some(v),
+                        _ => None,
+                    });
+
+                let direction = if let Some(prev) = prev_cc {
+                    if *value > prev {
+                        Some("clockwise".to_string())
+                    } else if *value < prev {
+                        Some("counterclockwise".to_string())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                self.complete_learning(TriggerSuggestion::Encoder {
+                    cc: *controller,
+                    direction,
+                }).await;
+                return;
+            }
+            _ => {
+                // For other event types, analyze immediately
+                let trigger = self.analyze_simple_event(&event);
+                self.complete_learning(trigger).await;
+                return;
+            }
+        }
+
+        // For note events that didn't match patterns, wait a bit to see if they're part of a pattern
+        // (will be captured on note release or timeout)
+    }
+
+    /// Complete the learning session with a trigger suggestion
+    async fn complete_learning(&self, trigger: TriggerSuggestion) {
         let mut state = self.state.write().await;
         if *state != LearnSessionState::Waiting {
             return;
         }
 
-        let trigger = self.analyze_event(&event);
         let duration_ms = self.elapsed_ms().await;
 
         let mut result = self.result.write().await;
@@ -195,8 +346,8 @@ impl MidiLearnSession {
         self.result.read().await.clone()
     }
 
-    /// Analyze a MIDI event and suggest a trigger
-    fn analyze_event(&self, event: &MidiEvent) -> TriggerSuggestion {
+    /// Analyze a simple MIDI event and suggest a trigger (no pattern detection)
+    fn analyze_simple_event(&self, event: &MidiEvent) -> TriggerSuggestion {
         match event {
             MidiEvent::NoteOn { note, velocity } => {
                 // Suggest based on velocity
