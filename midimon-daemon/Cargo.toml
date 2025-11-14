@@ -39,10 +39,10 @@ path = "src/bin/midi_simulator.rs"
 name = "midimonctl"
 path = "src/bin/midimonctl.rs"
 
-# Menu bar foundation (incomplete - has Send/Sync threading issues)
-# [[bin]]
-# name = "midimon-menubar"
-# path = "src/bin/midimon_menubar.rs"
+# Menu bar service
+[[bin]]
+name = "midimon-menubar"
+path = "src/bin/midimon_menubar.rs"
 
 [[bench]]
 name = "reload_benchmark"
