@@ -1,111 +1,82 @@
 <script>
-  import { invoke } from '@tauri-apps/api/core';
   import { onMount } from 'svelte';
+  import Sidebar from './lib/components/Sidebar.svelte';
+  import DevicesView from './lib/views/DevicesView.svelte';
+  import ModesView from './lib/views/ModesView.svelte';
+  import MappingsView from './lib/views/MappingsView.svelte';
+  import SettingsView from './lib/views/SettingsView.svelte';
+  import { currentSection, restoreNavigationState, SECTIONS } from './lib/stores/navigation.js';
 
-  let daemonStatus = null;
-  let error = null;
-
-  async function checkStatus() {
-    try {
-      daemonStatus = await invoke('get_daemon_status');
-    } catch (err) {
-      error = err.toString();
-    }
-  }
-
+  // Restore navigation state on mount
   onMount(() => {
-    checkStatus();
+    restoreNavigationState();
   });
 </script>
 
-<main>
-  <h1>MIDIMon Configuration</h1>
+<div class="app">
+  <Sidebar />
 
-  <div class="status-section">
-    <h2>Daemon Status</h2>
-    {#if daemonStatus}
-      <div class="status-card">
-        <p>Running: {daemonStatus.running ? '✅' : '❌'}</p>
-        <p>Connected: {daemonStatus.connected ? '✅' : '❌'}</p>
-        {#if daemonStatus.error}
-          <p class="error">{daemonStatus.error}</p>
-        {/if}
-      </div>
-    {:else if error}
-      <p class="error">{error}</p>
-    {:else}
-      <p>Loading...</p>
+  <main class="main-content">
+    {#if $currentSection === SECTIONS.DEVICES}
+      <DevicesView />
+    {:else if $currentSection === SECTIONS.MODES}
+      <ModesView />
+    {:else if $currentSection === SECTIONS.MAPPINGS}
+      <MappingsView />
+    {:else if $currentSection === SECTIONS.SETTINGS}
+      <SettingsView />
     {/if}
-  </div>
-
-  <div class="placeholder">
-    <p>Visual configuration interface coming soon...</p>
-    <ul>
-      <li>MIDI Learn mode (Week 3)</li>
-      <li>Config editor (Week 4)</li>
-      <li>Per-app profiles (Week 5)</li>
-      <li>Device templates & polish (Week 6)</li>
-    </ul>
-  </div>
-</main>
+  </main>
+</div>
 
 <style>
   :global(body) {
     margin: 0;
     padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                 'Helvetica Neue', Arial, sans-serif;
     background: #1e1e1e;
     color: #e0e0e0;
+    overflow: hidden;
   }
 
-  main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
+  :global(*) {
+    box-sizing: border-box;
   }
 
-  h1 {
-    color: #4a9eff;
-    margin-bottom: 2rem;
+  :global(button) {
+    font-family: inherit;
   }
 
-  .status-section {
-    background: #2a2a2a;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
+  .app {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
   }
 
-  .status-card {
-    background: #333;
-    padding: 1rem;
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #1e1e1e;
+    overflow: hidden;
+  }
+
+  /* Scrollbar styling */
+  :global(::-webkit-scrollbar) {
+    width: 8px;
+  }
+
+  :global(::-webkit-scrollbar-track) {
+    background: #1a1a1a;
+  }
+
+  :global(::-webkit-scrollbar-thumb) {
+    background: #444;
     border-radius: 4px;
   }
 
-  .status-card p {
-    margin: 0.5rem 0;
-  }
-
-  .error {
-    color: #ff6b6b;
-  }
-
-  .placeholder {
-    background: #2a2a2a;
-    border: 2px dashed #444;
-    border-radius: 8px;
-    padding: 2rem;
-    text-align: center;
-  }
-
-  .placeholder ul {
-    list-style: none;
-    padding: 0;
-    margin: 1rem 0;
-  }
-
-  .placeholder li {
-    margin: 0.5rem 0;
-    color: #888;
+  :global(::-webkit-scrollbar-thumb:hover) {
+    background: #555;
   }
 </style>

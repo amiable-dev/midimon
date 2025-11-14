@@ -1,9 +1,3 @@
-/target
-
-# Coverage artifacts
-lcov.info
-*.profraw
-*.profdata
-
-# Snyk Security Extension - AI Rules (auto-generated)
-.github/instructions/snyk_rules.instructions.md
+node_modules/
+dist/
+.DS_Store
