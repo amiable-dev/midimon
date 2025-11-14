@@ -8,6 +8,7 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod app_detection;
 mod commands;
 mod config_helpers;
 mod events;
@@ -45,6 +46,9 @@ fn main() {
             commands::get_midi_learn_result,
             commands::generate_trigger_config_toml,
             commands::trigger_suggestion_to_json,
+            commands::get_frontmost_app,
+            commands::start_app_monitoring,
+            commands::stop_app_monitoring,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

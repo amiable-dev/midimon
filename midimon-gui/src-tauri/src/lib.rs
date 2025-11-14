@@ -3,6 +3,7 @@
 
 //! MIDIMon GUI library
 
+pub mod app_detection;
 pub mod commands;
 pub mod config_helpers;
 pub mod events;

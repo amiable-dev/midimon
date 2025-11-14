@@ -6,6 +6,7 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use crate::midi_learn::MidiLearnSession;
+use crate::app_detection::{AppDetector, AppInfo};
 
 /// Global application state
 pub struct AppState {
@@ -18,6 +19,8 @@ struct AppStateInner {
     daemon_connected: bool,
     /// Current MIDI Learn session (if active)
     learn_session: Option<MidiLearnSession>,
+    /// App detector for frontmost app monitoring
+    app_detector: Arc<AppDetector>,
 }
 
 impl AppState {
@@ -27,6 +30,7 @@ impl AppState {
             inner: Arc::new(RwLock::new(AppStateInner {
                 daemon_connected: false,
                 learn_session: None,
+                app_detector: Arc::new(AppDetector::new()),
             })),
         }
     }
@@ -54,6 +58,30 @@ impl AppState {
     /// Clear the MIDI Learn session
     pub async fn clear_learn_session(&self) {
         self.inner.write().await.learn_session = None;
+    }
+
+    /// Get the current frontmost app
+    pub async fn get_current_app(&self) -> Option<AppInfo> {
+        let inner = self.inner.read().await;
+        inner.app_detector.get_current_app().await
+    }
+
+    /// Start app detection with change notifications
+    pub async fn start_app_detection(&self) {
+        let inner = self.inner.read().await;
+        let detector = Arc::clone(&inner.app_detector);
+
+        detector.start_detection(move |_app_info| {
+            // App change callback
+            // Could emit Tauri events here for frontend notification
+            // For now, just store in detector state
+        }).await;
+    }
+
+    /// Stop app detection
+    pub async fn stop_app_detection(&self) {
+        let inner = self.inner.read().await;
+        inner.app_detector.stop_detection().await;
     }
 }
 

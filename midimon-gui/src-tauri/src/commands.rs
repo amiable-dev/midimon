@@ -457,3 +457,23 @@ pub fn trigger_suggestion_to_json(suggestion: TriggerSuggestion) -> Result<serde
     let config = suggestion_to_config(&suggestion);
     Ok(config_to_json(&config))
 }
+
+/// Get the current frontmost application
+#[tauri::command]
+pub async fn get_frontmost_app(state: State<'_, AppState>) -> Result<Option<crate::app_detection::AppInfo>, String> {
+    Ok(state.get_current_app().await)
+}
+
+/// Start monitoring for app changes
+#[tauri::command]
+pub async fn start_app_monitoring(state: State<'_, AppState>) -> Result<(), String> {
+    state.start_app_detection().await;
+    Ok(())
+}
+
+/// Stop monitoring for app changes
+#[tauri::command]
+pub async fn stop_app_monitoring(state: State<'_, AppState>) -> Result<(), String> {
+    state.stop_app_detection().await;
+    Ok(())
+}
