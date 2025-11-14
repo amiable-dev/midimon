@@ -6,11 +6,26 @@ MIDIMon is a powerful Rust-based MIDI controller mapping system that goes beyond
 
 ## Key Features
 
-### Core Capabilities
+### Core Capabilities (v2.0.0)
 
+**Event Detection**:
 - **4 Core Triggers**: Note, Velocity Range, Encoder, Control Change
 - **5 Advanced Triggers**: Long Press, Double-Tap, Chord, Aftertouch, Pitch Bend
 - **10 Action Types**: Keystroke, Text, Launch, Shell, Volume Control, and more
+
+**Visual Interface (NEW!)**:
+- **Tauri GUI**: Modern desktop app for visual configuration
+- **MIDI Learn**: One-click auto-detection of MIDI inputs
+- **Live Preview**: Real-time event monitoring and testing
+- **Device Templates**: 6 built-in templates for popular controllers
+
+**Daemon Infrastructure (NEW!)**:
+- **Background Service**: Runs as system service with auto-start
+- **Hot-Reload**: Config changes applied in 0-10ms without restart
+- **IPC Control**: Control daemon via CLI or GUI
+- **Per-App Profiles**: Automatic profile switching
+
+**LED & Feedback**:
 - **10 LED Schemes**: Reactive, Rainbow, Pulse, Breathing, and custom patterns
 - **Multi-Mode System**: Switch between mapping sets on the fly
 - **Device Profile Support**: Load Native Instruments Controller Editor configurations
@@ -79,9 +94,16 @@ Ready to dive in? Check out the [Quick Start Guide](getting-started/quick-start.
 
 ## Project Status
 
-MIDIMon is currently at **v0.1.0-monolithic** (pre-1.0 software). The core features are stable and production-ready, but the API may change before v1.0.0.
+MIDIMon is currently at **v2.0.0** with production-ready daemon infrastructure and visual GUI configuration.
 
-See the [Roadmap](resources/roadmap.md) for planned features and timeline.
+**What's New in v2.0.0**:
+- 🎛️ **Tauri GUI**: Visual configuration editor with MIDI Learn mode
+- 🔄 **Hot-Reload Daemon**: 0-10ms config reloads without restart
+- 🎯 **Per-App Profiles**: Automatic profile switching based on active app
+- 📊 **Live Event Console**: Real-time MIDI event monitoring
+- 📦 **Device Templates**: 6 built-in templates for popular controllers
+
+See the [Roadmap](resources/roadmap.md) for planned features and [Changelog](resources/changelog.md) for full release notes.
 
 ## Community
 
