@@ -5,7 +5,7 @@
 - **Epic**: AMI-108 (Phase 4: Tauri UI & Visual Configuration)
 - **Status**: Planned - Starts after Phase 3 complete
 - **Duration**: 4-6 weeks (2026-01-27 to 2026-03-10)
-- **Total Issues**: 26 issues (23 from AMI-108 + 3 menu bar issues moved)
+- **Total Issues**: 28 issues (23 from AMI-108 + 5 moved issues: AMI-158-162)
 - **Target Version**: v2.0.0
 
 ## Prerequisites Check
@@ -38,17 +38,22 @@ Before starting, verify:
 Use Linear MCP to retrieve all issues under AMI-108:
 
 ```
-1. AMI-158: Add minimal menu bar icon using tray-icon crate (2 days)
-2. AMI-159: Implement platform-specific menu bar (macOS/Linux/Windows) (3 days)
-3. AMI-160: Add status display and quick actions (2 days)
-4-9. Week 1-2: Tauri Setup & Basic UI (6 issues, to be created)
+1. AMI-158: Add minimal menu bar icon using tray-icon crate (2 days) ✅
+2. AMI-159: Implement platform-specific menu bar (macOS/Linux/Windows) (3 days) ✅
+3. AMI-160: Add status display and quick actions (2 days) ✅
+4. AMI-161: Create midimon-gui Tauri v2 project (2 days) ✅
+5. AMI-162: Implement Tauri backend commands (2 days) ✅
+6. AMI-163: Create basic UI shell with navigation (1 day) ✅
+7. AMI-164: Build device connection panel UI (1 day) ✅
+8. AMI-165: Implement status bar showing daemon state (0.5 day)
+9. AMI-166: Set up frontend state management and API wrapper (1 day)
 10-13. Week 3: MIDI Learn Mode (4 issues)
 14-19. Week 4: Visual Config Editor (6 issues)
 20-23. Week 5: Per-App Profiles (4 issues)
-24-26. Week 6: Polish & Release (3 issues)
+24-28. Week 6: Polish & Release (5 issues)
 ```
 
-**Total**: 26 issues across 6 weeks
+**Total**: 28 issues across 6 weeks (9 complete, 19 remaining)
 
 #### 1.2 Extract Dependency Relationships
 
@@ -56,19 +61,21 @@ From docs/linear-dependencies.md and AMI-108 description:
 
 **Critical Path Dependencies**:
 ```
-Phase 3 (AMI-107) complete
+Phase 3 (AMI-107) complete ✅
     ↓ blocks
-AMI-108 (Phase 4 start)
+AMI-108 (Phase 4 start) ✅
     ↓ enables
-Week 1-2: Tauri Setup + Menu Bar (AMI-158-160, 6 Tauri issues)
+Week 1: Menu Bar Foundation (AMI-158, AMI-161) ✅
     ↓ blocks
-Week 3: MIDI Learn (4 issues) - requires Tauri backend
+Week 1-2: Tauri Infrastructure (AMI-159-166) [AMI-165, AMI-166 in progress]
+    ↓ blocks
+Week 3: MIDI Learn (4 issues) - requires Tauri backend + state management
     ↓ blocks
 Week 4: Config Editor (6 issues) - requires MIDI Learn
     ↓ blocks
 Week 5: Per-App Profiles (4 issues) - requires config editor
     ↓ blocks
-Week 6: Polish (3 issues) - requires all above
+Week 6: Polish (5 issues) - requires all above
 ```
 
 **Documentation Site Infrastructure**:
@@ -92,22 +99,22 @@ Epic 10: Per-App Context Awareness (AMI-102)
 ```
 Phase 4 Work Queue:
 
-Priority 0 (Start Immediately - Week 1):
-- AMI-158: Add minimal menu bar icon - No dependencies, blocks AMI-159, AMI-160
-- [Tauri-1]: Create midimon-gui Tauri v2 project - No dependencies, blocks all Tauri work
+Priority 0 (Start Immediately - Week 1): ✅ COMPLETE
+- AMI-158: Add minimal menu bar icon - No dependencies, blocks AMI-159, AMI-160 ✅
+- AMI-161: Create midimon-gui Tauri v2 project - No dependencies, blocks all Tauri work ✅
 
-Priority 1 (After P0 Complete - Week 1-2):
-- AMI-159: Platform-specific menu bar - Depends on AMI-158
-- AMI-160: Status display & quick actions - Depends on AMI-159
-- [Tauri-2]: Implement Tauri backend commands - Depends on [Tauri-1]
-- [Tauri-3]: Create basic UI shell with navigation - Depends on [Tauri-1]
-- [Tauri-4]: Add device connection panel - Depends on [Tauri-3]
-- [Tauri-5]: Implement status bar - Depends on [Tauri-3]
-- [Tauri-6]: Set up frontend state management - Depends on [Tauri-3]
+Priority 1 (After P0 Complete - Week 1-2): ✅ COMPLETE (except AMI-165, AMI-166)
+- AMI-159: Platform-specific menu bar - Depends on AMI-158 ✅
+- AMI-160: Status display & quick actions - Depends on AMI-159 ✅
+- AMI-162: Implement Tauri backend commands - Depends on AMI-161 ✅
+- AMI-163: Create basic UI shell with navigation - Depends on AMI-161 ✅
+- AMI-164: Add device connection panel - Depends on AMI-163 ✅
+- AMI-165: Implement status bar - Depends on AMI-163, AMI-162 [NEXT]
+- AMI-166: Set up frontend state management - Depends on AMI-163, AMI-162 [NEXT]
 
 Priority 2 (After P1 Complete - Week 3):
-- [MIDILearn-1]: Implement MIDI Learn backend - Depends on [Tauri-2]
-- [MIDILearn-2]: Create Learn UI flow - Depends on [MIDILearn-1], [Tauri-3]
+- [MIDILearn-1]: Implement MIDI Learn backend - Depends on AMI-162 (backend commands)
+- [MIDILearn-2]: Create Learn UI flow - Depends on [MIDILearn-1], AMI-163 (UI shell)
 - [MIDILearn-3]: Support all trigger types learning - Depends on [MIDILearn-1]
 - [MIDILearn-4]: Add auto-fill trigger config - Depends on [MIDILearn-2], [MIDILearn-3]
 
@@ -131,14 +138,18 @@ Priority 5 (After P4 Complete - Week 6):
 - [Polish-2]: Build settings panel with auto-start (TF8) - Depends on [Tauri-3]
 
 Parallel Groups:
-Group A (Week 1): AMI-158, [Tauri-1] (can be done simultaneously)
-Group B (Week 1-2): AMI-159, AMI-160, [Tauri-2-6] (after Group A, parallel within group)
+Group A (Week 1): AMI-158, AMI-161 (can be done simultaneously) ✅ COMPLETE
+Group B (Week 1-2): AMI-159-166 (after Group A, parallel within group) ✅ 7/9 COMPLETE
+  - AMI-159, AMI-160 (menu bar) ✅
+  - AMI-162, AMI-163, AMI-164 (Tauri core) ✅
+  - AMI-165, AMI-166 (status bar, state management) - IN PROGRESS
 Group C (Week 3): [MIDILearn-1-4] (sequential within group)
 Group D (Week 4): [ConfigEditor-1-6] (some parallelizable after ConfigEditor-2)
 Group E (Week 5): [PerApp-1-4] (sequential PerApp-1→2, then parallel PerApp-3+4)
-Group F (Week 6): AMI-185, [Polish-1], [Polish-2] (all parallel)
+Group F (Week 6): AMI-185, [Polish-1-3] (all parallel)
 
-Critical Path: [Tauri-1] → [Tauri-2] → [MIDILearn-1] → [MIDILearn-2] → [ConfigEditor-1] → [ConfigEditor-2] → [PerApp-1] → [PerApp-2] (28-35 days)
+Critical Path: AMI-161 → AMI-162 → [MIDILearn-1] → [MIDILearn-2] → [ConfigEditor-1] → [ConfigEditor-2] → [PerApp-1] → [PerApp-2] (28-35 days)
+Current Progress: 7/28 issues complete (25%), Week 2 in progress
 ```
 
 ### Step 2: Create Execution Plan
@@ -160,17 +171,22 @@ Critical Path: [Tauri-1] → [Tauri-2] → [MIDILearn-1] → [MIDILearn-2] → [
 
 #### Blocked Issues
 
-**Week 1-2 - Tauri Setup (Blocked by Week 1)**:
-- AMI-159: Platform-specific menu bar - Blocked by AMI-158 (needs tray icon foundation)
-- AMI-160: Status display & quick actions - Blocked by AMI-159 (needs menu structure)
-- [Tauri-2-6]: All Tauri backend/UI work - Blocked by [Tauri-1] (needs project structure)
+**Week 1-2 - Tauri Setup**: ✅ MOSTLY COMPLETE
+- AMI-159: Platform-specific menu bar ✅
+- AMI-160: Status display & quick actions ✅
+- AMI-162: Tauri backend commands ✅
+- AMI-163: UI shell with navigation ✅
+- AMI-164: Device connection panel ✅
+- AMI-165: Status bar component - IN PROGRESS
+- AMI-166: Frontend state management - IN PROGRESS
 
-**Clearing**: Will unblock when AMI-158 and [Tauri-1] complete (~day 3)
+**Status**: 7/9 complete, 2 remaining (AMI-165, AMI-166)
 
-**Week 3 - MIDI Learn (Blocked by Week 1-2)**:
-- All MIDI Learn issues - Blocked by [Tauri-2] (need backend commands) and [Tauri-3] (need UI shell)
+**Week 3 - MIDI Learn (Blocked by AMI-165, AMI-166)**:
+- All MIDI Learn issues - Backend ready (AMI-162 ✅), UI shell ready (AMI-163 ✅)
+- Blocked by AMI-166 (state management) - needed for MIDI Learn session state
 
-**Clearing**: Will unblock when Tauri setup complete (~day 10)
+**Clearing**: Will unblock when AMI-165, AMI-166 complete (~0.5-1 day)
 
 **Week 4 - Config Editor (Blocked by Week 3)**:
 - Config editor issues - Blocked by MIDI Learn completion (need learn integration)
@@ -637,8 +653,10 @@ Before beginning execution, confirm:
 
 **End of Phase 4 Execution Guide**
 
-**Version**: 1.0
+**Version**: 1.1
 **Created**: 2025-11-14
-**AMI-108 Sub-Issues Moved**: AMI-158, AMI-159, AMI-160
-**Total Issues**: 26 (23 from AMI-108 + 3 menu bar)
+**Updated**: 2025-11-14
+**AMI-108 Sub-Issues**: AMI-158-166 (9 issues) + 19 additional issues
+**Total Issues**: 28 (9 from Week 1-2 + 19 remaining)
+**Progress**: 7/28 complete (25%), AMI-165-166 in progress
 **Maintained By**: MIDIMon Project Team
