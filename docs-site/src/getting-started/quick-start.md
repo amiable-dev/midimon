@@ -1,231 +1,283 @@
-# Quick Start
+# Quick Start Guide
 
-Get MIDIMon up and running in under 5 minutes.
+Get MIDIMon v2.0.0 up and running in under 5 minutes using the visual GUI.
 
 ## Prerequisites
 
-- **Rust toolchain** (1.70+) - [Install from rustup.rs](https://rustup.rs/)
-- **Native Instruments Maschine Mikro MK3** (or any MIDI controller)
-- **macOS** (primary support - Linux/Windows planned for Q4 2025)
+- **macOS 11.0+** (Big Sur or later) - Intel or Apple Silicon
+- **MIDI controller** (any USB MIDI device - Maschine Mikro MK3 recommended for full RGB LED support)
+- **10 minutes** for installation
 
-## Step 1: Clone and Build
+## Step 1: Download MIDIMon
+
+Visit the [GitHub Releases page](https://github.com/amiable-dev/midimon/releases/latest) and download:
+
+**For most users** (recommended):
+- `midimon-gui-macos-universal.tar.gz` - GUI application (includes daemon)
+
+**For CLI-only users**:
+- `midimon-aarch64-apple-darwin.tar.gz` (Apple Silicon)
+- `midimon-x86_64-apple-darwin.tar.gz` (Intel)
+
+## Step 2: Install the GUI
 
 ```bash
-# Clone the repository
-git clone https://github.com/amiable-dev/midimon.git
-cd midimon
+# Extract the downloaded file
+tar xzf midimon-gui-macos-universal.tar.gz
 
-# Build release binary (optimized, ~3-5MB)
-cargo build --release
+# Move to Applications folder
+mv "MIDIMon GUI.app" /Applications/
+
+# Open the app
+open /Applications/"MIDIMon GUI.app"
 ```
 
-The release build takes 2-3 minutes and produces a highly optimized binary at `target/release/midimon`.
+**First launch**: macOS will ask for permissions. Grant **Input Monitoring** permission when prompted (required for LED control and device access).
 
-## Step 2: Connect Your Device
+## Step 3: Connect Your Device
 
 1. **Plug in your MIDI controller** via USB
-2. **List available MIDI ports**:
 
-```bash
-cargo run --release
-```
+2. **In the MIDIMon GUI**, go to the **Device Connection** panel
 
-You'll see output like:
+3. Your device should appear in the list. Click **Connect**
 
-```
-Available MIDI input ports:
-  0: CoreMIDI - Mikro MK3 Public
-  1: CoreMIDI - Mikro MK3 Private
-  2: CoreMIDI - IAC Driver Bus 1
+4. The status bar at the bottom should show: **"Connected to [Your Device]"**
 
-Select a port number to connect...
-```
+If your device doesn't appear:
+- Check USB cable
+- Try a different USB port
+- See [Troubleshooting Device Connection](../troubleshooting/device-connection.md)
 
-3. **Note the port number** for your device (usually port `0` or `2` for Mikro MK3)
+## Step 4: Create Your First Mapping with MIDI Learn
 
-## Step 3: First Run
+The fastest way to create a mapping is using **MIDI Learn mode**:
 
-Connect to your device:
+1. **Click "Add Mapping"** in the Mappings panel
 
-```bash
-cargo run --release 2
-```
+2. **Click "Learn"** next to the Trigger field
 
-(Replace `2` with your device's port number)
+3. **Press any pad/button** on your MIDI controller
 
-You should see:
+4. The trigger configuration **auto-fills** with the detected input
 
-```
-Connected to MIDI port 2: CoreMIDI - Mikro MK3 Public
-Loaded config from: config.toml
-Current mode: Default
-Listening for MIDI events... (Press Ctrl+C to exit)
-```
+5. **Choose an action**:
+   - **Keystroke** - Press a key (e.g., Cmd+C for copy)
+   - **Launch** - Open an application
+   - **Text** - Type text
+   - **Shell** - Run a command
 
-## Step 4: Test Your First Mapping
+6. **Click "Save"**
 
-The included `config.toml` has a basic mapping:
+7. **Test it!** Press the same pad/button - the action should execute
 
-```toml
-[[modes.mappings]]
-trigger = { Note = { note = 60, velocity_min = 0 } }
-action = { Keystroke = { keys = ["Space"] } }
-```
+**Example**: Map pad to open Spotify:
+- Trigger: Note 36 (auto-detected via MIDI Learn)
+- Action: Launch → `/Applications/Spotify.app`
 
-**Test it**:
-1. Press the first pad (Note 60)
-2. It should trigger a Space key press
-3. LEDs should light up (if your device supports RGB)
-
-## Step 5: Enable LED Feedback (Optional)
-
-If you have a Maschine Mikro MK3, enable reactive LED feedback:
-
-```bash
-cargo run --release 2 --led reactive
-```
-
-Now pads will:
-- Light up **green** for soft press (velocity 0-40)
-- Light up **yellow** for medium press (velocity 41-80)
-- Light up **red** for hard press (velocity 81-127)
-- Fade out over 1 second after release
-
-Try other LED schemes:
-```bash
-cargo run --release 2 --led rainbow   # Rainbow wave animation
-cargo run --release 2 --led pulse     # Pulsing brightness
-cargo run --release 2 --led spiral    # Spiral pattern
-```
-
-See all schemes: [LED Feedback Configuration](../configuration/led-feedback.md)
-
-## Step 6: Customize Your Mappings
-
-The default config is at `config.toml` in the project root. Edit it to add your own mappings:
-
-```toml
-[[modes.mappings]]
-trigger = { Note = { note = 61, velocity_min = 0 } }
-action = { Keystroke = { keys = ["Cmd", "T"] } }  # Open new tab
-```
-
-Reload the config:
-- **Stop** MIDIMon (Ctrl+C)
-- **Start** it again: `cargo run --release 2`
-
-> **Future**: Hot-reloading (Phase 2+) will let you reload config without restarting
-
-## Step 7: Explore Advanced Features
+## Step 5: Explore Advanced Features
 
 ### Velocity Sensitivity
 
-Different actions based on how hard you hit the pad:
+Map different actions based on how hard you hit a pad:
 
-```toml
-[[modes.mappings]]
-trigger = { VelocityRange = { note = 62, min = 0, max = 40 } }
-action = { Text = { text = "soft" } }
-
-[[modes.mappings]]
-trigger = { VelocityRange = { note = 62, min = 81, max = 127 } }
-action = { Text = { text = "HARD" } }
-```
+1. Select trigger type: **Velocity Range**
+2. Use MIDI Learn to detect the note
+3. Set velocity ranges:
+   - **Soft** (0-40): Pause playback
+   - **Hard** (81-127): Skip track
 
 ### Long Press Detection
 
-Hold a pad for 2 seconds to trigger a different action:
+Hold a pad for 2+ seconds to trigger a different action:
 
-```toml
-[[modes.mappings]]
-trigger = { LongPress = { note = 63, velocity_min = 0, hold_ms = 2000 } }
-action = { Shell = { command = "open -a Calculator" } }
-```
+1. Select trigger type: **Long Press**
+2. Use MIDI Learn
+3. Set **Hold Duration**: 2000ms
+4. Action: Open Calculator
 
 ### Chord Detection
 
-Press multiple pads simultaneously (within 100ms):
+Press multiple pads simultaneously:
 
-```toml
-[[modes.mappings]]
-trigger = { NoteChord = { notes = [60, 64, 67], velocity_min = 0 } }
-action = { Text = { text = "C Major Chord!" } }
+1. Select trigger type: **Chord**
+2. Use MIDI Learn and press all pads within 100ms
+3. Action: Launch your favorite app
+
+## Step 6: Use Device Templates
+
+Skip manual configuration with built-in device templates:
+
+1. Go to **Settings** → **Device Templates**
+
+2. **Select your controller**:
+   - Maschine Mikro MK3
+   - Launchpad Mini
+   - APC Mini
+   - Korg nanoKONTROL2
+   - Novation Launchkey Mini
+   - AKAI MPK Mini
+
+3. Click **Load Template**
+
+4. The template loads pre-configured mappings for common workflows
+
+5. **Customize** as needed using MIDI Learn
+
+## Step 7: Enable Auto-Start (Optional)
+
+Run MIDIMon automatically when you log in:
+
+1. Go to **Settings** → **General**
+
+2. Enable **"Start MIDIMon on login"**
+
+3. Click **Save**
+
+The daemon will now start automatically in the background every time you log in.
+
+## Using the Daemon CLI (Optional)
+
+For advanced users who prefer terminal control:
+
+```bash
+# Check daemon status
+midimonctl status
+
+# Reload configuration (hot-reload in 0-10ms)
+midimonctl reload
+
+# Stop daemon
+midimonctl stop
+
+# Validate config without reloading
+midimonctl validate
+
+# Ping daemon (check latency)
+midimonctl ping
 ```
+
+See [Daemon & CLI Guide](../guides/daemon.md) for full details.
+
+## Per-App Profiles (Automatic Profile Switching)
+
+MIDIMon v2.0.0 can automatically switch configurations based on which application is active:
+
+1. Go to **Per-App Profiles** in the GUI
+
+2. **Add a new profile**:
+   - Application: Select an app (e.g., "Visual Studio Code")
+   - Profile: Select a config profile
+
+3. When you switch to that application, MIDIMon automatically loads the configured profile
+
+4. **Example use cases**:
+   - **Logic Pro**: Pads control DAW functions (play, record, etc.)
+   - **VS Code**: Pads trigger common shortcuts (run, debug, search)
+   - **Chrome**: Pads control tabs and navigation
+
+## Live Event Console
+
+Debug your mappings in real-time:
+
+1. Go to **Event Console** in the GUI
+
+2. **Watch MIDI events** as they happen:
+   - Note On/Off
+   - Velocity values
+   - Control Change
+   - Pitch Bend
+   - Aftertouch
+
+3. **Filter events** by type or note number
+
+4. **Export logs** for debugging
+
+This is invaluable for troubleshooting "why isn't my mapping working?"
 
 ## Troubleshooting
 
 ### Device Not Found
 
-```bash
-# Check USB connection
-system_profiler SPUSBDataType | grep -i mikro
+1. **Check USB connection**:
+   ```bash
+   system_profiler SPUSBDataType | grep -i midi
+   ```
 
-# List MIDI ports again
-cargo run --release
+2. **Restart the daemon**:
+   ```bash
+   midimonctl stop
+   open /Applications/"MIDIMon GUI.app"
+   ```
 
-# Check Audio MIDI Setup
-open -a "Audio MIDI Setup"
-```
+3. **Check Audio MIDI Setup**:
+   ```bash
+   open -a "Audio MIDI Setup"
+   ```
 
 ### LEDs Not Working
 
-1. Ensure Native Instruments drivers are installed
-2. Grant **Input Monitoring** permissions:
-   - **System Settings** → **Privacy & Security** → **Input Monitoring**
-   - Enable for your Terminal app
-3. Try different LED schemes: `--led reactive`, `--led rainbow`
-4. Check debug output: `DEBUG=1 cargo run --release 2`
+1. **Ensure Native Instruments drivers are installed** (for Maschine controllers)
 
-### Events Not Triggering
+2. **Grant Input Monitoring permission**:
+   - System Settings → Privacy & Security → Input Monitoring
+   - Enable for "MIDIMon GUI"
 
-1. **Run diagnostics** to verify MIDI events:
+3. **Check LED scheme** in GUI Settings
+
+4. **View debug logs** in Event Console
+
+### Mappings Not Triggering
+
+1. **Use Event Console** to verify MIDI events are being received
+
+2. **Use MIDI Learn** to verify the correct note numbers
+
+3. **Check mode** - is the mapping in the current mode or global?
+
+4. **Reload config**:
    ```bash
-   cargo run --bin midi_diagnostic 2
+   midimonctl reload
    ```
-2. **Check note numbers** match your config:
-   ```bash
-   cargo run --bin pad_mapper
-   ```
-3. **Verify velocity thresholds** aren't too restrictive
-4. **Check mode** - is the mapping in the current mode or global?
 
 ### Permission Denied (macOS)
 
-If you see "Permission denied" for HID devices:
+If you see "Permission denied" errors:
+
 1. **System Settings** → **Privacy & Security** → **Input Monitoring**
-2. Add your Terminal app (Terminal.app, iTerm2, etc.)
-3. Restart your terminal
-4. Run MIDIMon again
+2. Add **"MIDIMon GUI"** to the list
+3. Restart the GUI app
 
 ## Next Steps
 
-- [Create Your First Mapping](./first-mapping.md) - Step-by-step mapping tutorial
+Now that you're up and running:
+
+### For GUI Users
+- [MIDI Learn Tutorial](./midi-learn.md) - Master MIDI Learn mode
+- [Device Templates Guide](../guides/device-templates.md) - Use pre-built templates
+- [Per-App Profiles Guide](../guides/per-app-profiles.md) - Set up application-specific profiles
+- [Live Event Console](../guides/event-console.md) - Debug with real-time monitoring
+
+### For CLI Users
+- [Daemon & Hot-Reload](../guides/daemon.md) - Master the daemon CLI
+- [Manual Configuration](../configuration/overview.md) - Edit config.toml
+- [Advanced Triggers](../reference/triggers.md) - All trigger types
+- [Advanced Actions](../reference/actions.md) - All action types
+
+### For All Users
 - [Understanding Modes](./modes.md) - Multi-mode workflow management
-- [Configuration Overview](../configuration/overview.md) - Complete config reference
+- [LED System](../guides/led-system.md) - Customize LED feedback
 - [Example Configurations](../configuration/examples.md) - Pre-built configs
 
 ## Performance
 
-MIDIMon is highly optimized:
+MIDIMon v2.0.0 is highly optimized:
 - **Response latency**: <1ms typical
-- **Memory usage**: 5-10MB
+- **Config hot-reload**: 0-10ms
+- **IPC round-trip**: <1ms
+- **Memory usage**: 5-10MB (daemon), ~60MB (GUI)
 - **CPU usage**: <1% idle, <5% active
 - **Binary size**: ~3-5MB (release with LTO)
-
-## Debug Mode
-
-Enable detailed logging for troubleshooting:
-
-```bash
-DEBUG=1 cargo run --release 2
-```
-
-You'll see:
-- MIDI event parsing details
-- Trigger matching logic
-- Action execution results
-- LED feedback commands
-- Error stack traces
 
 ## Getting Help
 
@@ -233,3 +285,7 @@ You'll see:
 - [FAQ](../troubleshooting/faq.md)
 - [GitHub Discussions](https://github.com/amiable-dev/midimon/discussions)
 - [Report Issues](https://github.com/amiable-dev/midimon/issues)
+
+---
+
+**Congratulations!** You now have MIDIMon v2.0.0 running with visual configuration, hot-reload, and per-app profiles. 🎉
