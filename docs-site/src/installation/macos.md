@@ -2,11 +2,64 @@
 
 ## Overview
 
-This guide walks through installing and configuring MIDIMon on macOS, from installing prerequisites to running your first mapping. The process takes approximately 15-20 minutes.
+This guide walks through installing and configuring MIDIMon v2.0.0 on macOS. MIDIMon now includes a background daemon service with a modern Tauri-based GUI for visual configuration.
 
-## Prerequisites
+**Installation Options**:
+- **Option 1 (Recommended)**: Download pre-built GUI app + daemon binaries from [GitHub Releases](https://github.com/amiable-dev/midimon/releases)
+- **Option 2**: Build from source (developers/advanced users)
 
-### 1. Rust Toolchain
+Installation takes approximately 10-15 minutes.
+
+## Option 1: Install Pre-Built Binaries (Recommended)
+
+### 1. Download MIDIMon
+
+Visit the [Releases Page](https://github.com/amiable-dev/midimon/releases/latest) and download:
+
+**For GUI + Daemon (Recommended)**:
+- `midimon-gui-macos-universal.tar.gz` - GUI application with daemon
+- **OR** download daemon separately: `midimon-aarch64-apple-darwin.tar.gz` (Apple Silicon) or `midimon-x86_64-apple-darwin.tar.gz` (Intel)
+
+### 2. Install the GUI Application
+
+```bash
+# Extract the GUI app
+tar xzf midimon-gui-macos-universal.tar.gz
+
+# Move to Applications folder
+mv "MIDIMon GUI.app" /Applications/
+
+# Open the app
+open /Applications/"MIDIMon GUI.app"
+```
+
+### 3. Install the Daemon Binary (Optional - GUI includes daemon)
+
+If you want to use the daemon independently:
+
+```bash
+# Extract daemon binary
+tar xzf midimon-*.tar.gz
+
+# Make it executable
+chmod +x midimon
+
+# Move to PATH
+sudo mv midimon /usr/local/bin/
+
+# Verify installation
+midimon --version
+```
+
+**Skip to [Configuring macOS Permissions](#configuring-macos-permissions)**
+
+---
+
+## Option 2: Build from Source
+
+### Prerequisites
+
+#### 1. Rust Toolchain
 
 MIDIMon is written in Rust and requires the Rust compiler and Cargo build system.
 
@@ -32,6 +85,19 @@ source $HOME/.cargo/env
 ```bash
 rustc --version  # Should show: rustc 1.75.0 (or later)
 cargo --version  # Should show: cargo 1.75.0 (or later)
+```
+
+#### 2. Node.js and npm (for GUI only)
+
+Required if building the Tauri GUI:
+
+```bash
+# Install Node.js via Homebrew
+brew install node@20
+
+# Verify installation
+node --version  # Should show: v20.x.x
+npm --version   # Should show: 10.x.x
 ```
 
 ### 2. Native Instruments Drivers (for Maschine Mikro MK3)
@@ -68,66 +134,104 @@ xcode-select --install
 
 If already installed, you'll see: "command line tools are already installed".
 
-## Building MIDIMon from Source
+### Building from Source
 
-### 1. Clone the Repository
+#### 1. Clone the Repository
 
 ```bash
 # Choose a location for the project
 cd ~/projects  # or wherever you keep code
 
 # Clone the repository
-git clone https://github.com/yourusername/midimon.git
+git clone https://github.com/amiable-dev/midimon.git
 cd midimon
 ```
 
-### 2. Build the Project
-
-**Debug build** (faster compilation, larger binary, includes debug symbols):
-```bash
-cargo build
-```
+#### 2. Build the Daemon
 
 **Release build** (recommended for regular use):
 ```bash
-cargo build --release
+# Build the entire workspace (daemon + core)
+cargo build --release --workspace
+
+# Or build just the daemon binary
+cargo build --release --package midimon-daemon
 ```
 
 The release build takes 2-5 minutes on modern hardware and produces an optimized binary (~3-5MB) in `target/release/midimon`.
 
 **Build output**:
 ```
-   Compiling midimon v0.1.0 (/Users/you/projects/midimon)
-    Finished release [optimized] target(s) in 2m 34s
+   Compiling midimon-core v2.0.0 (/Users/you/projects/midimon/midimon-core)
+   Compiling midimon-daemon v2.0.0 (/Users/you/projects/midimon/midimon-daemon)
+    Finished release [optimized] target(s) in 2m 14s
 ```
 
-### 3. Verify the Build
+#### 3. Build the GUI (Optional)
 
 ```bash
-# List MIDI ports (should show connected devices)
-cargo run --release
+# Install frontend dependencies
+cd midimon-gui/ui
+npm ci
 
-# Or use the binary directly
+# Build the frontend
+npm run build
+
+# Build the Tauri backend
+cd ../src-tauri
+cargo build --release
+
+# The GUI app bundle will be at:
+# midimon-gui/src-tauri/target/release/bundle/macos/MIDIMon GUI.app
+```
+
+#### 4. Verify the Build
+
+```bash
+# Test daemon binary
+./target/release/midimon --version
+
+# Or run it
 ./target/release/midimon
-```
 
-Expected output:
-```
-Available MIDI input ports:
-0: USB MIDI Device
-1: IAC Driver Bus 1
-2: Maschine Mikro MK3 - Input
+# Test GUI (if built)
+open midimon-gui/src-tauri/target/release/bundle/macos/"MIDIMon GUI.app"
 ```
 
 ## Setting Up Configuration
 
-### 1. Create config.toml
+### Using the GUI (Recommended)
 
-MIDIMon looks for `config.toml` in the project root directory.
+v2.0.0 includes a visual configuration editor:
+
+1. **Open MIDIMon GUI**:
+   ```bash
+   open /Applications/"MIDIMon GUI.app"
+   ```
+
+2. **Connect your MIDI device** in the device panel
+
+3. **Use MIDI Learn mode**:
+   - Click "Learn" next to any trigger
+   - Press a pad/button on your controller
+   - The trigger config auto-fills
+   - Assign an action (keystroke, launch app, etc.)
+
+4. **Save configuration** - automatically writes to `~/.config/midimon/config.toml`
+
+See [GUI Quick Start](../getting-started/gui-quick-start.md) for detailed tutorial.
+
+### Manual Configuration (Advanced)
+
+If you prefer to edit `config.toml` manually:
+
+**Config location**: `~/.config/midimon/config.toml`
 
 **Create a minimal config**:
 ```bash
-cat > config.toml << 'EOF'
+mkdir -p ~/.config/midimon
+
+cat > ~/.config/midimon/config.toml << 'EOF'
 [device]
 name = "Mikro"
 auto_connect = true
@@ -163,15 +267,7 @@ This creates a basic configuration with:
 - One test mapping (pad 12 = Cmd+C)
 - One emergency exit (hold pad 0 to quit)
 
-### 2. Find Your Note Numbers
-
-If you don't know which MIDI note numbers your pads send:
-
-```bash
-cargo run --bin pad_mapper
-```
-
-Press each pad and write down the note numbers. Update your `config.toml` with the correct values.
+**Hot-reload**: The daemon automatically reloads config within 0-10ms when you save changes.
 
 ## Configuring macOS Permissions
 
@@ -274,129 +370,183 @@ If nothing appears:
 
 ## Running MIDIMon
 
-### Basic Usage
+### Using the GUI (Recommended)
 
+The simplest way to run MIDIMon v2.0.0:
+
+1. **Launch the GUI**:
+   ```bash
+   open /Applications/"MIDIMon GUI.app"
+   ```
+
+2. **The daemon starts automatically** in the background
+
+3. **Control via GUI**:
+   - View real-time MIDI events in the Event Console
+   - Edit configuration visually
+   - Monitor daemon status in the status bar
+   - Pause/resume/reload from the GUI
+
+4. **Control via menu bar** (when daemon is running):
+   - Click the MIDIMon icon in menu bar
+   - Quick actions: Pause, Reload Config, Open GUI, Quit
+
+### Using the Daemon CLI
+
+For headless operation or scripting:
+
+**Start the daemon**:
 ```bash
-# Auto-detect device (port 0)
-cargo run --release 0
+# Start daemon in foreground
+midimon
 
-# Connect to specific port
-cargo run --release 2
+# Start daemon in background
+midimon &
 
-# With LED lighting
-cargo run --release 2 --led reactive
+# Or use launchd (see Auto-Start section below)
 ```
 
-### With Device Profile
-
-If you have a `.ncmm3` profile from NI Controller Editor:
-
+**Control the daemon** with `midimonctl`:
 ```bash
-# Auto-detect pad page
-cargo run --release 2 --profile ~/Downloads/my-profile.ncmm3
+# Check status
+midimonctl status
 
-# Force specific pad page (A-H)
-cargo run --release 2 --profile my-profile.ncmm3 --pad-page H
+# Reload configuration
+midimonctl reload
+
+# Stop daemon
+midimonctl stop
+
+# Validate config without reloading
+midimonctl validate
+
+# Ping daemon (latency check)
+midimonctl ping
 ```
 
-### With Debug Logging
-
+**Output formats**:
 ```bash
-# Enable verbose logging
-DEBUG=1 cargo run --release 2
+# Human-readable output (default)
+midimonctl status
+
+# JSON output (for scripting)
+midimonctl status --json
 ```
 
-### Available LED Schemes
+### Legacy CLI Options (Daemon)
+
+The daemon binary still supports v1.0.0 CLI arguments:
 
 ```bash
-# Reactive (velocity-based colors, default)
-cargo run --release 2 --led reactive
+# With LED lighting scheme
+midimon --led reactive
 
-# Rainbow gradient
-cargo run --release 2 --led rainbow
+# With device profile
+midimon --profile ~/Downloads/my-profile.ncmm3
 
-# Breathing effect
-cargo run --release 2 --led breathing
-
-# Other schemes: pulse, wave, sparkle, vumeter, spiral, static, off
-cargo run --release 2 --led wave
+# With debug logging
+DEBUG=1 midimon
 ```
 
-## Optional: LaunchAgent Setup (Auto-Start on Login)
+## Auto-Start on Login
 
-To run MIDIMon automatically when you log in:
+### Option 1: GUI Auto-Start (Recommended)
 
-### 1. Create LaunchAgent plist
+The MIDIMon GUI includes built-in auto-start functionality:
+
+1. Open **MIDIMon GUI** → **Settings**
+2. Enable **"Start MIDIMon on login"**
+3. Click **Save**
+
+This creates a LaunchAgent automatically and handles daemon startup.
+
+### Option 2: Manual LaunchAgent Setup
+
+For daemon-only auto-start (no GUI):
+
+#### 1. Create LaunchAgent plist
 
 ```bash
 mkdir -p ~/Library/LaunchAgents
 
-cat > ~/Library/LaunchAgents/com.midimon.plist << 'EOF'
+cat > ~/Library/LaunchAgents/com.midimon.daemon.plist << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.midimon</string>
+    <string>com.midimon.daemon</string>
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/YOURUSERNAME/projects/midimon/target/release/midimon</string>
-        <string>2</string>
-        <string>--led</string>
-        <string>reactive</string>
+        <string>/usr/local/bin/midimon</string>
     </array>
 
     <key>RunAtLoad</key>
     <true/>
 
     <key>KeepAlive</key>
-    <false/>
+    <dict>
+        <key>Crashed</key>
+        <true/>
+    </dict>
 
     <key>StandardOutPath</key>
     <string>/tmp/midimon.log</string>
 
     <key>StandardErrorPath</key>
     <string>/tmp/midimon.err</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
 </dict>
 </plist>
 EOF
 ```
 
-**Replace `YOURUSERNAME`** with your actual username, and update the path to your binary.
-
-### 2. Load the LaunchAgent
+#### 2. Load the LaunchAgent
 
 ```bash
-launchctl load ~/Library/LaunchAgents/com.midimon.plist
+launchctl load ~/Library/LaunchAgents/com.midimon.daemon.plist
 ```
 
-### 3. Verify It's Running
+#### 3. Verify It's Running
 
 ```bash
+# Check launchd
 launchctl list | grep midimon
+
+# Check daemon status
+midimonctl status
 ```
 
 You should see:
 ```
-12345   0   com.midimon
+MIDIMon Daemon Status:
+  State: Running
+  Uptime: 2m 15s
+  Config: /Users/you/.config/midimon/config.toml
+  IPC Socket: /tmp/midimon.sock
 ```
 
-### 4. Control the LaunchAgent
+#### 4. Control the LaunchAgent
 
 ```bash
 # Stop
-launchctl unload ~/Library/LaunchAgents/com.midimon.plist
+launchctl unload ~/Library/LaunchAgents/com.midimon.daemon.plist
 
 # Start
-launchctl load ~/Library/LaunchAgents/com.midimon.plist
+launchctl load ~/Library/LaunchAgents/com.midimon.daemon.plist
 
-# Reload after changes
-launchctl unload ~/Library/LaunchAgents/com.midimon.plist
-launchctl load ~/Library/LaunchAgents/com.midimon.plist
+# Restart
+launchctl unload ~/Library/LaunchAgents/com.midimon.daemon.plist
+launchctl load ~/Library/LaunchAgents/com.midimon.daemon.plist
 ```
 
-### 5. Check Logs
+#### 5. Check Logs
 
 ```bash
 # Standard output
@@ -404,6 +554,9 @@ tail -f /tmp/midimon.log
 
 # Errors
 tail -f /tmp/midimon.err
+
+# Or use daemon status
+midimonctl status --json | jq
 ```
 
 ## Post-Installation Steps
@@ -585,12 +738,24 @@ cargo build --release
 
 ## Next Steps
 
-Now that MIDIMon is installed and running:
+Now that MIDIMon v2.0.0 is installed and running:
 
-1. **Learn the Basics**: Read [First Mapping Tutorial](../getting-started/first-mapping.md)
-2. **Configure Modes**: See [Modes Guide](../getting-started/modes.md)
-3. **Explore Actions**: Check [Actions Reference](../reference/actions.md)
-4. **Customize LEDs**: Read [LED System Documentation](../LED_SYSTEM.md)
+### For GUI Users
+1. **Learn the GUI**: Read [GUI Quick Start Guide](../getting-started/gui-quick-start.md)
+2. **MIDI Learn Tutorial**: See [MIDI Learn Mode](../getting-started/midi-learn.md)
+3. **Device Templates**: Check [Using Device Templates](../guides/device-templates.md)
+4. **Per-App Profiles**: Set up [Application-Specific Profiles](../guides/per-app-profiles.md)
+
+### For CLI Users
+1. **Daemon Control**: Read [Daemon & Hot-Reload Guide](../guides/daemon.md)
+2. **CLI Reference**: See [midimonctl Commands](../reference/cli.md)
+3. **Manual Configuration**: Check [Configuration Overview](../configuration/overview.md)
+4. **Advanced Actions**: Explore [Actions Reference](../reference/actions.md)
+
+### For All Users
+- **Troubleshooting**: [Common Issues](../troubleshooting/common-issues.md)
+- **LED Customization**: [LED System Documentation](../guides/led-system.md)
+- **Diagnostic Tools**: [Debugging Guide](../troubleshooting/diagnostics.md)
 
 ## Getting Help
 
@@ -608,5 +773,6 @@ If you encounter issues:
 
 ---
 
-**Last Updated**: November 11, 2025
-**macOS Support**: 12.0+ (Monterey and later)
+**Last Updated**: November 14, 2025 (v2.0.0)
+**macOS Support**: 11.0+ (Big Sur and later)
+**Architecture**: Universal Binary (Intel + Apple Silicon)
