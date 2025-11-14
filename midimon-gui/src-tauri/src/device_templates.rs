@@ -107,11 +107,10 @@ impl DeviceTemplateRegistry {
             name: "nanoKONTROL2".to_string(),
             manufacturer: "KORG".to_string(),
             model: "nanoKONTROL2".to_string(),
-            description: "Slim-line USB MIDI controller with 8 channels of faders, knobs, and buttons.".to_string(),
-            midi_patterns: vec![
-                "nanoKONTROL2".to_string(),
-                "KORG nanoKONTROL2".to_string(),
-            ],
+            description:
+                "Slim-line USB MIDI controller with 8 channels of faders, knobs, and buttons."
+                    .to_string(),
+            midi_patterns: vec!["nanoKONTROL2".to_string(), "KORG nanoKONTROL2".to_string()],
             category: "mixer-controller".to_string(),
             config_template: include_str!("../templates/nanokontrol2.toml").to_string(),
             thumbnail_url: None,
@@ -125,11 +124,10 @@ impl DeviceTemplateRegistry {
             name: "APC Mini".to_string(),
             manufacturer: "Akai".to_string(),
             model: "APC Mini".to_string(),
-            description: "Compact 8x8 grid controller with 9 faders. Designed for Ableton Live control.".to_string(),
-            midi_patterns: vec![
-                "APC MINI".to_string(),
-                "Akai APC MINI".to_string(),
-            ],
+            description:
+                "Compact 8x8 grid controller with 9 faders. Designed for Ableton Live control."
+                    .to_string(),
+            midi_patterns: vec!["APC MINI".to_string(), "Akai APC MINI".to_string()],
             category: "pad-controller".to_string(),
             config_template: include_str!("../templates/apc-mini.toml").to_string(),
             thumbnail_url: None,
@@ -143,11 +141,10 @@ impl DeviceTemplateRegistry {
             name: "BeatStep".to_string(),
             manufacturer: "Arturia".to_string(),
             model: "BeatStep".to_string(),
-            description: "Pad controller and step sequencer with 16 velocity-sensitive pads and 16 encoders.".to_string(),
-            midi_patterns: vec![
-                "Arturia BeatStep".to_string(),
-                "BeatStep".to_string(),
-            ],
+            description:
+                "Pad controller and step sequencer with 16 velocity-sensitive pads and 16 encoders."
+                    .to_string(),
+            midi_patterns: vec!["Arturia BeatStep".to_string(), "BeatStep".to_string()],
             category: "pad-controller".to_string(),
             config_template: include_str!("../templates/beatstep.toml").to_string(),
             thumbnail_url: None,
@@ -161,11 +158,9 @@ impl DeviceTemplateRegistry {
             name: "Generic 25-Key MIDI Keyboard".to_string(),
             manufacturer: "Generic".to_string(),
             model: "25-Key Keyboard".to_string(),
-            description: "Basic template for 25-key MIDI keyboards with pitch bend and mod wheel.".to_string(),
-            midi_patterns: vec![
-                "USB MIDI Keyboard".to_string(),
-                "MIDI Keyboard".to_string(),
-            ],
+            description: "Basic template for 25-key MIDI keyboards with pitch bend and mod wheel."
+                .to_string(),
+            midi_patterns: vec!["USB MIDI Keyboard".to_string(), "MIDI Keyboard".to_string()],
             category: "keyboard".to_string(),
             config_template: include_str!("../templates/generic-keyboard-25.toml").to_string(),
             thumbnail_url: None,
@@ -202,9 +197,9 @@ impl DeviceTemplateRegistry {
         self.templates
             .values()
             .filter(|t| {
-                t.midi_patterns.iter().any(|pattern| {
-                    midi_name.to_lowercase().contains(&pattern.to_lowercase())
-                })
+                t.midi_patterns
+                    .iter()
+                    .any(|pattern| midi_name.to_lowercase().contains(&pattern.to_lowercase()))
             })
             .collect()
     }
@@ -223,7 +218,8 @@ impl DeviceTemplateRegistry {
 
     /// Create config from template
     pub fn create_config_from_template(&self, template_id: &str) -> Result<String, String> {
-        let template = self.get_template(template_id)
+        let template = self
+            .get_template(template_id)
             .ok_or_else(|| format!("Template not found: {}", template_id))?;
 
         Ok(template.config_template.clone())

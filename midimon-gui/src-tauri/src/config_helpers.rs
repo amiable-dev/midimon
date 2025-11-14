@@ -52,13 +52,19 @@ pub enum TriggerConfig {
 /// Convert TriggerSuggestion to TriggerConfig suitable for config.toml
 pub fn suggestion_to_config(suggestion: &TriggerSuggestion) -> TriggerConfig {
     match suggestion {
-        TriggerSuggestion::Note { note, velocity_range } => {
-            TriggerConfig::Note {
-                note: *note,
-                velocity_min: velocity_range.map(|(min, _)| min),
-            }
-        }
-        TriggerSuggestion::VelocityRange { note, velocity_min, velocity_max, level } => {
+        TriggerSuggestion::Note {
+            note,
+            velocity_range,
+        } => TriggerConfig::Note {
+            note: *note,
+            velocity_min: velocity_range.map(|(min, _)| min),
+        },
+        TriggerSuggestion::VelocityRange {
+            note,
+            velocity_min,
+            velocity_max,
+            level,
+        } => {
             // Convert back to soft_max/medium_max format
             let (soft_max, medium_max) = match level.as_str() {
                 "soft" => (Some(*velocity_max), Some(80)), // soft: 0-40, medium: 41-80
@@ -73,37 +79,30 @@ pub fn suggestion_to_config(suggestion: &TriggerSuggestion) -> TriggerConfig {
                 medium_max,
             }
         }
-        TriggerSuggestion::LongPress { note, duration_ms } => {
-            TriggerConfig::LongPress {
-                note: *note,
-                duration_ms: Some(*duration_ms),
-            }
-        }
-        TriggerSuggestion::DoubleTap { note, timeout_ms } => {
-            TriggerConfig::DoubleTap {
-                note: *note,
-                timeout_ms: Some(*timeout_ms),
-            }
-        }
-        TriggerSuggestion::Chord { notes, window_ms } => {
-            TriggerConfig::NoteChord {
-                notes: notes.clone(),
-                timeout_ms: Some(*window_ms),
-            }
-        }
-        TriggerSuggestion::Encoder { cc, direction } => {
-            TriggerConfig::EncoderTurn {
-                cc: *cc,
-                direction: direction.clone(),
-            }
-        }
-        TriggerSuggestion::CC { cc, value_range } => {
-            TriggerConfig::CC {
-                cc: *cc,
-                value_min: value_range.map(|(min, _)| min),
-            }
-        }
-        TriggerSuggestion::Aftertouch { note, pressure_range } => {
+        TriggerSuggestion::LongPress { note, duration_ms } => TriggerConfig::LongPress {
+            note: *note,
+            duration_ms: Some(*duration_ms),
+        },
+        TriggerSuggestion::DoubleTap { note, timeout_ms } => TriggerConfig::DoubleTap {
+            note: *note,
+            timeout_ms: Some(*timeout_ms),
+        },
+        TriggerSuggestion::Chord { notes, window_ms } => TriggerConfig::NoteChord {
+            notes: notes.clone(),
+            timeout_ms: Some(*window_ms),
+        },
+        TriggerSuggestion::Encoder { cc, direction } => TriggerConfig::EncoderTurn {
+            cc: *cc,
+            direction: direction.clone(),
+        },
+        TriggerSuggestion::CC { cc, value_range } => TriggerConfig::CC {
+            cc: *cc,
+            value_min: value_range.map(|(min, _)| min),
+        },
+        TriggerSuggestion::Aftertouch {
+            note,
+            pressure_range,
+        } => {
             // Note: current midimon-core Aftertouch doesn't have note field,
             // only pressure_min, so we ignore the note for now
             TriggerConfig::Aftertouch {
@@ -150,7 +149,11 @@ keys = "space"  # TODO: Replace with desired action
 modifiers = []
 "#,
         mode_name,
-        trigger_toml.lines().map(|line| format!("{}", line)).collect::<Vec<_>>().join("\n")
+        trigger_toml
+            .lines()
+            .map(|line| format!("{}", line))
+            .collect::<Vec<_>>()
+            .join("\n")
     )
 }
 
@@ -166,7 +169,13 @@ mod tests {
         };
 
         let config = suggestion_to_config(&suggestion);
-        assert!(matches!(config, TriggerConfig::Note { note: 60, velocity_min: Some(1) }));
+        assert!(matches!(
+            config,
+            TriggerConfig::Note {
+                note: 60,
+                velocity_min: Some(1)
+            }
+        ));
     }
 
     #[test]
@@ -179,7 +188,12 @@ mod tests {
         };
 
         let config = suggestion_to_config(&suggestion);
-        if let TriggerConfig::VelocityRange { note, soft_max, medium_max } = config {
+        if let TriggerConfig::VelocityRange {
+            note,
+            soft_max,
+            medium_max,
+        } = config
+        {
             assert_eq!(note, 60);
             assert_eq!(soft_max, Some(40));
             assert_eq!(medium_max, Some(80));
@@ -198,7 +212,10 @@ mod tests {
         let config = suggestion_to_config(&suggestion);
         assert!(matches!(
             config,
-            TriggerConfig::LongPress { note: 60, duration_ms: Some(2500) }
+            TriggerConfig::LongPress {
+                note: 60,
+                duration_ms: Some(2500)
+            }
         ));
     }
 

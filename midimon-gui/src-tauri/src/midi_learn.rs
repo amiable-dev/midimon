@@ -202,7 +202,8 @@ impl MidiLearnSession {
                         self.complete_learning(TriggerSuggestion::DoubleTap {
                             note: *note,
                             timeout_ms: gap.as_millis() as u64 + 50, // Add buffer
-                        }).await;
+                        })
+                        .await;
                         return;
                     }
                 }
@@ -226,7 +227,9 @@ impl MidiLearnSession {
                     let recent_notes: Vec<u8> = history
                         .iter()
                         .rev()
-                        .take_while(|r| now.duration_since(r.timestamp) <= Duration::from_millis(100))
+                        .take_while(|r| {
+                            now.duration_since(r.timestamp) <= Duration::from_millis(100)
+                        })
                         .filter_map(|r| match r.event {
                             MidiEvent::NoteOn { note, .. } => Some(note),
                             _ => None,
@@ -238,7 +241,8 @@ impl MidiLearnSession {
                         self.complete_learning(TriggerSuggestion::Chord {
                             notes: held.clone(),
                             window_ms: 100,
-                        }).await;
+                        })
+                        .await;
                         return;
                     }
                 }
@@ -253,7 +257,8 @@ impl MidiLearnSession {
                         self.complete_learning(TriggerSuggestion::LongPress {
                             note: *note,
                             duration_ms: duration.as_millis() as u64,
-                        }).await;
+                        })
+                        .await;
                         return;
                     }
                 }
@@ -270,7 +275,10 @@ impl MidiLearnSession {
                     .rev()
                     .skip(1) // Skip current event
                     .find_map(|r| match r.event {
-                        MidiEvent::ControlChange { controller: cc, value: v } if cc == *controller => Some(v),
+                        MidiEvent::ControlChange {
+                            controller: cc,
+                            value: v,
+                        } if cc == *controller => Some(v),
                         _ => None,
                     });
 
@@ -289,7 +297,8 @@ impl MidiLearnSession {
                 self.complete_learning(TriggerSuggestion::Encoder {
                     cc: *controller,
                     direction,
-                }).await;
+                })
+                .await;
                 return;
             }
             _ => {
@@ -374,29 +383,21 @@ impl MidiLearnSession {
                     }
                 }
             }
-            MidiEvent::NoteOff { note, .. } => {
-                TriggerSuggestion::Note {
-                    note: *note,
-                    velocity_range: None,
-                }
-            }
-            MidiEvent::ControlChange { controller, value } => {
-                TriggerSuggestion::CC {
-                    cc: *controller,
-                    value_range: Some((*value, *value)),
-                }
-            }
-            MidiEvent::PitchBend { value } => {
-                TriggerSuggestion::PitchBend {
-                    bend_range: (*value, *value),
-                }
-            }
-            MidiEvent::Aftertouch { note, pressure } => {
-                TriggerSuggestion::Aftertouch {
-                    note: *note,
-                    pressure_range: (*pressure, *pressure),
-                }
-            }
+            MidiEvent::NoteOff { note, .. } => TriggerSuggestion::Note {
+                note: *note,
+                velocity_range: None,
+            },
+            MidiEvent::ControlChange { controller, value } => TriggerSuggestion::CC {
+                cc: *controller,
+                value_range: Some((*value, *value)),
+            },
+            MidiEvent::PitchBend { value } => TriggerSuggestion::PitchBend {
+                bend_range: (*value, *value),
+            },
+            MidiEvent::Aftertouch { note, pressure } => TriggerSuggestion::Aftertouch {
+                note: *note,
+                pressure_range: (*pressure, *pressure),
+            },
         }
     }
 }
@@ -417,28 +418,52 @@ impl MidiEvent {
         let message_type = status & 0xF0;
 
         match message_type {
-            0x90 => { // Note On
+            0x90 => {
+                // Note On
                 if data2 == 0 {
-                    Some(MidiEvent::NoteOff { note: data1, velocity: 0 })
+                    Some(MidiEvent::NoteOff {
+                        note: data1,
+                        velocity: 0,
+                    })
                 } else {
-                    Some(MidiEvent::NoteOn { note: data1, velocity: data2 })
+                    Some(MidiEvent::NoteOn {
+                        note: data1,
+                        velocity: data2,
+                    })
                 }
             }
-            0x80 => { // Note Off
-                Some(MidiEvent::NoteOff { note: data1, velocity: data2 })
+            0x80 => {
+                // Note Off
+                Some(MidiEvent::NoteOff {
+                    note: data1,
+                    velocity: data2,
+                })
             }
-            0xB0 => { // Control Change
-                Some(MidiEvent::ControlChange { controller: data1, value: data2 })
+            0xB0 => {
+                // Control Change
+                Some(MidiEvent::ControlChange {
+                    controller: data1,
+                    value: data2,
+                })
             }
-            0xE0 => { // Pitch Bend
+            0xE0 => {
+                // Pitch Bend
                 let value = (((data2 as i16) << 7) | (data1 as i16)) - 8192;
                 Some(MidiEvent::PitchBend { value })
             }
-            0xA0 => { // Polyphonic Aftertouch
-                Some(MidiEvent::Aftertouch { note: Some(data1), pressure: data2 })
+            0xA0 => {
+                // Polyphonic Aftertouch
+                Some(MidiEvent::Aftertouch {
+                    note: Some(data1),
+                    pressure: data2,
+                })
             }
-            0xD0 => { // Channel Aftertouch
-                Some(MidiEvent::Aftertouch { note: None, pressure: data1 })
+            0xD0 => {
+                // Channel Aftertouch
+                Some(MidiEvent::Aftertouch {
+                    note: None,
+                    pressure: data1,
+                })
             }
             _ => None,
         }
@@ -468,14 +493,20 @@ mod tests {
         session.start().await;
 
         // Simulate Note On
-        let event_on = MidiEvent::NoteOn { note: 60, velocity: 100 };
+        let event_on = MidiEvent::NoteOn {
+            note: 60,
+            velocity: 100,
+        };
         session.capture_event(event_on).await;
 
         // Wait a bit for async processing
         tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
         // Simulate Note Off to complete the note trigger
-        let event_off = MidiEvent::NoteOff { note: 60, velocity: 0 };
+        let event_off = MidiEvent::NoteOff {
+            note: 60,
+            velocity: 0,
+        };
         session.capture_event(event_off).await;
 
         // Wait for async state propagation (pattern detection + task spawn)
@@ -492,10 +523,22 @@ mod tests {
     fn test_midi_event_parsing() {
         // Note On (C4, velocity 100)
         let event = MidiEvent::from_bytes(0x90, 60, 100);
-        assert!(matches!(event, Some(MidiEvent::NoteOn { note: 60, velocity: 100 })));
+        assert!(matches!(
+            event,
+            Some(MidiEvent::NoteOn {
+                note: 60,
+                velocity: 100
+            })
+        ));
 
         // Control Change (CC 7, value 127)
         let event = MidiEvent::from_bytes(0xB0, 7, 127);
-        assert!(matches!(event, Some(MidiEvent::ControlChange { controller: 7, value: 127 })));
+        assert!(matches!(
+            event,
+            Some(MidiEvent::ControlChange {
+                controller: 7,
+                value: 127
+            })
+        ));
     }
 }

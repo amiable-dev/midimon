@@ -3,12 +3,12 @@
 
 //! Application state management
 
+use crate::app_detection::{AppDetector, AppInfo};
+use crate::events::EventStreamManager;
+use crate::midi_learn::MidiLearnSession;
+use crate::profile_manager::ProfileManager;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use crate::midi_learn::MidiLearnSession;
-use crate::app_detection::{AppDetector, AppInfo};
-use crate::profile_manager::ProfileManager;
-use crate::events::EventStreamManager;
 
 /// Global application state
 pub struct AppState {
@@ -32,8 +32,7 @@ struct AppStateInner {
 impl AppState {
     /// Create a new application state
     pub fn new() -> Self {
-        let profile_manager = ProfileManager::new()
-            .expect("Failed to create profile manager");
+        let profile_manager = ProfileManager::new().expect("Failed to create profile manager");
 
         Self {
             inner: Arc::new(RwLock::new(AppStateInner {
@@ -82,11 +81,13 @@ impl AppState {
         let inner = self.inner.read().await;
         let detector = Arc::clone(&inner.app_detector);
 
-        detector.start_detection(move |_app_info| {
-            // App change callback
-            // Could emit Tauri events here for frontend notification
-            // For now, just store in detector state
-        }).await;
+        detector
+            .start_detection(move |_app_info| {
+                // App change callback
+                // Could emit Tauri events here for frontend notification
+                // For now, just store in detector state
+            })
+            .await;
     }
 
     /// Stop app detection

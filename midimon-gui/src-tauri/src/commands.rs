@@ -3,19 +3,17 @@
 
 //! Tauri commands for interacting with the MIDIMon daemon
 
+use crate::config_helpers::{config_to_json, generate_mapping_toml, suggestion_to_config};
+use crate::device_templates::{DeviceTemplate, DeviceTemplateRegistry};
+use crate::midi_learn::{LearnSessionState, MidiLearnResult, MidiLearnSession, TriggerSuggestion};
+use crate::state::AppState;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::State;
 use uuid::Uuid;
-use crate::state::AppState;
-use crate::midi_learn::{MidiLearnSession, MidiLearnResult, LearnSessionState, TriggerSuggestion};
-use crate::config_helpers::{suggestion_to_config, generate_mapping_toml, config_to_json};
-use crate::device_templates::{DeviceTemplate, DeviceTemplateRegistry};
 
 // Import daemon types (we'll re-export these from daemon crate)
-use midimon_daemon::daemon::{
-    IpcClient, IpcCommand, IpcRequest, ResponseStatus,
-};
+use midimon_daemon::daemon::{IpcClient, IpcCommand, IpcRequest, ResponseStatus};
 
 /// Daemon status information for UI
 #[derive(Debug, Serialize, Deserialize)]
@@ -71,16 +69,19 @@ pub async fn get_daemon_status(state: State<'_, AppState>) -> Result<DaemonStatu
 
                         // Parse daemon info from response
                         if let Some(data) = response.data {
-                            let lifecycle_state = data.get("daemon")
+                            let lifecycle_state = data
+                                .get("daemon")
                                 .and_then(|d| d.get("lifecycle_state"))
                                 .and_then(|s| s.as_str())
                                 .map(String::from);
 
-                            let uptime_secs = data.get("daemon")
+                            let uptime_secs = data
+                                .get("daemon")
                                 .and_then(|d| d.get("uptime_seconds"))
                                 .and_then(|u| u.as_u64());
 
-                            let events_processed = data.get("statistics")
+                            let events_processed = data
+                                .get("statistics")
                                 .and_then(|s| s.get("events_processed"))
                                 .and_then(|e| e.as_u64());
 
@@ -88,7 +89,10 @@ pub async fn get_daemon_status(state: State<'_, AppState>) -> Result<DaemonStatu
                                 Some(DeviceInfo {
                                     connected: d.get("connected")?.as_bool()?,
                                     name: d.get("name").and_then(|n| n.as_str()).map(String::from),
-                                    port: d.get("port").and_then(|p| p.as_u64()).map(|p| p as usize),
+                                    port: d
+                                        .get("port")
+                                        .and_then(|p| p.as_u64())
+                                        .map(|p| p as usize),
                                 })
                             });
 
@@ -113,7 +117,8 @@ pub async fn get_daemon_status(state: State<'_, AppState>) -> Result<DaemonStatu
                             })
                         }
                     } else {
-                        let error_msg = response.error
+                        let error_msg = response
+                            .error
                             .map(|e| e.message)
                             .unwrap_or_else(|| "Unknown error".to_string());
 
@@ -237,22 +242,26 @@ pub async fn validate_config(_state: State<'_, AppState>) -> Result<ConfigValida
         ResponseStatus::Success => {
             // Parse validation result from response data
             if let Some(data) = response.data {
-                let valid = data.get("valid")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(true);
+                let valid = data.get("valid").and_then(|v| v.as_bool()).unwrap_or(true);
 
-                let errors = data.get("errors")
+                let errors = data
+                    .get("errors")
                     .and_then(|e| e.as_array())
-                    .map(|arr| arr.iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect()
+                    })
                     .unwrap_or_default();
 
-                let warnings = data.get("warnings")
+                let warnings = data
+                    .get("warnings")
                     .and_then(|w| w.as_array())
-                    .map(|arr| arr.iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect()
+                    })
                     .unwrap_or_default();
 
                 Ok(ConfigValidation {
@@ -373,8 +382,8 @@ pub async fn save_config(
 #[tauri::command]
 pub async fn get_config_path() -> Result<String, String> {
     // Use the same logic as daemon to find config path
-    let config_dir = dirs::config_dir()
-        .ok_or_else(|| "Failed to determine config directory".to_string())?;
+    let config_dir =
+        dirs::config_dir().ok_or_else(|| "Failed to determine config directory".to_string())?;
 
     let config_path = config_dir.join("midimon").join("config.toml");
 
@@ -398,7 +407,9 @@ pub async fn start_midi_learn(
 
 /// Get the status of the current MIDI Learn session
 #[tauri::command]
-pub async fn get_midi_learn_status(state: State<'_, AppState>) -> Result<LearnSessionState, String> {
+pub async fn get_midi_learn_status(
+    state: State<'_, AppState>,
+) -> Result<LearnSessionState, String> {
     let session = state.get_learn_session().await;
     match session {
         Some(s) => Ok(s.get_state().await),
@@ -428,7 +439,9 @@ pub async fn cancel_midi_learn(state: State<'_, AppState>) -> Result<(), String>
 
 /// Get the result of the MIDI Learn session
 #[tauri::command]
-pub async fn get_midi_learn_result(state: State<'_, AppState>) -> Result<Option<MidiLearnResult>, String> {
+pub async fn get_midi_learn_result(
+    state: State<'_, AppState>,
+) -> Result<Option<MidiLearnResult>, String> {
     let session = state.get_learn_session().await;
     match session {
         Some(s) => {
@@ -437,7 +450,7 @@ pub async fn get_midi_learn_result(state: State<'_, AppState>) -> Result<Option<
                 s.set_timed_out().await;
             }
             Ok(s.get_result().await)
-        },
+        }
         None => Ok(None),
     }
 }
@@ -454,14 +467,18 @@ pub fn generate_trigger_config_toml(
 
 /// Convert trigger suggestion to JSON config
 #[tauri::command]
-pub fn trigger_suggestion_to_json(suggestion: TriggerSuggestion) -> Result<serde_json::Value, String> {
+pub fn trigger_suggestion_to_json(
+    suggestion: TriggerSuggestion,
+) -> Result<serde_json::Value, String> {
     let config = suggestion_to_config(&suggestion);
     Ok(config_to_json(&config))
 }
 
 /// Get the current frontmost application
 #[tauri::command]
-pub async fn get_frontmost_app(state: State<'_, AppState>) -> Result<Option<crate::app_detection::AppInfo>, String> {
+pub async fn get_frontmost_app(
+    state: State<'_, AppState>,
+) -> Result<Option<crate::app_detection::AppInfo>, String> {
     Ok(state.get_current_app().await)
 }
 
@@ -481,7 +498,9 @@ pub async fn stop_app_monitoring(state: State<'_, AppState>) -> Result<(), Strin
 
 /// List all registered profiles
 #[tauri::command]
-pub async fn list_profiles(state: State<'_, AppState>) -> Result<Vec<crate::profile_manager::AppProfile>, String> {
+pub async fn list_profiles(
+    state: State<'_, AppState>,
+) -> Result<Vec<crate::profile_manager::AppProfile>, String> {
     let manager = state.get_profile_manager().await;
     Ok(manager.list_profiles().await)
 }
@@ -625,9 +644,7 @@ pub fn list_templates_by_category(category: String) -> Result<Vec<DeviceTemplate
 
 /// Create a config from a template
 #[tauri::command]
-pub fn create_config_from_template(
-    template_id: String,
-) -> Result<String, String> {
+pub fn create_config_from_template(template_id: String) -> Result<String, String> {
     let registry = DeviceTemplateRegistry::new();
     registry.create_config_from_template(&template_id)
 }

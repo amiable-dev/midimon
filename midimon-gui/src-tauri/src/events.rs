@@ -13,17 +13,10 @@ use tokio::sync::RwLock;
 #[serde(tag = "type", content = "payload")]
 pub enum AppEvent {
     /// Daemon status changed
-    DaemonStatusChanged {
-        running: bool,
-        connected: bool,
-    },
+    DaemonStatusChanged { running: bool, connected: bool },
 
     /// MIDI event received (for MIDI Learn mode)
-    MidiEventReceived {
-        note: u8,
-        velocity: u8,
-        channel: u8,
-    },
+    MidiEventReceived { note: u8, velocity: u8, channel: u8 },
 
     /// Configuration reloaded
     ConfigReloaded {
@@ -32,9 +25,7 @@ pub enum AppEvent {
     },
 
     /// Error occurred
-    Error {
-        message: String,
-    },
+    Error { message: String },
 }
 
 /// MIDI event information for the live console
@@ -258,7 +249,9 @@ impl MidiEventInfo {
     /// Format as human-readable note name
     pub fn note_name(&self) -> Option<String> {
         self.note.map(|n| {
-            let note_names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+            let note_names = [
+                "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+            ];
             let octave = (n / 12) as i32 - 1;
             let note_index = (n % 12) as usize;
             format!("{}{}", note_names[note_index], octave)

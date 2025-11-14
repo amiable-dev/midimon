@@ -7,12 +7,11 @@
 //! Communicates with the midimon daemon via IPC.
 
 use midimon_daemon::daemon::{
-    IconState, MenuAction, MenuBar, MenuBarError,
-    IpcClient, IpcCommand, IpcRequest, ResponseStatus,
+    IconState, IpcClient, IpcCommand, IpcRequest, MenuAction, MenuBar, MenuBarError, ResponseStatus,
 };
-use uuid::Uuid;
 use std::time::Duration;
 use tokio::time;
+use uuid::Uuid;
 
 #[tokio::main]
 async fn main() {
@@ -164,11 +163,13 @@ fn extract_status(response: &str) -> Option<String> {
     if let Ok(value) = serde_json::from_str::<serde_json::Value>(response) {
         // Try to extract daemon info
         if let Some(daemon) = value.get("daemon") {
-            let state = daemon.get("lifecycle_state")
+            let state = daemon
+                .get("lifecycle_state")
                 .and_then(|v| v.as_str())
                 .unwrap_or("Unknown");
 
-            let uptime = daemon.get("uptime_seconds")
+            let uptime = daemon
+                .get("uptime_seconds")
                 .and_then(|v| v.as_f64())
                 .map(format_duration)
                 .unwrap_or_else(|| "Unknown".to_string());

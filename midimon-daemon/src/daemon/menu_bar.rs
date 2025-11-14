@@ -13,12 +13,11 @@
 //! - Linux: Uses libayatana-appindicator
 //! - Windows: System tray integration
 
-use tray_icon::{
-    Icon, TrayIcon, TrayIconBuilder,
-    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu, MenuEvent},
-    TrayIconEvent,
-};
 use crossbeam_channel::Receiver;
+use tray_icon::{
+    Icon, TrayIcon, TrayIconBuilder, TrayIconEvent,
+    menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu},
+};
 
 #[cfg(target_os = "macos")]
 use cocoa::base::{id, nil};
@@ -202,24 +201,21 @@ impl MenuBar {
     fn create_running_icon() -> Result<Icon, MenuBarError> {
         // Create a simple 16x16 green circle icon
         let rgba = Self::create_circle_icon([0, 200, 0, 255]); // Green
-        Icon::from_rgba(rgba, 16, 16)
-            .map_err(|e| MenuBarError::IconCreationFailed(e.to_string()))
+        Icon::from_rgba(rgba, 16, 16).map_err(|e| MenuBarError::IconCreationFailed(e.to_string()))
     }
 
     /// Create the stopped state icon (gray)
     fn create_stopped_icon() -> Result<Icon, MenuBarError> {
         // Create a simple 16x16 gray circle icon
         let rgba = Self::create_circle_icon([128, 128, 128, 255]); // Gray
-        Icon::from_rgba(rgba, 16, 16)
-            .map_err(|e| MenuBarError::IconCreationFailed(e.to_string()))
+        Icon::from_rgba(rgba, 16, 16).map_err(|e| MenuBarError::IconCreationFailed(e.to_string()))
     }
 
     /// Create the error state icon (red)
     fn create_error_icon() -> Result<Icon, MenuBarError> {
         // Create a simple 16x16 red circle icon
         let rgba = Self::create_circle_icon([200, 0, 0, 255]); // Red
-        Icon::from_rgba(rgba, 16, 16)
-            .map_err(|e| MenuBarError::IconCreationFailed(e.to_string()))
+        Icon::from_rgba(rgba, 16, 16).map_err(|e| MenuBarError::IconCreationFailed(e.to_string()))
     }
 
     /// Create a simple circular icon with the given color
@@ -239,7 +235,7 @@ impl MenuBar {
                 let idx = ((y * size + x) * 4) as usize;
                 if distance <= radius {
                     // Inside circle - use the specified color
-                    rgba[idx] = color[0];     // R
+                    rgba[idx] = color[0]; // R
                     rgba[idx + 1] = color[1]; // G
                     rgba[idx + 2] = color[2]; // B
                     rgba[idx + 3] = color[3]; // A

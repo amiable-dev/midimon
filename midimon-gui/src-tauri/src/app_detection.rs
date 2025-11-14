@@ -8,15 +8,15 @@
 
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use std::time::Duration;
+use tokio::sync::RwLock;
 
 #[cfg(target_os = "macos")]
 use cocoa::appkit::NSRunningApplication;
 #[cfg(target_os = "macos")]
 use cocoa::base::{id, nil};
 #[cfg(target_os = "macos")]
-use cocoa::foundation::{NSString, NSAutoreleasePool};
+use cocoa::foundation::{NSAutoreleasePool, NSString};
 #[cfg(target_os = "macos")]
 use objc::{class, msg_send, sel, sel_impl};
 
@@ -263,11 +263,13 @@ mod tests {
         let detector_ref = Arc::new(detector);
 
         let detector_clone = Arc::clone(&detector_ref);
-        detector_clone.start_detection(|app| {
-            if let Some(app_info) = app {
-                println!("App changed to: {}", app_info.name);
-            }
-        }).await;
+        detector_clone
+            .start_detection(|app| {
+                if let Some(app_info) = app {
+                    println!("App changed to: {}", app_info.name);
+                }
+            })
+            .await;
 
         assert!(detector_ref.is_active().await);
 
