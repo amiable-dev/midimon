@@ -1,10 +1,11 @@
 name: Tauri GUI Build
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+  # Temporarily disabled - GUI build issues to be resolved in separate PR
+  # push:
+  #   branches: [ main, develop ]
+  # pull_request:
+  #   branches: [ main, develop ]
   workflow_dispatch:
 
 env:
