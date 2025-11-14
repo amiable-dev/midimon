@@ -536,3 +536,47 @@ pub async fn clear_profile_cache(state: State<'_, AppState>) -> Result<(), Strin
     manager.clear_cache().await;
     Ok(())
 }
+
+/// Export profile to JSON
+#[tauri::command]
+pub async fn export_profile_json(
+    profile_id: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let manager = state.get_profile_manager().await;
+    manager.export_profile_json(&profile_id).await
+}
+
+/// Import profile from JSON
+#[tauri::command]
+pub async fn import_profile_json(
+    json: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let manager = state.get_profile_manager().await;
+    manager.import_profile_json(&json).await
+}
+
+/// Export profile to TOML file
+#[tauri::command]
+pub async fn export_profile_toml(
+    profile_id: String,
+    output_path: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let manager = state.get_profile_manager().await;
+    let path = std::path::PathBuf::from(output_path);
+    manager.export_profile_toml(&profile_id, &path).await
+}
+
+/// Import profile from TOML file
+#[tauri::command]
+pub async fn import_profile_toml(
+    file_path: String,
+    name: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let manager = state.get_profile_manager().await;
+    let path = std::path::PathBuf::from(file_path);
+    manager.import_profile_toml(&path, name).await
+}

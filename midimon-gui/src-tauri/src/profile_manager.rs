@@ -320,6 +320,97 @@ impl ProfileManager {
     pub fn get_profiles_directory(&self) -> &Path {
         &self.profiles_dir
     }
+
+    /// Export profile to JSON
+    pub async fn export_profile_json(&self, profile_id: &str) -> Result<String, String> {
+        let profile = self.get_profile(profile_id).await
+            .ok_or_else(|| format!("Profile not found: {}", profile_id))?;
+
+        serde_json::to_string_pretty(&profile)
+            .map_err(|e| format!("Failed to serialize profile: {}", e))
+    }
+
+    /// Import profile from JSON
+    pub async fn import_profile_json(&self, json: &str) -> Result<String, String> {
+        let mut profile: AppProfile = serde_json::from_str(json)
+            .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+        // Generate new ID if conflicts
+        let original_id = profile.id.clone();
+        let mut counter = 1;
+        while self.get_profile(&profile.id).await.is_some() {
+            profile.id = format!("{}-{}", original_id, counter);
+            counter += 1;
+        }
+
+        self.register_profile(profile.clone()).await?;
+        Ok(profile.id)
+    }
+
+    /// Export profile to TOML file
+    pub async fn export_profile_toml(&self, profile_id: &str, output_path: &Path) -> Result<(), String> {
+        let profile = self.get_profile(profile_id).await
+            .ok_or_else(|| format!("Profile not found: {}", profile_id))?;
+
+        // Load config content
+        let config_content = self.load_profile_config(profile_id).await?;
+
+        // Write to file
+        std::fs::write(output_path, config_content)
+            .map_err(|e| format!("Failed to write file: {}", e))?;
+
+        Ok(())
+    }
+
+    /// Import profile from TOML file
+    pub async fn import_profile_toml(&self, path: &Path, name: Option<String>) -> Result<String, String> {
+        let content = std::fs::read_to_string(path)
+            .map_err(|e| format!("Failed to read file: {}", e))?;
+
+        // Parse TOML to extract metadata
+        let config: toml::Value = toml::from_str(&content)
+            .map_err(|e| format!("Failed to parse TOML: {}", e))?;
+
+        // Extract bundle IDs from config if available
+        let bundle_ids = if let Some(metadata) = config.get("metadata") {
+            if let Some(ids) = metadata.get("bundle_ids") {
+                ids.as_array()
+                    .and_then(|arr| arr.iter()
+                        .filter_map(|v| v.as_str().map(String::from))
+                        .collect::<Vec<_>>()
+                        .into())
+            } else {
+                None
+            }
+        } else {
+            None
+        }.unwrap_or_default();
+
+        // Generate profile
+        let profile_id = path.file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("imported")
+            .to_string();
+
+        let profile_name = name.unwrap_or_else(|| profile_id.clone());
+
+        // Copy file to profiles directory
+        let dest_path = self.profiles_dir.join(format!("{}.toml", profile_id));
+        std::fs::copy(path, &dest_path)
+            .map_err(|e| format!("Failed to copy file: {}", e))?;
+
+        let profile = AppProfile {
+            id: profile_id.clone(),
+            name: profile_name,
+            bundle_ids,
+            config_path: dest_path,
+            last_modified: None,
+            is_default: false,
+        };
+
+        self.register_profile(profile).await?;
+        Ok(profile_id)
+    }
 }
 
 impl Default for ProfileManager {

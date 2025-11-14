@@ -57,6 +57,10 @@ fn main() {
             commands::get_active_profile,
             commands::scan_profiles,
             commands::clear_profile_cache,
+            commands::export_profile_json,
+            commands::import_profile_json,
+            commands::export_profile_toml,
+            commands::import_profile_toml,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
