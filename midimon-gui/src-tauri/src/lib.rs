@@ -4,6 +4,7 @@
 //! MIDIMon GUI library
 
 pub mod commands;
+pub mod config_helpers;
 pub mod events;
 pub mod midi_learn;
 pub mod state;

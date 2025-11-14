@@ -3,6 +3,7 @@
 
 <script>
   import { midiLearnStore } from '$lib/stores.js';
+  import { invoke } from '@tauri-apps/api/core';
   import { onDestroy } from 'svelte';
 
   /**
@@ -12,11 +13,14 @@
   export let onCapture = null; // Callback when input is captured: (result) => void
   export let onClose = null;   // Callback when dialog closes: () => void
   export let timeoutSecs = 10; // Default timeout
+  export let modeName = "Default"; // Current mode name for config generation
 
   /**
    * Local state
    */
   let startError = null;
+  let generatedToml = '';
+  let copySuccess = false;
 
   /**
    * Reactive statements
@@ -34,10 +38,45 @@
   }
 
   /**
-   * Handle successful capture
+   * Handle successful capture - generate TOML
    */
-  $: if (state === 'Captured' && result?.success && onCapture) {
-    onCapture(result);
+  $: if (state === 'Captured' && result?.success) {
+    generateTomlConfig();
+    if (onCapture) {
+      onCapture(result);
+    }
+  }
+
+  /**
+   * Generate TOML config from captured trigger
+   */
+  async function generateTomlConfig() {
+    if (!result?.trigger) return;
+
+    try {
+      generatedToml = await invoke('generate_trigger_config_toml', {
+        suggestion: result.trigger,
+        modeName,
+      });
+    } catch (err) {
+      console.error('Failed to generate TOML:', err);
+      generatedToml = '# Error generating config';
+    }
+  }
+
+  /**
+   * Copy TOML to clipboard
+   */
+  async function copyToml() {
+    try {
+      await navigator.clipboard.writeText(generatedToml);
+      copySuccess = true;
+      setTimeout(() => {
+        copySuccess = false;
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   }
 
   /**
@@ -189,6 +228,27 @@
                 {formatTrigger(result.trigger)}
               </div>
             </div>
+
+            {#if generatedToml}
+              <div class="config-preview">
+                <div class="config-header">
+                  <h3>Generated Config:</h3>
+                  <button
+                    class="btn btn-icon"
+                    on:click={copyToml}
+                    title="Copy to clipboard"
+                  >
+                    {#if copySuccess}
+                      <span class="copy-icon">✓</span>
+                    {:else}
+                      <span class="copy-icon">📋</span>
+                    {/if}
+                  </button>
+                </div>
+                <pre class="config-code">{generatedToml}</pre>
+              </div>
+            {/if}
+
             <div class="actions">
               <button class="btn btn-secondary" on:click={close}>Cancel</button>
               <button class="btn btn-primary" on:click={handleUse}>Use This</button>
@@ -415,6 +475,59 @@
     background: var(--bg-primary, #0a0a0a);
     border-radius: 4px;
     border: 1px solid var(--border-color, #444);
+  }
+
+  /* Config preview */
+  .config-preview {
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  .config-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  .config-header h3 {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary, #999);
+  }
+
+  .btn-icon {
+    background: none;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .btn-icon:hover {
+    background: var(--bg-hover, #333);
+  }
+
+  .copy-icon {
+    font-size: 1.25rem;
+  }
+
+  .config-code {
+    font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+    font-size: 0.875rem;
+    color: var(--text-primary, #fff);
+    padding: 1rem;
+    background: var(--bg-primary, #0a0a0a);
+    border-radius: 4px;
+    border: 1px solid var(--border-color, #444);
+    overflow-x: auto;
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 0;
+    white-space: pre;
   }
 
   /* Error state */

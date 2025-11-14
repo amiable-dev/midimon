@@ -8,7 +8,8 @@ use serde_json::json;
 use tauri::State;
 use uuid::Uuid;
 use crate::state::AppState;
-use crate::midi_learn::{MidiLearnSession, MidiLearnResult, LearnSessionState};
+use crate::midi_learn::{MidiLearnSession, MidiLearnResult, LearnSessionState, TriggerSuggestion};
+use crate::config_helpers::{suggestion_to_config, generate_mapping_toml, config_to_json};
 
 // Import daemon types (we'll re-export these from daemon crate)
 use midimon_daemon::daemon::{
@@ -438,4 +439,21 @@ pub async fn get_midi_learn_result(state: State<'_, AppState>) -> Result<Option<
         },
         None => Ok(None),
     }
+}
+
+/// Generate TOML config snippet from trigger suggestion
+#[tauri::command]
+pub fn generate_trigger_config_toml(
+    suggestion: TriggerSuggestion,
+    mode_name: String,
+) -> Result<String, String> {
+    let config = suggestion_to_config(&suggestion);
+    Ok(generate_mapping_toml(&config, &mode_name))
+}
+
+/// Convert trigger suggestion to JSON config
+#[tauri::command]
+pub fn trigger_suggestion_to_json(suggestion: TriggerSuggestion) -> Result<serde_json::Value, String> {
+    let config = suggestion_to_config(&suggestion);
+    Ok(config_to_json(&config))
 }

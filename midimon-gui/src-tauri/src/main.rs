@@ -9,6 +9,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
+mod config_helpers;
 mod events;
 mod midi_learn;
 mod state;
@@ -42,6 +43,8 @@ fn main() {
             commands::get_midi_learn_remaining,
             commands::cancel_midi_learn,
             commands::get_midi_learn_result,
+            commands::generate_trigger_config_toml,
+            commands::trigger_suggestion_to_json,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
