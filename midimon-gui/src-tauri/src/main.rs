@@ -11,6 +11,7 @@
 mod app_detection;
 mod commands;
 mod config_helpers;
+mod device_templates;
 mod events;
 mod midi_learn;
 mod profile_manager;
@@ -61,6 +62,12 @@ fn main() {
             commands::import_profile_json,
             commands::export_profile_toml,
             commands::import_profile_toml,
+            commands::list_device_templates,
+            commands::get_device_template,
+            commands::find_templates_by_midi,
+            commands::get_template_categories,
+            commands::list_templates_by_category,
+            commands::create_config_from_template,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

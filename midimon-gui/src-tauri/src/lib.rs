@@ -6,6 +6,7 @@
 pub mod app_detection;
 pub mod commands;
 pub mod config_helpers;
+pub mod device_templates;
 pub mod events;
 pub mod midi_learn;
 pub mod profile_manager;

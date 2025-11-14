@@ -10,6 +10,7 @@ use uuid::Uuid;
 use crate::state::AppState;
 use crate::midi_learn::{MidiLearnSession, MidiLearnResult, LearnSessionState, TriggerSuggestion};
 use crate::config_helpers::{suggestion_to_config, generate_mapping_toml, config_to_json};
+use crate::device_templates::{DeviceTemplate, DeviceTemplateRegistry};
 
 // Import daemon types (we'll re-export these from daemon crate)
 use midimon_daemon::daemon::{
@@ -579,4 +580,54 @@ pub async fn import_profile_toml(
     let manager = state.get_profile_manager().await;
     let path = std::path::PathBuf::from(file_path);
     manager.import_profile_toml(&path, name).await
+}
+
+// ============================================================================
+// Device Template Commands
+// ============================================================================
+
+/// List all available device templates
+#[tauri::command]
+pub fn list_device_templates() -> Result<Vec<DeviceTemplate>, String> {
+    let registry = DeviceTemplateRegistry::new();
+    Ok(registry.list_templates().into_iter().cloned().collect())
+}
+
+/// Get a specific device template by ID
+#[tauri::command]
+pub fn get_device_template(id: String) -> Result<Option<DeviceTemplate>, String> {
+    let registry = DeviceTemplateRegistry::new();
+    Ok(registry.get_template(&id).cloned())
+}
+
+/// Find device templates by MIDI device name
+#[tauri::command]
+pub fn find_templates_by_midi(midi_name: String) -> Result<Vec<DeviceTemplate>, String> {
+    let registry = DeviceTemplateRegistry::new();
+    let matches = registry.find_by_midi_name(&midi_name);
+    Ok(matches.into_iter().cloned().collect())
+}
+
+/// Get all template categories
+#[tauri::command]
+pub fn get_template_categories() -> Result<Vec<String>, String> {
+    let registry = DeviceTemplateRegistry::new();
+    Ok(registry.get_categories())
+}
+
+/// List templates by category
+#[tauri::command]
+pub fn list_templates_by_category(category: String) -> Result<Vec<DeviceTemplate>, String> {
+    let registry = DeviceTemplateRegistry::new();
+    let matches = registry.list_by_category(&category);
+    Ok(matches.into_iter().cloned().collect())
+}
+
+/// Create a config from a template
+#[tauri::command]
+pub fn create_config_from_template(
+    template_id: String,
+) -> Result<String, String> {
+    let registry = DeviceTemplateRegistry::new();
+    registry.create_config_from_template(&template_id)
 }
