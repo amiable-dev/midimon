@@ -16,6 +16,15 @@
 - [MIDI Learn](getting-started/midi-learn.md)
 - [Understanding Modes](getting-started/modes.md)
 
+# Guides
+
+- [Daemon & Hot-Reload](guides/daemon.md)
+- [GUI Configuration](guides/gui.md)
+- [Device Templates](guides/device-templates.md)
+- [Per-App Profiles](guides/per-app-profiles.md)
+- [LED System](guides/led-system.md)
+- [Event Console](guides/event-console.md)
+
 # Configuration
 
 - [Configuration Overview](configuration/overview.md)
