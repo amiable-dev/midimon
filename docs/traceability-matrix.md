@@ -227,12 +227,12 @@ Tracks implementation state, test coverage, and documentation completeness.
 |------------|----------------|------------|-------------------|---------------------|----------------|--------------|
 | **F1** | ✅ Complete | ✅ Yes | ✅ Yes | ✅ Full (AMI-80) | ✅ Yes | ✅ Yes |
 | **F2** | ✅ Complete | ✅ Yes | ✅ Yes | ✅ Full (AMI-81) | ✅ Yes | ✅ Yes |
-| **F3** | ✅ Complete | ✅ Yes | ✅ Yes | ✅ Full | ✅ Yes | ✅ Yes |
-| **F4** | ✅ Complete | ✅ Yes | ✅ Yes | ✅ Full | ✅ Yes | ✅ Yes |
-| **F5** | ✅ Complete | ✅ Yes | ✅ Yes | ✅ Full | ✅ Yes | ✅ Yes |
+| **F3** | ✅ Complete | ✅ Yes | ✅ Yes | ✅ Full (AMI-85) | ✅ Yes | ✅ Yes |
+| **F4** | ✅ Complete | ✅ Yes | ✅ Yes | ✅ Full (AMI-86) | ✅ Yes | ✅ Yes |
+| **F5** | ✅ Complete | ✅ Yes | ✅ Yes | ✅ Full (AMI-87) | ✅ Yes | ✅ Yes |
 | **F6** | ✅ Complete | ✅ Yes | ✅ Yes | ✅ Full (AMI-82) | ✅ Yes | ✅ Yes |
-| **F7** | ✅ Complete | ⚠️ Basic | ❌ No | ⚠️ Partial | ❌ No | ⚠️ Minimal |
-| **F8** | ✅ Complete | ⚠️ Basic | ❌ No | ⚠️ Partial | ❌ No | ⚠️ Minimal |
+| **F7** | ✅ Complete | ⚠️ Basic | ❌ No | ⚠️ Partial (AMI-88) | ❌ No | ⚠️ Minimal |
+| **F8** | ✅ Complete | ⚠️ Basic | ❌ No | ⚠️ Partial (AMI-89) | ❌ No | ⚠️ Minimal |
 | **F9** | ✅ Complete | ✅ Yes | ✅ Yes | ✅ Full (AMI-83) | ✅ Yes | ✅ Yes |
 | **F10** | ✅ Complete | ✅ Yes | ✅ Yes | ✅ Full | ✅ Yes | ✅ Yes |
 | **F11** | ✅ Complete | ✅ Yes | ✅ Yes | ✅ Full | ✅ Yes | ✅ Yes |
