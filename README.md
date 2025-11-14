@@ -6,8 +6,9 @@
 [![codecov](https://codecov.io/gh/amiable-dev/midimon/branch/main/graph/badge.svg)](https://codecov.io/gh/amiable-dev/midimon)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://amiable-dev.github.io/midimon/)
 
-Transform MIDI controllers into advanced macro pads with velocity sensitivity, LED feedback, and daemon architecture with hot-reload.
+Transform MIDI controllers into advanced macro pads with velocity sensitivity, LED feedback, daemon architecture, and visual configuration GUI.
 
+**v2.0.0**: Full-featured Tauri GUI with MIDI Learn, per-app profiles, device templates, and live event console
 **v1.0.0**: Production-ready daemon with 0-10ms config reloads, IPC control, and auto-start support
 
 ![MIDIMon Demo](docs/images/hero-demo.gif)
@@ -15,12 +16,20 @@ Transform MIDI controllers into advanced macro pads with velocity sensitivity, L
 
 ## Features
 
+### Visual Configuration (v2.0.0 NEW!)
+- **Tauri GUI** - Modern desktop application for visual configuration
+- **MIDI Learn Mode** - One-click auto-detection of MIDI inputs
+- **Device Templates** - 6 built-in templates for popular controllers
+- **Per-App Profiles** - Automatic profile switching based on active application
+- **Live Event Console** - Real-time MIDI event monitoring and debugging
+- **Settings Panel** - Configure auto-start, theme, and preferences
+
 ### Core Features
 - **Background Daemon** - Runs as a system service with auto-start
 - **Hot-Reload** - Configuration changes detected and applied in 0-10ms
-- **IPC Control** - Control daemon via `midimonctl` CLI
+- **IPC Control** - Control daemon via `midimonctl` CLI or GUI
 - **Multi-mode operation** - Switch between different mapping sets
-- **Configurable mappings** - Easy TOML-based configuration
+- **Configurable mappings** - Visual editor or TOML-based configuration
 - **Ultra-low latency** - Sub-millisecond MIDI response, <20ms config reload
 - **Cross-platform** - Works on macOS and Linux (systemd/launchd)
 
