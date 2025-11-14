@@ -141,7 +141,7 @@
 //!
 //! // Connect and send commands
 //! let socket_path = get_socket_path().expect("Failed to get socket path");
-//! let mut client = IpcClient::new(&socket_path)?;
+//! let mut client = IpcClient::new(socket_path.to_string_lossy().to_string()).await?;
 //!
 //! // Get status
 //! let response = client.status().await?;
