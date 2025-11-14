@@ -477,3 +477,62 @@ pub async fn stop_app_monitoring(state: State<'_, AppState>) -> Result<(), Strin
     state.stop_app_detection().await;
     Ok(())
 }
+
+/// List all registered profiles
+#[tauri::command]
+pub async fn list_profiles(state: State<'_, AppState>) -> Result<Vec<crate::profile_manager::AppProfile>, String> {
+    let manager = state.get_profile_manager().await;
+    Ok(manager.list_profiles().await)
+}
+
+/// Register a new profile
+#[tauri::command]
+pub async fn register_profile(
+    profile: crate::profile_manager::AppProfile,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let manager = state.get_profile_manager().await;
+    manager.register_profile(profile).await
+}
+
+/// Switch to a specific profile by ID
+#[tauri::command]
+pub async fn switch_profile(
+    profile_id: String,
+    state: State<'_, AppState>,
+) -> Result<crate::profile_manager::SwitchResult, String> {
+    let manager = state.get_profile_manager().await;
+    manager.switch_to_profile(&profile_id).await
+}
+
+/// Switch profile based on app bundle ID
+#[tauri::command]
+pub async fn switch_profile_for_app(
+    bundle_id: String,
+    state: State<'_, AppState>,
+) -> Result<crate::profile_manager::SwitchResult, String> {
+    let manager = state.get_profile_manager().await;
+    manager.switch_for_app(&bundle_id).await
+}
+
+/// Get the currently active profile ID
+#[tauri::command]
+pub async fn get_active_profile(state: State<'_, AppState>) -> Result<Option<String>, String> {
+    let manager = state.get_profile_manager().await;
+    Ok(manager.get_active_profile_id().await)
+}
+
+/// Scan profiles directory and auto-register
+#[tauri::command]
+pub async fn scan_profiles(state: State<'_, AppState>) -> Result<usize, String> {
+    let manager = state.get_profile_manager().await;
+    manager.scan_profiles_directory().await
+}
+
+/// Clear profile cache
+#[tauri::command]
+pub async fn clear_profile_cache(state: State<'_, AppState>) -> Result<(), String> {
+    let manager = state.get_profile_manager().await;
+    manager.clear_cache().await;
+    Ok(())
+}

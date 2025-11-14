@@ -7,6 +7,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use crate::midi_learn::MidiLearnSession;
 use crate::app_detection::{AppDetector, AppInfo};
+use crate::profile_manager::ProfileManager;
 
 /// Global application state
 pub struct AppState {
@@ -21,16 +22,22 @@ struct AppStateInner {
     learn_session: Option<MidiLearnSession>,
     /// App detector for frontmost app monitoring
     app_detector: Arc<AppDetector>,
+    /// Profile manager for per-app configs
+    profile_manager: Arc<ProfileManager>,
 }
 
 impl AppState {
     /// Create a new application state
     pub fn new() -> Self {
+        let profile_manager = ProfileManager::new()
+            .expect("Failed to create profile manager");
+
         Self {
             inner: Arc::new(RwLock::new(AppStateInner {
                 daemon_connected: false,
                 learn_session: None,
                 app_detector: Arc::new(AppDetector::new()),
+                profile_manager: Arc::new(profile_manager),
             })),
         }
     }
@@ -82,6 +89,12 @@ impl AppState {
     pub async fn stop_app_detection(&self) {
         let inner = self.inner.read().await;
         inner.app_detector.stop_detection().await;
+    }
+
+    /// Get profile manager
+    pub async fn get_profile_manager(&self) -> Arc<ProfileManager> {
+        let inner = self.inner.read().await;
+        Arc::clone(&inner.profile_manager)
     }
 }
 

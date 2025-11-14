@@ -13,6 +13,7 @@ mod commands;
 mod config_helpers;
 mod events;
 mod midi_learn;
+mod profile_manager;
 mod state;
 
 use state::AppState;
@@ -49,6 +50,13 @@ fn main() {
             commands::get_frontmost_app,
             commands::start_app_monitoring,
             commands::stop_app_monitoring,
+            commands::list_profiles,
+            commands::register_profile,
+            commands::switch_profile,
+            commands::switch_profile_for_app,
+            commands::get_active_profile,
+            commands::scan_profiles,
+            commands::clear_profile_cache,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
