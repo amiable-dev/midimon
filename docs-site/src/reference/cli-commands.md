@@ -2,21 +2,35 @@
 
 ## Overview
 
-MIDIMon provides a main binary and several diagnostic tools, all accessible via the command line. This reference covers all available commands, their options, and usage examples.
+MIDIMon provides a daemon service, control utility, and several diagnostic tools, all accessible via the command line. This reference covers all available commands, their options, and usage examples.
 
-## Main Binary: midimon
+**v1.0.0+** introduces daemon architecture with background service and hot-reload capabilities.
 
-The primary MIDIMon application.
+## Daemon Service: midimon
+
+The primary MIDIMon daemon service (v1.0.0+). Runs as a background process with config hot-reload.
 
 ### Basic Syntax
 
 ```bash
-# Via cargo
-cargo run --release [PORT] [OPTIONS]
+# Start daemon (via cargo)
+cargo run --release --bin midimon [PORT] [OPTIONS]
 
-# Or directly
+# Start daemon (release binary)
 ./target/release/midimon [PORT] [OPTIONS]
+
+# Or use systemd/launchd (see Installation)
+systemctl --user start midimon  # Linux
+launchctl load ~/Library/LaunchAgents/com.amiable.midimon.plist  # macOS
 ```
+
+### Daemon Features (v1.0.0+)
+
+- **Background Service**: Runs continuously in the background
+- **Config Hot-Reload**: Reload configuration without restart (0-8ms latency)
+- **State Persistence**: Saves state on shutdown, restores on startup
+- **IPC Control**: Control via `midimonctl` utility
+- **Auto-Recovery**: Graceful error handling and device reconnection
 
 ### Arguments
 
@@ -376,6 +390,320 @@ cargo build --release
     --config ~/midimon-configs/production.toml
 ```
 
+## Daemon Control: midimonctl
+
+**New in v1.0.0** - Control and monitor the MIDIMon daemon service.
+
+### Basic Syntax
+
+```bash
+# Via cargo
+cargo run --release --bin midimonctl <COMMAND> [OPTIONS]
+
+# Release binary
+./target/release/midimonctl <COMMAND> [OPTIONS]
+```
+
+### Commands
+
+#### status
+
+Display daemon status, device info, and performance metrics.
+
+**Syntax**:
+```bash
+midimonctl status [--json]
+```
+
+**Output** (human-readable):
+```
+MIDIMon Daemon Status
+=====================
+
+Lifecycle State: Running
+Uptime: 2h 34m 17s
+
+Device
+------
+Connected: Yes
+Name: Maschine Mikro MK3 - Input
+Port: 2
+Last Event: 3s ago
+
+Configuration
+------------
+Modes: 3 (Default, Development, Media)
+Global Mappings: 12
+Mode Mappings: 24 (8 per mode)
+Config File: /Users/you/.config/midimon/config.toml
+Last Reload: 15m ago
+
+Performance Metrics
+------------------
+Config Reloads: 7
+Average Reload Time: 3ms
+Last Reload Time: 2ms
+Performance Grade: Excellent
+
+IPC Latency: <1ms
+```
+
+**JSON Output** (`--json`):
+```bash
+midimonctl status --json
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "lifecycle_state": "Running",
+    "uptime_secs": 9257,
+    "device": {
+      "connected": true,
+      "name": "Maschine Mikro MK3 - Input",
+      "port": 2,
+      "last_event_at": 1699900000
+    },
+    "config": {
+      "modes": 3,
+      "global_mappings": 12,
+      "mode_mappings": 24
+    },
+    "performance": {
+      "reload_count": 7,
+      "avg_reload_ms": 3,
+      "last_reload_ms": 2,
+      "grade": "Excellent"
+    }
+  }
+}
+```
+
+#### reload
+
+Trigger configuration hot-reload without restarting the daemon.
+
+**Syntax**:
+```bash
+midimonctl reload [--json]
+```
+
+**Features**:
+- **Zero Downtime**: No interruption to MIDI processing
+- **Fast**: 0-8ms reload latency (typically <3ms)
+- **Atomic**: All-or-nothing config swap
+- **Validated**: Config checked before reload
+
+**Output**:
+```
+✓ Configuration reloaded successfully
+
+Reload completed in 2ms
+Modes: 3 (Default, Development, Media)
+Global mappings: 12
+Mode mappings: 24
+```
+
+**When to use**:
+- After editing `config.toml`
+- Testing new mappings
+- Switching between config profiles
+- Live development workflow
+
+**Example workflow**:
+```bash
+# 1. Edit config
+vim ~/.config/midimon/config.toml
+
+# 2. Reload daemon
+midimonctl reload
+
+# 3. Test changes immediately (no restart needed!)
+```
+
+#### validate
+
+Validate configuration file syntax without reloading.
+
+**Syntax**:
+```bash
+midimonctl validate [--json]
+```
+
+**Output** (valid config):
+```
+✓ Configuration is valid
+
+Modes: 3
+Global mappings: 12
+Total mappings: 36
+```
+
+**Output** (invalid config):
+```
+✗ Configuration validation failed
+
+Error: Invalid trigger type 'NoteTap' at line 42
+Expected one of: Note, VelocityRange, LongPress, DoubleTap,
+                 NoteChord, EncoderTurn, Aftertouch, PitchBend, CC
+
+Suggestion: Did you mean 'DoubleTap'?
+```
+
+**When to use**:
+- Before committing config changes
+- CI/CD validation
+- Debugging config syntax errors
+- Pre-flight checks
+
+#### ping
+
+Health check with latency measurement.
+
+**Syntax**:
+```bash
+midimonctl ping [--json]
+```
+
+**Output**:
+```
+✓ Daemon is responsive
+Latency: 0.4ms
+```
+
+**When to use**:
+- Verify daemon is running
+- Check IPC communication
+- Monitor system responsiveness
+- Health checks in scripts
+
+#### stop
+
+Gracefully shut down the daemon.
+
+**Syntax**:
+```bash
+midimonctl stop [--json]
+```
+
+**Output**:
+```
+✓ Daemon stopped successfully
+
+Uptime: 2h 34m 17s
+State saved successfully
+```
+
+**Features**:
+- **Graceful Shutdown**: Saves state before exit
+- **Resource Cleanup**: Closes MIDI/HID connections
+- **State Preservation**: Saves device state to disk
+
+**When to use**:
+- Clean daemon shutdown
+- Before system restart
+- Switching configurations
+- Development workflow
+
+### Global Options
+
+#### --json
+
+Output in JSON format (for scripting/automation).
+
+**Available for**: All commands
+
+**Example**:
+```bash
+# Parse with jq
+midimonctl status --json | jq '.data.device.connected'
+# Output: true
+
+# Check if reload succeeded
+if midimonctl reload --json | jq -e '.success'; then
+    echo "Reload successful"
+fi
+```
+
+### Usage Examples
+
+#### Example 1: Development Workflow
+
+```bash
+# Start daemon in background
+cargo run --release --bin midimon 2 &
+
+# Check status
+midimonctl status
+
+# Edit config
+vim config.toml
+
+# Hot-reload changes
+midimonctl reload
+
+# Test changes (no restart!)
+
+# Stop when done
+midimonctl stop
+```
+
+#### Example 2: Production Monitoring
+
+```bash
+# Check daemon health
+if ! midimonctl ping --json | jq -e '.success'; then
+    systemctl --user restart midimon
+fi
+
+# Get performance metrics
+midimonctl status --json | jq '.data.performance'
+```
+
+#### Example 3: Configuration Management
+
+```bash
+# Validate before deploy
+midimonctl validate || exit 1
+
+# Deploy new config
+cp config-v2.toml ~/.config/midimon/config.toml
+
+# Apply changes
+midimonctl reload
+
+# Verify
+midimonctl status
+```
+
+#### Example 4: Automated Testing
+
+```bash
+#!/bin/bash
+# test-config.sh
+
+# Validate syntax
+if ! midimonctl validate --json | jq -e '.success'; then
+    echo "Config validation failed"
+    exit 1
+fi
+
+# Reload daemon
+if ! midimonctl reload --json | jq -e '.success'; then
+    echo "Reload failed"
+    exit 1
+fi
+
+# Check reload latency
+LATENCY=$(midimonctl status --json | jq '.data.performance.last_reload_ms')
+if [ "$LATENCY" -gt 10 ]; then
+    echo "Warning: Reload took ${LATENCY}ms (expected <10ms)"
+fi
+
+echo "✓ All checks passed"
+```
+
 ## Diagnostic Tools
 
 MIDIMon includes several diagnostic utilities for debugging and configuration.
@@ -623,12 +951,21 @@ Connection test: PASSED
 
 | Command | Purpose | Example |
 |---------|---------|---------|
-| `midimon [PORT]` | Main application | `cargo run --release 2` |
-| `--led <SCHEME>` | Set LED scheme | `cargo run --release 2 --led rainbow` |
-| `--profile <PATH>` | Load profile | `cargo run --release 2 --profile my.ncmm3` |
-| `--pad-page <PAGE>` | Force pad page | `cargo run --release 2 --pad-page H` |
-| `--config <PATH>` | Custom config | `cargo run --release 2 --config dev.toml` |
-| `DEBUG=1` | Enable debug log | `DEBUG=1 cargo run --release 2` |
+| **Daemon Service (v1.0.0+)** |||
+| `midimon [PORT]` | Start daemon service | `cargo run --release --bin midimon 2` |
+| `--led <SCHEME>` | Set LED scheme | `midimon 2 --led rainbow` |
+| `--profile <PATH>` | Load profile | `midimon 2 --profile my.ncmm3` |
+| `--pad-page <PAGE>` | Force pad page | `midimon 2 --pad-page H` |
+| `--config <PATH>` | Custom config | `midimon 2 --config dev.toml` |
+| **Daemon Control (v1.0.0+)** |||
+| `midimonctl status` | Show daemon status | `midimonctl status` |
+| `midimonctl reload` | Hot-reload config | `midimonctl reload` |
+| `midimonctl validate` | Validate config | `midimonctl validate` |
+| `midimonctl ping` | Health check | `midimonctl ping` |
+| `midimonctl stop` | Stop daemon | `midimonctl stop` |
+| `--json` | JSON output | `midimonctl status --json` |
+| **Diagnostic Tools** |||
+| `DEBUG=1` | Enable debug log | `DEBUG=1 midimon 2` |
 | `midi_diagnostic` | View MIDI events | `cargo run --bin midi_diagnostic 2` |
 | `led_diagnostic` | Test LEDs | `cargo run --bin led_diagnostic` |
 | `led_tester` | Interactive LED test | `cargo run --bin led_tester` |
@@ -701,5 +1038,5 @@ DEBUG=0 ./target/release/midimon 2 \
 
 ---
 
-**Last Updated**: November 11, 2025
-**Binary Version**: 0.1.0
+**Last Updated**: November 14, 2025
+**Binary Version**: 1.0.0

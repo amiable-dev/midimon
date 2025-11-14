@@ -4,7 +4,165 @@
 //! MIDIMon Daemon - Background service for MIDI controller mapping
 //!
 //! This crate provides the daemon infrastructure for running MIDIMon as a background service
-//! with config hot-reload, IPC control, and system tray integration.
+//! with config hot-reload, IPC control, state persistence, and lifecycle management.
+//!
+//! # Architecture
+//!
+//! The daemon follows a modular architecture with clear separation of concerns:
+//!
+//! ```text
+//! ┌──────────────────────────────────────────────────┐
+//! │  midimonctl (CLI)                                │
+//! │  - status, reload, stop, validate, ping          │
+//! └────────────┬─────────────────────────────────────┘
+//!              │ IPC (JSON over Unix socket)
+//!              ▼
+//! ┌──────────────────────────────────────────────────┐
+//! │  midimon-daemon Service                          │
+//! │  ┌────────────────────────────────────────────┐ │
+//! │  │  IPC Server                                │ │
+//! │  │  - Accept connections                      │ │
+//! │  │  - Route commands                          │ │
+//! │  └──────────┬─────────────────────────────────┘ │
+//! │             ▼                                    │
+//! │  ┌────────────────────────────────────────────┐ │
+//! │  │  Engine Manager                            │ │
+//! │  │  - Lifecycle management                    │ │
+//! │  │  - Atomic config swaps (Arc<RwLock<>>)     │ │
+//! │  │  - Performance metrics                     │ │
+//! │  └──────────┬─────────────────────────────────┘ │
+//! │             ▼                                    │
+//! │  ┌────────────────────────────────────────────┐ │
+//! │  │  Config Watcher                            │ │
+//! │  │  - File system monitoring                  │ │
+//! │  │  - 500ms debounce                          │ │
+//! │  └────────────────────────────────────────────┘ │
+//! │                                                  │
+//! │  ┌────────────────────────────────────────────┐ │
+//! │  │  State Manager                             │ │
+//! │  │  - Atomic persistence                      │ │
+//! │  │  - Emergency save handler                  │ │
+//! │  └────────────────────────────────────────────┘ │
+//! └──────────────────────────────────────────────────┘
+//!              │
+//!              ▼
+//! ┌──────────────────────────────────────────────────┐
+//! │  midimon-core Engine                             │
+//! │  - Event processing                              │
+//! │  - Mapping execution                             │
+//! │  - Action dispatch                               │
+//! └──────────────────────────────────────────────────┘
+//! ```
+//!
+//! # Key Features
+//!
+//! ## Config Hot-Reload
+//!
+//! - **Zero Downtime**: Reload configuration without restarting
+//! - **Fast**: 0-8ms reload latency (production configs: <3ms)
+//! - **Atomic**: All-or-nothing config swaps via Arc<RwLock<>>
+//! - **Validated**: Configuration checked before applying
+//!
+//! ## IPC Control
+//!
+//! - **Unix Domain Sockets**: Low-latency inter-process communication
+//! - **JSON Protocol**: Structured request/response format
+//! - **Commands**: status, reload, validate, ping, stop
+//! - **Round-Trip Latency**: <1ms
+//!
+//! ## State Persistence
+//!
+//! - **Atomic Writes**: Uses tempfile + rename for crash safety
+//! - **Checksums**: SHA256 validation for integrity
+//! - **Emergency Saves**: Panic handler for graceful failures
+//! - **Recovery**: Automatic state restoration on startup
+//!
+//! ## Lifecycle Management
+//!
+//! - **8-State Machine**: Init, Starting, Running, Reloading, Degraded, Reconnecting, Stopping, Stopped
+//! - **Graceful Shutdown**: Proper resource cleanup
+//! - **Health Monitoring**: Device connection tracking
+//! - **Performance Metrics**: Reload latency, uptime, event counts
+//!
+//! # Performance Characteristics
+//!
+//! - **Config Reload**: 0-8ms (production configs: <3ms)
+//! - **IPC Round-Trip**: <1ms
+//! - **Build Time**: 26s clean, 4s incremental
+//! - **Binary Size**: 3-5MB (release)
+//! - **Memory Usage**: 5-10MB resident
+//! - **Test Suite**: 0.24s execution time
+//!
+//! # Usage
+//!
+//! ## Starting the Daemon
+//!
+//! ```bash
+//! # Foreground mode (development)
+//! cargo run --release --bin midimon 2
+//!
+//! # Background service (production)
+//! systemctl --user start midimon  # Linux
+//! launchctl load ~/Library/LaunchAgents/com.amiable.midimon.plist  # macOS
+//! ```
+//!
+//! ## Controlling the Daemon
+//!
+//! ```bash
+//! # Check status
+//! midimonctl status
+//!
+//! # Hot-reload configuration
+//! midimonctl reload
+//!
+//! # Validate config without reloading
+//! midimonctl validate
+//!
+//! # Health check
+//! midimonctl ping
+//!
+//! # Graceful shutdown
+//! midimonctl stop
+//! ```
+//!
+//! ## Programmatic Usage
+//!
+//! ```no_run
+//! use midimon_daemon::{run_daemon, get_socket_path, IpcClient};
+//!
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! // Start daemon in another task
+//! tokio::spawn(async {
+//!     run_daemon().await.expect("Daemon failed");
+//! });
+//!
+//! // Wait for daemon to start
+//! tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+//!
+//! // Connect and send commands
+//! let socket_path = get_socket_path().expect("Failed to get socket path");
+//! let mut client = IpcClient::new(&socket_path)?;
+//!
+//! // Get status
+//! let response = client.status().await?;
+//! println!("Daemon state: {:?}", response);
+//!
+//! // Reload config
+//! let response = client.reload().await?;
+//! println!("Reload result: {:?}", response);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # Modules
+//!
+//! - [`daemon::ipc`] - IPC server and client implementation
+//! - [`daemon::config_watcher`] - File system monitoring for config hot-reload
+//! - [`daemon::state`] - State persistence and recovery
+//! - [`daemon::engine_manager`] - Core engine lifecycle management
+//! - [`daemon::service`] - Main daemon service coordination
+//! - [`daemon::types`] - Shared types and data structures
+//! - [`daemon::error`] - Error types and handling
 
 pub mod daemon;
 

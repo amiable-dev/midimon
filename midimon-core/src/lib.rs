@@ -9,6 +9,11 @@
 //! mapping them to actions, and executing those actions. It's designed to be
 //! embedded in applications that need MIDI controller mapping capabilities.
 //!
+//! This crate is used by:
+//! - **midimon-daemon**: Background service with config hot-reload (v1.0.0+)
+//! - **midimon**: Legacy direct-run application (deprecated in v1.0.0)
+//! - External applications needing MIDI mapping capabilities
+//!
 //! # Architecture
 //!
 //! The engine follows a three-stage processing pipeline:
