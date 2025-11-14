@@ -37,23 +37,43 @@ Before starting, verify:
 
 Use Linear MCP to retrieve all issues under AMI-108:
 
-```
-1. AMI-158: Add minimal menu bar icon using tray-icon crate (2 days) ✅
-2. AMI-159: Implement platform-specific menu bar (macOS/Linux/Windows) (3 days) ✅
-3. AMI-160: Add status display and quick actions (2 days) ✅
-4. AMI-161: Create midimon-gui Tauri v2 project (2 days) ✅
-5. AMI-162: Implement Tauri backend commands (2 days) ✅
-6. AMI-163: Create basic UI shell with navigation (1 day) ✅
-7. AMI-164: Build device connection panel UI (1 day) ✅
-8. AMI-165: Implement status bar showing daemon state (0.5 day)
-9. AMI-166: Set up frontend state management and API wrapper (1 day)
-10-13. Week 3: MIDI Learn Mode (4 issues)
-14-19. Week 4: Visual Config Editor (6 issues)
-20-23. Week 5: Per-App Profiles (4 issues)
-24-28. Week 6: Polish & Release (5 issues)
-```
+**Week 1-2: Tauri Setup & Infrastructure (9 issues)**:
+1. AMI-158: Add minimal menu bar icon using tray-icon crate ✅
+2. AMI-159: Implement platform-specific menu bar (macOS/Linux/Windows) ✅
+3. AMI-160: Add status display and quick actions ✅
+4. AMI-161: Create midimon-gui Tauri v2 project structure ✅
+5. AMI-162: Implement Tauri backend commands for config and daemon control ✅
+6. AMI-163: Create basic UI shell with sidebar navigation ✅
+7. AMI-164: Build device connection panel UI ✅
+8. AMI-165: Implement status bar showing daemon state ✅
+9. AMI-166: Set up frontend state management and API wrapper ✅
 
-**Total**: 28 issues across 6 weeks (9 complete, 19 remaining)
+**Week 3: MIDI Learn Mode (4 issues)**:
+10. AMI-171: Implement MIDI Learn backend session system
+11. AMI-172: Create MIDI Learn UI flow with countdown and cancel
+12. AMI-173: Support MIDI Learn for all trigger types
+13. AMI-174: Implement auto-fill trigger config from learned input
+
+**Week 4: Visual Config Editor (6 issues)**:
+14. AMI-175: Build mode editor UI for creating and managing modes
+15. AMI-176: Build mapping list UI with add/edit/delete operations
+16. AMI-177: Create visual trigger selector with type-specific config
+17. AMI-178: Create visual action selector with type-specific config
+18. AMI-179: Add keystroke picker with key press detection
+19. AMI-180: Implement live preview with real-time event monitoring
+
+**Week 5: Per-App Profiles (4 issues)**:
+20. AMI-181: Implement frontmost app detection for macOS
+21. AMI-182: Create profile switching system with caching
+22. AMI-183: Build per-app profiles UI with automatic detection
+23. AMI-184: Add profile import/export functionality
+
+**Week 6: Polish & Release (3 issues)**:
+24. AMI-185: Create device template system with popular controller templates
+25. AMI-186: Add live event console for debugging
+26. AMI-187: Build settings panel with auto-start and preferences
+
+**Total**: 27 issues mapped from Linear (9 complete, 18 remaining)
 
 #### 1.2 Extract Dependency Relationships
 
@@ -67,15 +87,15 @@ AMI-108 (Phase 4 start) ✅
     ↓ enables
 Week 1: Menu Bar Foundation (AMI-158, AMI-161) ✅
     ↓ blocks
-Week 1-2: Tauri Infrastructure (AMI-159-166) [AMI-165, AMI-166 in progress]
+Week 1-2: Tauri Infrastructure (AMI-158-166) ✅ COMPLETE
     ↓ blocks
-Week 3: MIDI Learn (4 issues) - requires Tauri backend + state management
+Week 3: MIDI Learn (AMI-171-174) - requires Tauri backend + state management
     ↓ blocks
-Week 4: Config Editor (6 issues) - requires MIDI Learn
+Week 4: Config Editor (AMI-175-180) - requires MIDI Learn
     ↓ blocks
-Week 5: Per-App Profiles (4 issues) - requires config editor
+Week 5: Per-App Profiles (AMI-181-184) - requires config editor
     ↓ blocks
-Week 6: Polish (5 issues) - requires all above
+Week 6: Polish (AMI-185-187) - requires all above
 ```
 
 **Documentation Site Infrastructure**:
@@ -112,30 +132,30 @@ Priority 1 (After P0 Complete - Week 1-2): ✅ COMPLETE
 - AMI-165: Implement status bar - Depends on AMI-163, AMI-162 ✅
 - AMI-166: Set up frontend state management - Depends on AMI-163, AMI-162 ✅
 
-Priority 2 (After P1 Complete - Week 3):
-- [MIDILearn-1]: Implement MIDI Learn backend - Depends on AMI-162 (backend commands)
-- [MIDILearn-2]: Create Learn UI flow - Depends on [MIDILearn-1], AMI-163 (UI shell)
-- [MIDILearn-3]: Support all trigger types learning - Depends on [MIDILearn-1]
-- [MIDILearn-4]: Add auto-fill trigger config - Depends on [MIDILearn-2], [MIDILearn-3]
+Priority 2 (After P1 Complete - Week 3): [READY TO START]
+- AMI-171: Implement MIDI Learn backend session system - Depends on AMI-162 (backend commands)
+- AMI-172: Create MIDI Learn UI flow with countdown and cancel - Depends on AMI-171, AMI-163 (UI shell)
+- AMI-173: Support MIDI Learn for all trigger types - Depends on AMI-171
+- AMI-174: Implement auto-fill trigger config from learned input - Depends on AMI-172, AMI-173
 
 Priority 3 (After P2 Complete - Week 4):
-- [ConfigEditor-1]: Build mode editor UI - Depends on [Tauri-3]
-- [ConfigEditor-2]: Build mapping list UI - Depends on [ConfigEditor-1]
-- [ConfigEditor-3]: Create visual trigger selector - Depends on [ConfigEditor-2]
-- [ConfigEditor-4]: Create visual action selector - Depends on [ConfigEditor-2]
-- [ConfigEditor-5]: Add keystroke picker - Depends on [ConfigEditor-4]
-- [ConfigEditor-6]: Implement live preview - Depends on [ConfigEditor-3], [ConfigEditor-4]
+- AMI-175: Build mode editor UI for creating and managing modes - Depends on AMI-166 (state mgmt)
+- AMI-176: Build mapping list UI with add/edit/delete operations - Depends on AMI-175
+- AMI-177: Create visual trigger selector with type-specific config - Depends on AMI-176
+- AMI-178: Create visual action selector with type-specific config - Depends on AMI-176
+- AMI-179: Add keystroke picker with key press detection - Depends on AMI-178
+- AMI-180: Implement live preview with real-time event monitoring - Depends on AMI-177, AMI-178
 
 Priority 4 (After P3 Complete - Week 5):
-- [PerApp-1]: Implement frontmost app detection - Depends on daemon (Phase 3)
-- [PerApp-2]: Create profile switching system - Depends on [PerApp-1], [ConfigEditor-1]
-- [PerApp-3]: Build per-app profiles UI - Depends on [PerApp-2], [ConfigEditor-1]
-- [PerApp-4]: Add profile import/export - Depends on [PerApp-3]
+- AMI-181: Implement frontmost app detection for macOS - Depends on daemon (Phase 3)
+- AMI-182: Create profile switching system with caching - Depends on AMI-181, AMI-175
+- AMI-183: Build per-app profiles UI with automatic detection - Depends on AMI-182, AMI-175
+- AMI-184: Add profile import/export functionality - Depends on AMI-183
 
 Priority 5 (After P4 Complete - Week 6):
-- AMI-185: Create device template system (TF5) - Depends on [ConfigEditor-1]
-- [Polish-1]: Add live event console (TF9) - Depends on [Tauri-3]
-- [Polish-2]: Build settings panel with auto-start (TF8) - Depends on [Tauri-3]
+- AMI-185: Create device template system with popular controller templates (TF5) - Depends on AMI-175
+- AMI-186: Add live event console for debugging (TF9) - Depends on AMI-166 (state mgmt)
+- AMI-187: Build settings panel with auto-start and preferences (TF8) - Depends on AMI-166
 
 Parallel Groups:
 Group A (Week 1): AMI-158, AMI-161 (can be done simultaneously) ✅ COMPLETE
@@ -143,13 +163,17 @@ Group B (Week 1-2): AMI-159-166 (after Group A, parallel within group) ✅ COMPL
   - AMI-159, AMI-160 (menu bar) ✅
   - AMI-162, AMI-163, AMI-164 (Tauri core) ✅
   - AMI-165, AMI-166 (status bar, state management) ✅
-Group C (Week 3): [MIDILearn-1-4] (sequential within group) [READY TO START]
-Group D (Week 4): [ConfigEditor-1-6] (some parallelizable after ConfigEditor-2)
-Group E (Week 5): [PerApp-1-4] (sequential PerApp-1→2, then parallel PerApp-3+4)
-Group F (Week 6): AMI-185, [Polish-1-3] (all parallel)
+Group C (Week 3): AMI-171-174 (sequential within group) [READY TO START]
+  - AMI-171 (backend) → AMI-172 (UI flow) → AMI-173 (all types) → AMI-174 (auto-fill)
+Group D (Week 4): AMI-175-180 (some parallelizable after AMI-176)
+  - AMI-175 (mode editor) → AMI-176 (mapping list) → {AMI-177, AMI-178} → AMI-179, AMI-180
+Group E (Week 5): AMI-181-184 (sequential AMI-181→182, then parallel AMI-183+184)
+  - AMI-181 (app detection) → AMI-182 (profile switch) → {AMI-183, AMI-184}
+Group F (Week 6): AMI-185-187 (all parallel)
+  - {AMI-185, AMI-186, AMI-187} can run simultaneously
 
-Critical Path: AMI-161 ✅ → AMI-162 ✅ → [MIDILearn-1] → [MIDILearn-2] → [ConfigEditor-1] → [ConfigEditor-2] → [PerApp-1] → [PerApp-2] (28-35 days)
-Current Progress: 9/28 issues complete (32%), Week 2 complete, Week 3 ready to start
+Critical Path: AMI-161 ✅ → AMI-162 ✅ → AMI-171 → AMI-172 → AMI-175 → AMI-176 → AMI-181 → AMI-182 (28-35 days)
+Current Progress: 9/27 issues complete (33%), Week 2 complete, Week 3 ready to start
 ```
 
 ### Step 2: Create Execution Plan
@@ -182,27 +206,42 @@ Current Progress: 9/28 issues complete (32%), Week 2 complete, Week 3 ready to s
 
 **Status**: 9/9 complete
 
-**Week 3 - MIDI Learn (READY TO START)**:
-- All MIDI Learn issues - Backend ready (AMI-162 ✅), UI shell ready (AMI-163 ✅), State management ready (AMI-166 ✅)
-- No blockers remaining
+**Week 3 - MIDI Learn (READY TO START)**: AMI-171-174
+- AMI-171: MIDI Learn backend session system
+- AMI-172: MIDI Learn UI flow with countdown and cancel
+- AMI-173: Support MIDI Learn for all trigger types
+- AMI-174: Auto-fill trigger config from learned input
+- Backend ready (AMI-162 ✅), UI shell ready (AMI-163 ✅), State management ready (AMI-166 ✅)
+- No blockers remaining - **UNBLOCKED**
 
-**Clearing**: UNBLOCKED - Ready to start immediately
+**Week 4 - Config Editor (Blocked by Week 3)**: AMI-175-180
+- AMI-175: Mode editor UI
+- AMI-176: Mapping list UI
+- AMI-177: Visual trigger selector
+- AMI-178: Visual action selector
+- AMI-179: Keystroke picker
+- AMI-180: Live preview
+- Blocked by MIDI Learn completion (need AMI-174 for learn integration in editor)
 
-**Week 4 - Config Editor (Blocked by Week 3)**:
-- Config editor issues - Blocked by MIDI Learn completion (need learn integration)
+**Clearing**: Will unblock when AMI-171-174 complete (~4-5 days)
 
-**Clearing**: Will unblock when MIDI Learn complete (~day 17)
+**Week 5 - Per-App Profiles (Blocked by Week 4)**: AMI-181-184
+- AMI-181: Frontmost app detection for macOS
+- AMI-182: Profile switching system with caching
+- AMI-183: Per-app profiles UI with automatic detection
+- AMI-184: Profile import/export functionality
+- Blocked by config editor (AMI-175 needed for profile UI components)
 
-**Week 5 - Per-App Profiles (Blocked by Week 4)**:
-- Per-app issues - Blocked by config editor (need profile management UI)
+**Clearing**: Will unblock when AMI-175-180 complete (~10-12 days from now)
 
-**Clearing**: Will unblock when config editor complete (~day 24)
-
-**Week 6 - Polish (Blocked by Week 5)**:
-- Polish issues - Blocked by per-app profiles complete
+**Week 6 - Polish (Blocked by Week 5)**: AMI-185-187
+- AMI-185: Device template system with popular controller templates
+- AMI-186: Live event console for debugging
+- AMI-187: Settings panel with auto-start and preferences
+- Blocked by per-app profiles complete
 - Can parallelize all 3 polish issues
 
-**Clearing**: Will unblock when per-app profiles complete (~day 31)
+**Clearing**: Will unblock when AMI-181-184 complete (~18-20 days from now)
 
 #### Parallel Work Groups
 
