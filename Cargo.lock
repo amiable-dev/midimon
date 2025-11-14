@@ -2448,6 +2448,7 @@ dependencies = [
  "dirs 5.0.1",
  "midimon-core",
  "midimon-daemon",
+ "midir",
  "serde",
  "serde_json",
  "tauri",

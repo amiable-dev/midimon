@@ -320,10 +320,27 @@ pub async fn ping_daemon(state: State<'_, AppState>) -> Result<u64, String> {
 /// List available MIDI devices
 #[tauri::command]
 pub async fn list_midi_devices(_state: State<'_, AppState>) -> Result<Vec<MidiDevice>, String> {
-    // TODO (AMI-164): Implement MIDI device listing
-    // This will require adding a new IPC command or querying midir directly
-    // For now, return empty list
-    Ok(vec![])
+    use midir::MidiInput;
+
+    let midi_in = MidiInput::new("MIDIMon Device Scanner")
+        .map_err(|e| format!("Failed to create MIDI input: {}", e))?;
+
+    let ports = midi_in.ports();
+    let mut devices = Vec::new();
+
+    for (index, port) in ports.iter().enumerate() {
+        let name = midi_in
+            .port_name(port)
+            .unwrap_or_else(|_| format!("Unknown Device {}", index));
+
+        devices.push(MidiDevice {
+            index,
+            name,
+            connected: false, // Will be determined by checking daemon status
+        });
+    }
+
+    Ok(devices)
 }
 
 /// Get the current configuration as JSON

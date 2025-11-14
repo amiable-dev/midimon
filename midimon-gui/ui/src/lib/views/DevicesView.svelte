@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
+  import DeviceList from '../components/DeviceList.svelte';
 
   let daemonStatus = null;
   let error = null;
@@ -66,17 +67,8 @@
       {/if}
     </section>
 
-    <section class="placeholder-section">
-      <div class="placeholder">
-        <h3>Device Connection Panel</h3>
-        <p>Coming in AMI-164...</p>
-        <ul>
-          <li>List available MIDI devices</li>
-          <li>Show connection status</li>
-          <li>Manual device selection</li>
-          <li>Auto-reconnect settings</li>
-        </ul>
-      </div>
+    <section class="devices-section">
+      <DeviceList />
     </section>
   </div>
 </div>
@@ -114,7 +106,7 @@
   }
 
   .status-section,
-  .placeholder-section {
+  .devices-section {
     margin-bottom: 2rem;
   }
 
@@ -163,35 +155,5 @@
 
   .loading {
     color: #999;
-  }
-
-  .placeholder {
-    background: #2a2a2a;
-    border: 2px dashed #444;
-    border-radius: 8px;
-    padding: 2rem;
-    text-align: center;
-  }
-
-  .placeholder h3 {
-    color: #4a9eff;
-    margin-bottom: 0.5rem;
-  }
-
-  .placeholder p {
-    color: #999;
-    margin: 0.5rem 0 1rem;
-  }
-
-  .placeholder ul {
-    list-style: none;
-    padding: 0;
-    margin: 1rem 0 0;
-  }
-
-  .placeholder li {
-    margin: 0.5rem 0;
-    color: #666;
-    font-size: 0.9rem;
   }
 </style>
