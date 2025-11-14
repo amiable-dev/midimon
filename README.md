@@ -98,9 +98,49 @@ sudo install -m 644 midimon-daemon/docs/*.1 /usr/local/share/man/man1/
 ```
 
 **Workspace Structure** (v1.0.0):
-- `midimon-core`: Pure Rust engine library (zero UI dependencies)
-- `midimon-daemon`: Background daemon with IPC server + 6 diagnostic tools
-- `midimon`: Backward compatibility layer
+
+MIDIMon uses a modular 3-package Cargo workspace:
+
+```
+midimon/
+├── midimon-core/       # Pure Rust engine library
+│   ├── Public API for embedding (30+ types)
+│   ├── Zero UI dependencies
+│   └── Event processing, mapping, actions
+├── midimon-daemon/     # Background daemon + diagnostic tools
+│   ├── Main daemon binary (midimon)
+│   ├── CLI control tool (midimonctl)
+│   └── 6 diagnostic binaries
+└── midimon/            # Backward compatibility layer
+    └── Re-exports midimon-core (v0.1.0 tests only)
+```
+
+**Package Guide**:
+- **Use midimon-core** when embedding MIDIMon as a library
+- **Use midimon-daemon** for standalone CLI/daemon usage
+- **Use midimon (root)** only for v0.1.0 backward compatibility
+
+**Public API Example**:
+```rust
+use midimon_core::{Config, MappingEngine, EventProcessor, ActionExecutor};
+
+let config = Config::load("config.toml")?;
+let mut engine = MappingEngine::new();
+// Process MIDI events, map to actions, execute...
+```
+
+**Build Commands**:
+```bash
+# Build entire workspace (all 3 packages)
+cargo build --workspace
+
+# Build specific package
+cargo build -p midimon-core
+cargo build -p midimon-daemon
+
+# Test workspace
+cargo test --workspace
+```
 
 **Requirements:**
 - Rust 1.70+ ([Install via rustup](https://rustup.rs/))

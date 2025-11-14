@@ -51,6 +51,50 @@ Keep your toolchain up to date:
 rustup update
 ```
 
+## Workspace Architecture (v0.2.0+)
+
+MIDIMon uses a **Cargo workspace** with three packages since v0.2.0:
+
+### Package Structure
+
+1. **midimon-core** - Pure Rust engine library
+   - Zero UI dependencies (no colored output, pure logic)
+   - Public API for embedding in other applications
+   - 30+ public types exported
+   - Event processing, mapping engine, action execution
+
+2. **midimon-daemon** - CLI daemon + diagnostic tools
+   - Main `midimon` binary (daemon service)
+   - `midimonctl` - CLI control tool (v1.0.0+)
+   - 6 diagnostic binaries:
+     - `midi_diagnostic` - MIDI event viewer
+     - `led_diagnostic` - LED testing tool
+     - `led_tester` - Interactive LED control
+     - `pad_mapper` - Note number mapper
+     - `test_midi` - Port connectivity test
+     - `midi_simulator` - MIDI event simulator (testing)
+
+3. **midimon** (root) - Backward compatibility layer
+   - Re-exports midimon-core types
+   - For existing v0.1.0 tests only
+   - New code should use midimon-core directly
+
+### When to Use Each Package
+
+- **Use midimon-core**: Embed MIDIMon in your application
+- **Use midimon-daemon**: Run as standalone CLI/daemon
+- **Use midimon (root)**: Only for backward compatibility
+
+### Public API Example
+
+```rust
+use midimon_core::{Config, MappingEngine, EventProcessor, ActionExecutor};
+
+let config = Config::load("config.toml")?;
+let mut engine = MappingEngine::new();
+// Process events, execute actions...
+```
+
 ### Platform-Specific Dependencies
 
 #### macOS
@@ -181,6 +225,57 @@ ls -la
 
 ## Build Commands
 
+### Workspace Builds (v0.2.0+)
+
+Build the entire workspace (all 3 packages in parallel):
+
+```bash
+# Development build
+cargo build --workspace
+
+# Release build (optimized)
+cargo build --release --workspace
+```
+
+**Build times** (workspace):
+- Clean build: ~12s (was 15-20s in v0.1.0)
+- Incremental: <2s
+- Parallel compilation across all packages
+
+### Package-Specific Builds
+
+Build individual packages for faster iteration:
+
+```bash
+# Core engine only
+cargo build --package midimon-core
+cargo build -p midimon-core  # Short form
+
+# Daemon + tools
+cargo build -p midimon-daemon
+
+# Compatibility layer
+cargo build -p midimon
+
+# Specific binary
+cargo build --release --bin midimon
+cargo build --release --bin midimonctl
+cargo build --release --bin midi_diagnostic
+```
+
+### Running Binaries
+
+```bash
+# Main daemon
+cargo run --release --bin midimon 2
+
+# Daemon control
+cargo run --release --bin midimonctl status
+
+# Diagnostic tool
+cargo run --release --bin midi_diagnostic 2
+```
+
 ### Debug Build
 
 Fastest compilation, includes debug symbols, no optimization:
@@ -213,7 +308,7 @@ cargo build --release
 - Performance-critical applications
 - Distribution
 
-**Build time**: 2-5 minutes (first build), 30s-2m (incremental)
+**Build time**: 12s clean, <2s incremental (workspace)
 
 **Performance**: Full optimization, <1ms MIDI latency
 

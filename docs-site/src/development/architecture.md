@@ -255,7 +255,7 @@ Trait-based abstraction (`PadFeedback`) supports:
 - Linux: `xdotool` (optional, for input simulation)
 - Windows: Native Windows APIs
 
-## Future Architecture (Phase 2+)
+## Future Phases (Phase 4+: GUI)
 
 The roadmap includes migrating to a **workspace structure** with separate crates. See [Workspace Structure Design](../../docs/workspace-structure.md) for complete details (AMI-124).
 
@@ -307,7 +307,7 @@ graph TD
     style B fill:#50c878,stroke:#2d7a4d,stroke-width:2px,color:#fff
 ```
 
-### Phase 2: Core Library Extraction
+### Phase 2: Core Library Extraction ✅ COMPLETE (v0.2.0)
 
 **Goal**: Extract engine logic into reusable `midimon-core` crate (AMI-123, AMI-124).
 
