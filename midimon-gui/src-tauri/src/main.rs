@@ -68,6 +68,9 @@ fn main() {
             commands::get_template_categories,
             commands::list_templates_by_category,
             commands::create_config_from_template,
+            commands::start_event_monitoring,
+            commands::stop_event_monitoring,
+            commands::is_event_monitoring_active,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

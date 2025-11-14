@@ -631,3 +631,27 @@ pub fn create_config_from_template(
     let registry = DeviceTemplateRegistry::new();
     registry.create_config_from_template(&template_id)
 }
+
+// ============================================================================
+// Live Event Console Commands
+// ============================================================================
+
+/// Start monitoring MIDI events for the live console
+#[tauri::command]
+pub async fn start_event_monitoring(state: State<'_, AppState>) -> Result<(), String> {
+    state.start_event_monitoring().await;
+    Ok(())
+}
+
+/// Stop monitoring MIDI events
+#[tauri::command]
+pub async fn stop_event_monitoring(state: State<'_, AppState>) -> Result<(), String> {
+    state.stop_event_monitoring().await;
+    Ok(())
+}
+
+/// Check if event monitoring is active
+#[tauri::command]
+pub async fn is_event_monitoring_active(state: State<'_, AppState>) -> Result<bool, String> {
+    Ok(state.is_event_monitoring_active().await)
+}

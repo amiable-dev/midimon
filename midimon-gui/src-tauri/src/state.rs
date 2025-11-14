@@ -8,6 +8,7 @@ use tokio::sync::RwLock;
 use crate::midi_learn::MidiLearnSession;
 use crate::app_detection::{AppDetector, AppInfo};
 use crate::profile_manager::ProfileManager;
+use crate::events::EventStreamManager;
 
 /// Global application state
 pub struct AppState {
@@ -24,6 +25,8 @@ struct AppStateInner {
     app_detector: Arc<AppDetector>,
     /// Profile manager for per-app configs
     profile_manager: Arc<ProfileManager>,
+    /// Event stream manager for live console
+    event_stream_manager: Arc<EventStreamManager>,
 }
 
 impl AppState {
@@ -38,6 +41,7 @@ impl AppState {
                 learn_session: None,
                 app_detector: Arc::new(AppDetector::new()),
                 profile_manager: Arc::new(profile_manager),
+                event_stream_manager: Arc::new(EventStreamManager::new(1000)),
             })),
         }
     }
@@ -95,6 +99,30 @@ impl AppState {
     pub async fn get_profile_manager(&self) -> Arc<ProfileManager> {
         let inner = self.inner.read().await;
         Arc::clone(&inner.profile_manager)
+    }
+
+    /// Start event monitoring for live console
+    pub async fn start_event_monitoring(&self) {
+        let inner = self.inner.read().await;
+        inner.event_stream_manager.start().await;
+    }
+
+    /// Stop event monitoring
+    pub async fn stop_event_monitoring(&self) {
+        let inner = self.inner.read().await;
+        inner.event_stream_manager.stop().await;
+    }
+
+    /// Check if event monitoring is active
+    pub async fn is_event_monitoring_active(&self) -> bool {
+        let inner = self.inner.read().await;
+        inner.event_stream_manager.is_active().await
+    }
+
+    /// Get event stream manager
+    pub async fn get_event_stream_manager(&self) -> Arc<EventStreamManager> {
+        let inner = self.inner.read().await;
+        Arc::clone(&inner.event_stream_manager)
     }
 }
 
