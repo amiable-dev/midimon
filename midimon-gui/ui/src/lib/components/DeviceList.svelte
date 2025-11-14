@@ -1,72 +1,41 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { invoke } from '@tauri-apps/api/core';
-
-  let devices = [];
-  let loading = true;
-  let error = null;
-  let refreshInterval = null;
-
-  async function loadDevices() {
-    try {
-      error = null;
-      devices = await invoke('list_midi_devices');
-      loading = false;
-    } catch (err) {
-      error = err.toString();
-      loading = false;
-      console.error('Failed to load MIDI devices:', err);
-    }
-  }
-
-  function startAutoRefresh() {
-    // Refresh device list every 5 seconds
-    refreshInterval = setInterval(loadDevices, 5000);
-  }
-
-  function stopAutoRefresh() {
-    if (refreshInterval) {
-      clearInterval(refreshInterval);
-      refreshInterval = null;
-    }
-  }
+  import { devicesStore } from '../stores.js';
 
   async function handleRefresh() {
-    loading = true;
-    await loadDevices();
+    await devicesStore.fetch();
   }
 
   onMount(() => {
-    loadDevices();
-    startAutoRefresh();
+    devicesStore.startAutoRefresh();
   });
 
   onDestroy(() => {
-    stopAutoRefresh();
+    devicesStore.stopAutoRefresh();
   });
 </script>
 
 <div class="device-list">
   <div class="device-list-header">
     <h3>Available MIDI Devices</h3>
-    <button class="refresh-button" on:click={handleRefresh} disabled={loading}>
-      <span class="icon">{loading ? '⏳' : '🔄'}</span>
+    <button class="refresh-button" on:click={handleRefresh} disabled={$devicesStore.loading}>
+      <span class="icon">{$devicesStore.loading ? '⏳' : '🔄'}</span>
       <span class="label">Refresh</span>
     </button>
   </div>
 
-  {#if loading && devices.length === 0}
+  {#if $devicesStore.loading && $devicesStore.devices.length === 0}
     <div class="loading-state">
       <p>Scanning for MIDI devices...</p>
     </div>
-  {:else if error}
+  {:else if $devicesStore.error}
     <div class="error-state">
-      <p class="error-message">{error}</p>
+      <p class="error-message">{$devicesStore.error}</p>
       <button class="retry-button" on:click={handleRefresh}>
         Try Again
       </button>
     </div>
-  {:else if devices.length === 0}
+  {:else if $devicesStore.devices.length === 0}
     <div class="empty-state">
       <p class="empty-icon">🎹</p>
       <p class="empty-title">No MIDI Devices Found</p>
@@ -76,7 +45,7 @@
     </div>
   {:else}
     <div class="devices">
-      {#each devices as device, index (device.index)}
+      {#each $devicesStore.devices as device, index (device.index)}
         <div class="device-card" class:connected={device.connected}>
           <div class="device-info">
             <div class="device-icon">
@@ -110,7 +79,7 @@
 
   <div class="device-list-footer">
     <p class="device-count">
-      {devices.length} {devices.length === 1 ? 'device' : 'devices'} found
+      {$devicesStore.devices.length} {$devicesStore.devices.length === 1 ? 'device' : 'devices'} found
     </p>
     <p class="auto-refresh">Auto-refresh every 5 seconds</p>
   </div>

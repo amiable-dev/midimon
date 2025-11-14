@@ -1,25 +1,6 @@
 <script>
-  import { onMount } from 'svelte';
-  import { invoke } from '@tauri-apps/api/core';
+  import { statusStore } from '../stores.js';
   import DeviceList from '../components/DeviceList.svelte';
-
-  let daemonStatus = null;
-  let error = null;
-
-  async function checkStatus() {
-    try {
-      daemonStatus = await invoke('get_daemon_status');
-    } catch (err) {
-      error = err.toString();
-    }
-  }
-
-  onMount(() => {
-    checkStatus();
-    // Poll every 3 seconds
-    const interval = setInterval(checkStatus, 3000);
-    return () => clearInterval(interval);
-  });
 </script>
 
 <div class="view">
@@ -31,37 +12,37 @@
   <div class="content">
     <section class="status-section">
       <h3>Daemon Status</h3>
-      {#if daemonStatus}
+      {#if $statusStore.status}
         <div class="status-card">
           <div class="status-row">
             <span class="label">Running:</span>
-            <span class="value">{daemonStatus.running ? '✅ Yes' : '❌ No'}</span>
+            <span class="value">{$statusStore.status.running ? '✅ Yes' : '❌ No'}</span>
           </div>
           <div class="status-row">
             <span class="label">Connected:</span>
-            <span class="value">{daemonStatus.connected ? '✅ Yes' : '❌ No'}</span>
+            <span class="value">{$statusStore.status.connected ? '✅ Yes' : '❌ No'}</span>
           </div>
-          {#if daemonStatus.lifecycle_state}
+          {#if $statusStore.status.lifecycle_state}
             <div class="status-row">
               <span class="label">State:</span>
-              <span class="value">{daemonStatus.lifecycle_state}</span>
+              <span class="value">{$statusStore.status.lifecycle_state}</span>
             </div>
           {/if}
-          {#if daemonStatus.uptime_secs !== null && daemonStatus.uptime_secs !== undefined}
+          {#if $statusStore.status.uptime_secs !== null && $statusStore.status.uptime_secs !== undefined}
             <div class="status-row">
               <span class="label">Uptime:</span>
-              <span class="value">{Math.floor(daemonStatus.uptime_secs / 60)}m {daemonStatus.uptime_secs % 60}s</span>
+              <span class="value">{Math.floor($statusStore.status.uptime_secs / 60)}m {$statusStore.status.uptime_secs % 60}s</span>
             </div>
           {/if}
-          {#if daemonStatus.error}
+          {#if $statusStore.status.error}
             <div class="status-row error">
               <span class="label">Error:</span>
-              <span class="value">{daemonStatus.error}</span>
+              <span class="value">{$statusStore.status.error}</span>
             </div>
           {/if}
         </div>
-      {:else if error}
-        <p class="error">{error}</p>
+      {:else if $statusStore.error}
+        <p class="error">{$statusStore.error}</p>
       {:else}
         <p class="loading">Loading...</p>
       {/if}

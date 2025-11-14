@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import Sidebar from './lib/components/Sidebar.svelte';
+  import StatusBar from './lib/components/StatusBar.svelte';
   import DevicesView from './lib/views/DevicesView.svelte';
   import ModesView from './lib/views/ModesView.svelte';
   import MappingsView from './lib/views/MappingsView.svelte';
@@ -16,17 +17,21 @@
 <div class="app">
   <Sidebar />
 
-  <main class="main-content">
-    {#if $currentSection === SECTIONS.DEVICES}
-      <DevicesView />
-    {:else if $currentSection === SECTIONS.MODES}
-      <ModesView />
-    {:else if $currentSection === SECTIONS.MAPPINGS}
-      <MappingsView />
-    {:else if $currentSection === SECTIONS.SETTINGS}
-      <SettingsView />
-    {/if}
-  </main>
+  <div class="content-wrapper">
+    <StatusBar />
+
+    <main class="main-content">
+      {#if $currentSection === SECTIONS.DEVICES}
+        <DevicesView />
+      {:else if $currentSection === SECTIONS.MODES}
+        <ModesView />
+      {:else if $currentSection === SECTIONS.MAPPINGS}
+        <MappingsView />
+      {:else if $currentSection === SECTIONS.SETTINGS}
+        <SettingsView />
+      {/if}
+    </main>
+  </div>
 </div>
 
 <style>
@@ -51,6 +56,13 @@
   .app {
     display: flex;
     height: 100vh;
+    overflow: hidden;
+  }
+
+  .content-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
   }
 
