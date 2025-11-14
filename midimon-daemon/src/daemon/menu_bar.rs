@@ -15,8 +15,10 @@
 
 use tray_icon::{
     Icon, TrayIcon, TrayIconBuilder,
-    menu::Menu,
+    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu, MenuEvent},
+    TrayIconEvent,
 };
+use crossbeam_channel::Receiver;
 
 #[cfg(target_os = "macos")]
 use cocoa::base::{id, nil};
@@ -34,6 +36,15 @@ pub enum IconState {
     Error,
 }
 
+/// Menu actions that can be triggered by user
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MenuAction {
+    /// Reload configuration
+    ReloadConfig,
+    /// Quit the application
+    Quit,
+}
+
 /// Menu bar icon manager
 pub struct MenuBar {
     tray_icon: TrayIcon,
@@ -41,6 +52,12 @@ pub struct MenuBar {
     icon_stopped: Icon,
     icon_error: Icon,
     current_state: IconState,
+    menu_event_receiver: Receiver<MenuEvent>,
+    tray_event_receiver: Receiver<TrayIconEvent>,
+    // Menu item IDs
+    status_item: MenuItem,
+    reload_item: MenuItem,
+    quit_item: MenuItem,
 }
 
 impl MenuBar {
@@ -62,8 +79,12 @@ impl MenuBar {
         let icon_stopped = Self::create_stopped_icon()?;
         let icon_error = Self::create_error_icon()?;
 
+        // Set up event channels
+        let menu_channel = MenuEvent::receiver();
+        let tray_channel = TrayIconEvent::receiver();
+
         // Create menu
-        let menu = Self::create_menu()?;
+        let (menu, status_item, reload_item, quit_item) = Self::create_menu()?;
 
         // Select initial icon based on state
         let initial_icon = match initial_state {
@@ -86,6 +107,11 @@ impl MenuBar {
             icon_stopped,
             icon_error,
             current_state: initial_state,
+            menu_event_receiver: menu_channel.clone(),
+            tray_event_receiver: tray_channel.clone(),
+            status_item,
+            reload_item,
+            quit_item,
         })
     }
 
@@ -120,6 +146,38 @@ impl MenuBar {
     /// Get the current icon state
     pub fn state(&self) -> IconState {
         self.current_state
+    }
+
+    /// Update the status text in the menu
+    pub fn update_status(&mut self, status_text: &str) {
+        self.status_item.set_text(status_text);
+    }
+
+    /// Poll for menu events (non-blocking)
+    ///
+    /// Returns the menu action if a menu item was clicked, or None if no events
+    pub fn poll_events(&self) -> Option<MenuAction> {
+        // Check menu events
+        if let Ok(event) = self.menu_event_receiver.try_recv() {
+            return match event.id().as_ref() {
+                "reload" => Some(MenuAction::ReloadConfig),
+                "quit" => Some(MenuAction::Quit),
+                _ => None,
+            };
+        }
+
+        // Check tray icon events (clicks)
+        if let Ok(event) = self.tray_event_receiver.try_recv() {
+            match event {
+                TrayIconEvent::Click { .. } => {
+                    // Icon clicked - menu will show automatically
+                    return None;
+                }
+                _ => {}
+            }
+        }
+
+        None
     }
 
     /// Check if GUI is available (not headless)
@@ -195,15 +253,42 @@ impl MenuBar {
         rgba
     }
 
-    /// Create the menu for the tray icon
-    fn create_menu() -> Result<Menu, MenuBarError> {
+    /// Create the menu for the tray icon with status and action items
+    fn create_menu() -> Result<(Menu, MenuItem, MenuItem, MenuItem), MenuBarError> {
         let menu = Menu::new();
 
-        // Note: Menu items will be added in AMI-159 (Platform-specific menu bar)
-        // and AMI-160 (Status display and actions)
-        // For now, just create an empty menu to satisfy the minimal icon requirement
+        // Title / Status item (disabled, just shows info)
+        let status_item = MenuItem::new("MIDIMon: Stopped", false, None);
+        menu.append(&status_item)
+            .map_err(|e| MenuBarError::InitializationFailed(e.to_string()))?;
 
-        Ok(menu)
+        // Separator
+        menu.append(&PredefinedMenuItem::separator())
+            .map_err(|e| MenuBarError::InitializationFailed(e.to_string()))?;
+
+        // Reload Config action (⌘R on macOS shown in text)
+        #[cfg(target_os = "macos")]
+        let reload_item = MenuItem::with_id("reload", "Reload Config\t⌘R", true, None);
+        #[cfg(not(target_os = "macos"))]
+        let reload_item = MenuItem::with_id("reload", "Reload Config", true, None);
+
+        menu.append(&reload_item)
+            .map_err(|e| MenuBarError::InitializationFailed(e.to_string()))?;
+
+        // Separator
+        menu.append(&PredefinedMenuItem::separator())
+            .map_err(|e| MenuBarError::InitializationFailed(e.to_string()))?;
+
+        // Quit action (⌘Q on macOS shown in text)
+        #[cfg(target_os = "macos")]
+        let quit_item = MenuItem::with_id("quit", "Quit\t⌘Q", true, None);
+        #[cfg(not(target_os = "macos"))]
+        let quit_item = MenuItem::with_id("quit", "Quit", true, None);
+
+        menu.append(&quit_item)
+            .map_err(|e| MenuBarError::InitializationFailed(e.to_string()))?;
+
+        Ok((menu, status_item, reload_item, quit_item))
     }
 }
 

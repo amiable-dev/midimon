@@ -16,7 +16,7 @@ pub use config_watcher::ConfigWatcher;
 pub use engine_manager::EngineManager;
 pub use error::{DaemonError, IpcErrorCode, Result};
 pub use ipc::{IpcClient, IpcServer, create_success_response};
-pub use menu_bar::{IconState, MenuBar, MenuBarError};
+pub use menu_bar::{IconState, MenuAction, MenuBar, MenuBarError};
 pub use service::{DaemonService, run_daemon, run_daemon_with_config};
 pub use state::{
     ConfigInfo, DaemonInfo, EngineInfo, PersistedState, StateManager, calculate_checksum,
