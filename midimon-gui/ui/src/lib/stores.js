@@ -314,3 +314,124 @@ export const connectedDevice = derived(
     return $status.status.device.name || `Port ${$status.status.device.port}`;
   }
 );
+
+/**
+ * MIDI Learn store for session management
+ */
+function createMidiLearnStore() {
+  const { subscribe, set, update } = writable({
+    sessionId: null,
+    state: 'Idle',
+    result: null,
+    remaining: 0,
+    error: null,
+    loading: false,
+  });
+
+  let pollInterval = null;
+
+  return {
+    subscribe,
+
+    /**
+     * Start a MIDI Learn session
+     * @param {number} timeoutSecs - Timeout in seconds
+     */
+    async start(timeoutSecs = 10) {
+      update(state => ({ ...state, loading: true, error: null }));
+      try {
+        const sessionId = await api.midiLearn.start(timeoutSecs);
+        set({
+          sessionId,
+          state: 'Waiting',
+          result: null,
+          remaining: timeoutSecs,
+          error: null,
+          loading: false,
+        });
+        this.startPolling();
+        return sessionId;
+      } catch (error) {
+        const errorMsg = error.message || String(error);
+        update(state => ({ ...state, loading: false, error: errorMsg }));
+        throw error;
+      }
+    },
+
+    /**
+     * Cancel the current session
+     */
+    async cancel() {
+      try {
+        await api.midiLearn.cancel();
+        this.stopPolling();
+        update(state => ({ ...state, state: 'Cancelled' }));
+      } catch (error) {
+        const errorMsg = error.message || String(error);
+        update(state => ({ ...state, error: errorMsg }));
+        throw error;
+      }
+    },
+
+    /**
+     * Start polling for session status and result
+     */
+    startPolling() {
+      this.stopPolling();
+      pollInterval = setInterval(async () => {
+        try {
+          // Poll status
+          const status = await api.midiLearn.getStatus();
+          update(state => ({ ...state, state: status }));
+
+          // Poll remaining time
+          const remaining = await api.midiLearn.getRemaining();
+          update(state => ({ ...state, remaining }));
+
+          // If session finished, get result and stop polling
+          if (status === 'Captured' || status === 'TimedOut' || status === 'Cancelled') {
+            const result = await api.midiLearn.getResult();
+            update(state => ({ ...state, result }));
+            this.stopPolling();
+          }
+        } catch (error) {
+          console.warn('MIDI Learn polling error:', error);
+          // Don't stop polling on transient errors
+        }
+      }, 100); // Poll every 100ms for responsive UI
+    },
+
+    /**
+     * Stop polling
+     */
+    stopPolling() {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    },
+
+    /**
+     * Reset store state
+     */
+    reset() {
+      this.stopPolling();
+      set({
+        sessionId: null,
+        state: 'Idle',
+        result: null,
+        remaining: 0,
+        error: null,
+        loading: false,
+      });
+    },
+  };
+}
+
+export const midiLearnStore = createMidiLearnStore();
+
+// Derived store: Is MIDI Learn active?
+export const isMidiLearnActive = derived(
+  midiLearnStore,
+  $learn => $learn.state === 'Waiting'
+);

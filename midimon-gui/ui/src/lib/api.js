@@ -154,11 +154,83 @@ export const devices = {
 };
 
 /**
+ * MIDI Learn API - Commands for MIDI Learn mode
+ */
+export const midiLearn = {
+  /**
+   * Start a MIDI Learn session
+   * @param {number} timeoutSecs - Timeout duration in seconds
+   * @returns {Promise<string>} Session ID
+   * @throws {ApiError}
+   */
+  async start(timeoutSecs = 10) {
+    try {
+      return await invoke('start_midi_learn', { timeoutSecs });
+    } catch (error) {
+      throw new ApiError(`Failed to start MIDI Learn: ${error}`, 'MIDI_LEARN_START_ERROR');
+    }
+  },
+
+  /**
+   * Get the status of the current MIDI Learn session
+   * @returns {Promise<string>} Session state (Idle, Waiting, Captured, TimedOut, Cancelled)
+   * @throws {ApiError}
+   */
+  async getStatus() {
+    try {
+      return await invoke('get_midi_learn_status');
+    } catch (error) {
+      throw new ApiError(`Failed to get MIDI Learn status: ${error}`, 'MIDI_LEARN_STATUS_ERROR');
+    }
+  },
+
+  /**
+   * Get remaining time for MIDI Learn session
+   * @returns {Promise<number>} Remaining seconds
+   * @throws {ApiError}
+   */
+  async getRemaining() {
+    try {
+      return await invoke('get_midi_learn_remaining');
+    } catch (error) {
+      throw new ApiError(`Failed to get remaining time: ${error}`, 'MIDI_LEARN_REMAINING_ERROR');
+    }
+  },
+
+  /**
+   * Cancel the current MIDI Learn session
+   * @returns {Promise<void>}
+   * @throws {ApiError}
+   */
+  async cancel() {
+    try {
+      return await invoke('cancel_midi_learn');
+    } catch (error) {
+      throw new ApiError(`Failed to cancel MIDI Learn: ${error}`, 'MIDI_LEARN_CANCEL_ERROR');
+    }
+  },
+
+  /**
+   * Get the result of the MIDI Learn session
+   * @returns {Promise<MidiLearnResult|null>}
+   * @throws {ApiError}
+   */
+  async getResult() {
+    try {
+      return await invoke('get_midi_learn_result');
+    } catch (error) {
+      throw new ApiError(`Failed to get MIDI Learn result: ${error}`, 'MIDI_LEARN_RESULT_ERROR');
+    }
+  },
+};
+
+/**
  * Export all APIs as a single default object
  */
 export default {
   daemon,
   config,
   devices,
+  midiLearn,
   ApiError,
 };
