@@ -10,6 +10,7 @@
 
 mod commands;
 mod events;
+mod midi_learn;
 mod state;
 
 use state::AppState;
@@ -36,6 +37,11 @@ fn main() {
             commands::get_config,
             commands::save_config,
             commands::get_config_path,
+            commands::start_midi_learn,
+            commands::get_midi_learn_status,
+            commands::get_midi_learn_remaining,
+            commands::cancel_midi_learn,
+            commands::get_midi_learn_result,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

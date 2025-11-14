@@ -8,6 +8,7 @@ use serde_json::json;
 use tauri::State;
 use uuid::Uuid;
 use crate::state::AppState;
+use crate::midi_learn::{MidiLearnSession, MidiLearnResult, LearnSessionState};
 
 // Import daemon types (we'll re-export these from daemon crate)
 use midimon_daemon::daemon::{
@@ -376,4 +377,65 @@ pub async fn get_config_path() -> Result<String, String> {
     let config_path = config_dir.join("midimon").join("config.toml");
 
     Ok(config_path.to_string_lossy().to_string())
+}
+
+/// Start a MIDI Learn session
+#[tauri::command]
+pub async fn start_midi_learn(
+    timeout_secs: u64,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let session = MidiLearnSession::new(timeout_secs);
+    let session_id = session.id.clone();
+
+    session.start().await;
+    state.set_learn_session(session).await;
+
+    Ok(session_id)
+}
+
+/// Get the status of the current MIDI Learn session
+#[tauri::command]
+pub async fn get_midi_learn_status(state: State<'_, AppState>) -> Result<LearnSessionState, String> {
+    let session = state.get_learn_session().await;
+    match session {
+        Some(s) => Ok(s.get_state().await),
+        None => Ok(LearnSessionState::Idle),
+    }
+}
+
+/// Get remaining time for MIDI Learn session
+#[tauri::command]
+pub async fn get_midi_learn_remaining(state: State<'_, AppState>) -> Result<u64, String> {
+    let session = state.get_learn_session().await;
+    match session {
+        Some(s) => Ok(s.remaining_secs().await),
+        None => Ok(0),
+    }
+}
+
+/// Cancel the current MIDI Learn session
+#[tauri::command]
+pub async fn cancel_midi_learn(state: State<'_, AppState>) -> Result<(), String> {
+    let session = state.get_learn_session().await;
+    if let Some(s) = session {
+        s.cancel().await;
+    }
+    Ok(())
+}
+
+/// Get the result of the MIDI Learn session
+#[tauri::command]
+pub async fn get_midi_learn_result(state: State<'_, AppState>) -> Result<Option<MidiLearnResult>, String> {
+    let session = state.get_learn_session().await;
+    match session {
+        Some(s) => {
+            // Check if timed out
+            if s.is_timed_out().await {
+                s.set_timed_out().await;
+            }
+            Ok(s.get_result().await)
+        },
+        None => Ok(None),
+    }
 }

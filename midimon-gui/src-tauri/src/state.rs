@@ -5,6 +5,7 @@
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use crate::midi_learn::MidiLearnSession;
 
 /// Global application state
 pub struct AppState {
@@ -15,6 +16,8 @@ pub struct AppState {
 struct AppStateInner {
     /// Whether the daemon is currently connected
     daemon_connected: bool,
+    /// Current MIDI Learn session (if active)
+    learn_session: Option<MidiLearnSession>,
 }
 
 impl AppState {
@@ -23,6 +26,7 @@ impl AppState {
         Self {
             inner: Arc::new(RwLock::new(AppStateInner {
                 daemon_connected: false,
+                learn_session: None,
             })),
         }
     }
@@ -35,6 +39,21 @@ impl AppState {
     /// Set the daemon connection status
     pub async fn set_daemon_connected(&self, connected: bool) {
         self.inner.write().await.daemon_connected = connected;
+    }
+
+    /// Set the current MIDI Learn session
+    pub async fn set_learn_session(&self, session: MidiLearnSession) {
+        self.inner.write().await.learn_session = Some(session);
+    }
+
+    /// Get the current MIDI Learn session
+    pub async fn get_learn_session(&self) -> Option<MidiLearnSession> {
+        self.inner.read().await.learn_session.clone()
+    }
+
+    /// Clear the MIDI Learn session
+    pub async fn clear_learn_session(&self) {
+        self.inner.write().await.learn_session = None;
     }
 }
 
