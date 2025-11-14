@@ -183,16 +183,29 @@
                     <main>
                         <h1 id="cli-commands-reference"><a class="header" href="#cli-commands-reference">CLI Commands Reference</a></h1>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>MIDIMon provides a main binary and several diagnostic tools, all accessible via the command line. This reference covers all available commands, their options, and usage examples.</p>
-<h2 id="main-binary-midimon"><a class="header" href="#main-binary-midimon">Main Binary: midimon</a></h2>
-<p>The primary MIDIMon application.</p>
+<p>MIDIMon provides a daemon service, control utility, and several diagnostic tools, all accessible via the command line. This reference covers all available commands, their options, and usage examples.</p>
+<p><strong>v1.0.0+</strong> introduces daemon architecture with background service and hot-reload capabilities.</p>
+<h2 id="daemon-service-midimon"><a class="header" href="#daemon-service-midimon">Daemon Service: midimon</a></h2>
+<p>The primary MIDIMon daemon service (v1.0.0+). Runs as a background process with config hot-reload.</p>
 <h3 id="basic-syntax"><a class="header" href="#basic-syntax">Basic Syntax</a></h3>
-<pre><code class="language-bash"># Via cargo
-cargo run --release [PORT] [OPTIONS]
+<pre><code class="language-bash"># Start daemon (via cargo)
+cargo run --release --bin midimon [PORT] [OPTIONS]
 
-# Or directly
+# Start daemon (release binary)
 ./target/release/midimon [PORT] [OPTIONS]
+
+# Or use systemd/launchd (see Installation)
+systemctl --user start midimon  # Linux
+launchctl load ~/Library/LaunchAgents/com.amiable.midimon.plist  # macOS
 </code></pre>
+<h3 id="daemon-features-v100"><a class="header" href="#daemon-features-v100">Daemon Features (v1.0.0+)</a></h3>
+<ul>
+<li><strong>Background Service</strong>: Runs continuously in the background</li>
+<li><strong>Config Hot-Reload</strong>: Reload configuration without restart (0-8ms latency)</li>
+<li><strong>State Persistence</strong>: Saves state on shutdown, restores on startup</li>
+<li><strong>IPC Control</strong>: Control via <code>midimonctl</code> utility</li>
+<li><strong>Auto-Recovery</strong>: Graceful error handling and device reconnection</li>
+</ul>
 <h3 id="arguments"><a class="header" href="#arguments">Arguments</a></h3>
 <h4 id="port-required-in-some-cases"><a class="header" href="#port-required-in-some-cases">PORT (Required in some cases)</a></h4>
 <p>The MIDI input port number to connect to.</p>
@@ -484,6 +497,263 @@ cargo build --release
     --led reactive \
     --config ~/midimon-configs/production.toml
 </code></pre>
+<h2 id="daemon-control-midimonctl"><a class="header" href="#daemon-control-midimonctl">Daemon Control: midimonctl</a></h2>
+<p><strong>New in v1.0.0</strong> - Control and monitor the MIDIMon daemon service.</p>
+<h3 id="basic-syntax-1"><a class="header" href="#basic-syntax-1">Basic Syntax</a></h3>
+<pre><code class="language-bash"># Via cargo
+cargo run --release --bin midimonctl &lt;COMMAND&gt; [OPTIONS]
+
+# Release binary
+./target/release/midimonctl &lt;COMMAND&gt; [OPTIONS]
+</code></pre>
+<h3 id="commands"><a class="header" href="#commands">Commands</a></h3>
+<h4 id="status"><a class="header" href="#status">status</a></h4>
+<p>Display daemon status, device info, and performance metrics.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl status [--json]
+</code></pre>
+<p><strong>Output</strong> (human-readable):</p>
+<pre><code>MIDIMon Daemon Status
+=====================
+
+Lifecycle State: Running
+Uptime: 2h 34m 17s
+
+Device
+------
+Connected: Yes
+Name: Maschine Mikro MK3 - Input
+Port: 2
+Last Event: 3s ago
+
+Configuration
+------------
+Modes: 3 (Default, Development, Media)
+Global Mappings: 12
+Mode Mappings: 24 (8 per mode)
+Config File: /Users/you/.config/midimon/config.toml
+Last Reload: 15m ago
+
+Performance Metrics
+------------------
+Config Reloads: 7
+Average Reload Time: 3ms
+Last Reload Time: 2ms
+Performance Grade: Excellent
+
+IPC Latency: &lt;1ms
+</code></pre>
+<p><strong>JSON Output</strong> (<code>--json</code>):</p>
+<pre><code class="language-bash">midimonctl status --json
+</code></pre>
+<pre><code class="language-json">{
+  "success": true,
+  "data": {
+    "lifecycle_state": "Running",
+    "uptime_secs": 9257,
+    "device": {
+      "connected": true,
+      "name": "Maschine Mikro MK3 - Input",
+      "port": 2,
+      "last_event_at": 1699900000
+    },
+    "config": {
+      "modes": 3,
+      "global_mappings": 12,
+      "mode_mappings": 24
+    },
+    "performance": {
+      "reload_count": 7,
+      "avg_reload_ms": 3,
+      "last_reload_ms": 2,
+      "grade": "Excellent"
+    }
+  }
+}
+</code></pre>
+<h4 id="reload"><a class="header" href="#reload">reload</a></h4>
+<p>Trigger configuration hot-reload without restarting the daemon.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl reload [--json]
+</code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li><strong>Zero Downtime</strong>: No interruption to MIDI processing</li>
+<li><strong>Fast</strong>: 0-8ms reload latency (typically &lt;3ms)</li>
+<li><strong>Atomic</strong>: All-or-nothing config swap</li>
+<li><strong>Validated</strong>: Config checked before reload</li>
+</ul>
+<p><strong>Output</strong>:</p>
+<pre><code>✓ Configuration reloaded successfully
+
+Reload completed in 2ms
+Modes: 3 (Default, Development, Media)
+Global mappings: 12
+Mode mappings: 24
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>After editing <code>config.toml</code></li>
+<li>Testing new mappings</li>
+<li>Switching between config profiles</li>
+<li>Live development workflow</li>
+</ul>
+<p><strong>Example workflow</strong>:</p>
+<pre><code class="language-bash"># 1. Edit config
+vim ~/.config/midimon/config.toml
+
+# 2. Reload daemon
+midimonctl reload
+
+# 3. Test changes immediately (no restart needed!)
+</code></pre>
+<h4 id="validate"><a class="header" href="#validate">validate</a></h4>
+<p>Validate configuration file syntax without reloading.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl validate [--json]
+</code></pre>
+<p><strong>Output</strong> (valid config):</p>
+<pre><code>✓ Configuration is valid
+
+Modes: 3
+Global mappings: 12
+Total mappings: 36
+</code></pre>
+<p><strong>Output</strong> (invalid config):</p>
+<pre><code>✗ Configuration validation failed
+
+Error: Invalid trigger type 'NoteTap' at line 42
+Expected one of: Note, VelocityRange, LongPress, DoubleTap,
+                 NoteChord, EncoderTurn, Aftertouch, PitchBend, CC
+
+Suggestion: Did you mean 'DoubleTap'?
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Before committing config changes</li>
+<li>CI/CD validation</li>
+<li>Debugging config syntax errors</li>
+<li>Pre-flight checks</li>
+</ul>
+<h4 id="ping"><a class="header" href="#ping">ping</a></h4>
+<p>Health check with latency measurement.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl ping [--json]
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>✓ Daemon is responsive
+Latency: 0.4ms
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Verify daemon is running</li>
+<li>Check IPC communication</li>
+<li>Monitor system responsiveness</li>
+<li>Health checks in scripts</li>
+</ul>
+<h4 id="stop"><a class="header" href="#stop">stop</a></h4>
+<p>Gracefully shut down the daemon.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl stop [--json]
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>✓ Daemon stopped successfully
+
+Uptime: 2h 34m 17s
+State saved successfully
+</code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li><strong>Graceful Shutdown</strong>: Saves state before exit</li>
+<li><strong>Resource Cleanup</strong>: Closes MIDI/HID connections</li>
+<li><strong>State Preservation</strong>: Saves device state to disk</li>
+</ul>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Clean daemon shutdown</li>
+<li>Before system restart</li>
+<li>Switching configurations</li>
+<li>Development workflow</li>
+</ul>
+<h3 id="global-options"><a class="header" href="#global-options">Global Options</a></h3>
+<h4 id="--json"><a class="header" href="#--json">--json</a></h4>
+<p>Output in JSON format (for scripting/automation).</p>
+<p><strong>Available for</strong>: All commands</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-bash"># Parse with jq
+midimonctl status --json | jq '.data.device.connected'
+# Output: true
+
+# Check if reload succeeded
+if midimonctl reload --json | jq -e '.success'; then
+    echo "Reload successful"
+fi
+</code></pre>
+<h3 id="usage-examples"><a class="header" href="#usage-examples">Usage Examples</a></h3>
+<h4 id="example-1-development-workflow"><a class="header" href="#example-1-development-workflow">Example 1: Development Workflow</a></h4>
+<pre><code class="language-bash"># Start daemon in background
+cargo run --release --bin midimon 2 &amp;
+
+# Check status
+midimonctl status
+
+# Edit config
+vim config.toml
+
+# Hot-reload changes
+midimonctl reload
+
+# Test changes (no restart!)
+
+# Stop when done
+midimonctl stop
+</code></pre>
+<h4 id="example-2-production-monitoring"><a class="header" href="#example-2-production-monitoring">Example 2: Production Monitoring</a></h4>
+<pre><code class="language-bash"># Check daemon health
+if ! midimonctl ping --json | jq -e '.success'; then
+    systemctl --user restart midimon
+fi
+
+# Get performance metrics
+midimonctl status --json | jq '.data.performance'
+</code></pre>
+<h4 id="example-3-configuration-management"><a class="header" href="#example-3-configuration-management">Example 3: Configuration Management</a></h4>
+<pre><code class="language-bash"># Validate before deploy
+midimonctl validate || exit 1
+
+# Deploy new config
+cp config-v2.toml ~/.config/midimon/config.toml
+
+# Apply changes
+midimonctl reload
+
+# Verify
+midimonctl status
+</code></pre>
+<h4 id="example-4-automated-testing"><a class="header" href="#example-4-automated-testing">Example 4: Automated Testing</a></h4>
+<pre><code class="language-bash">#!/bin/bash
+# test-config.sh
+
+# Validate syntax
+if ! midimonctl validate --json | jq -e '.success'; then
+    echo "Config validation failed"
+    exit 1
+fi
+
+# Reload daemon
+if ! midimonctl reload --json | jq -e '.success'; then
+    echo "Reload failed"
+    exit 1
+fi
+
+# Check reload latency
+LATENCY=$(midimonctl status --json | jq '.data.performance.last_reload_ms')
+if [ "$LATENCY" -gt 10 ]; then
+    echo "Warning: Reload took ${LATENCY}ms (expected &lt;10ms)"
+fi
+
+echo "✓ All checks passed"
+</code></pre>
 <h2 id="diagnostic-tools"><a class="header" href="#diagnostic-tools">Diagnostic Tools</a></h2>
 <p>MIDIMon includes several diagnostic utilities for debugging and configuration.</p>
 <h3 id="midi_diagnostic"><a class="header" href="#midi_diagnostic">midi_diagnostic</a></h3>
@@ -692,12 +962,21 @@ Connection test: PASSED
 </ul>
 <h2 id="command-quick-reference"><a class="header" href="#command-quick-reference">Command Quick Reference</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Command</th><th>Purpose</th><th>Example</th></tr></thead><tbody>
-<tr><td><code>midimon [PORT]</code></td><td>Main application</td><td><code>cargo run --release 2</code></td></tr>
-<tr><td><code>--led &lt;SCHEME&gt;</code></td><td>Set LED scheme</td><td><code>cargo run --release 2 --led rainbow</code></td></tr>
-<tr><td><code>--profile &lt;PATH&gt;</code></td><td>Load profile</td><td><code>cargo run --release 2 --profile my.ncmm3</code></td></tr>
-<tr><td><code>--pad-page &lt;PAGE&gt;</code></td><td>Force pad page</td><td><code>cargo run --release 2 --pad-page H</code></td></tr>
-<tr><td><code>--config &lt;PATH&gt;</code></td><td>Custom config</td><td><code>cargo run --release 2 --config dev.toml</code></td></tr>
-<tr><td><code>DEBUG=1</code></td><td>Enable debug log</td><td><code>DEBUG=1 cargo run --release 2</code></td></tr>
+<tr><td><strong>Daemon Service (v1.0.0+)</strong></td><td></td><td></td></tr>
+<tr><td><code>midimon [PORT]</code></td><td>Start daemon service</td><td><code>cargo run --release --bin midimon 2</code></td></tr>
+<tr><td><code>--led &lt;SCHEME&gt;</code></td><td>Set LED scheme</td><td><code>midimon 2 --led rainbow</code></td></tr>
+<tr><td><code>--profile &lt;PATH&gt;</code></td><td>Load profile</td><td><code>midimon 2 --profile my.ncmm3</code></td></tr>
+<tr><td><code>--pad-page &lt;PAGE&gt;</code></td><td>Force pad page</td><td><code>midimon 2 --pad-page H</code></td></tr>
+<tr><td><code>--config &lt;PATH&gt;</code></td><td>Custom config</td><td><code>midimon 2 --config dev.toml</code></td></tr>
+<tr><td><strong>Daemon Control (v1.0.0+)</strong></td><td></td><td></td></tr>
+<tr><td><code>midimonctl status</code></td><td>Show daemon status</td><td><code>midimonctl status</code></td></tr>
+<tr><td><code>midimonctl reload</code></td><td>Hot-reload config</td><td><code>midimonctl reload</code></td></tr>
+<tr><td><code>midimonctl validate</code></td><td>Validate config</td><td><code>midimonctl validate</code></td></tr>
+<tr><td><code>midimonctl ping</code></td><td>Health check</td><td><code>midimonctl ping</code></td></tr>
+<tr><td><code>midimonctl stop</code></td><td>Stop daemon</td><td><code>midimonctl stop</code></td></tr>
+<tr><td><code>--json</code></td><td>JSON output</td><td><code>midimonctl status --json</code></td></tr>
+<tr><td><strong>Diagnostic Tools</strong></td><td></td><td></td></tr>
+<tr><td><code>DEBUG=1</code></td><td>Enable debug log</td><td><code>DEBUG=1 midimon 2</code></td></tr>
 <tr><td><code>midi_diagnostic</code></td><td>View MIDI events</td><td><code>cargo run --bin midi_diagnostic 2</code></td></tr>
 <tr><td><code>led_diagnostic</code></td><td>Test LEDs</td><td><code>cargo run --bin led_diagnostic</code></td></tr>
 <tr><td><code>led_tester</code></td><td>Interactive LED test</td><td><code>cargo run --bin led_tester</code></td></tr>
@@ -760,8 +1039,8 @@ DEBUG=0 ./target/release/midimon 2 \
 <li><a href="../configuration/overview.html">Configuration Overview</a> - Config file structure</li>
 </ul>
 <hr />
-<p><strong>Last Updated</strong>: November 11, 2025
-<strong>Binary Version</strong>: 0.1.0</p>
+<p><strong>Last Updated</strong>: November 14, 2025
+<strong>Binary Version</strong>: 1.0.0</p>
 
                     </main>
 

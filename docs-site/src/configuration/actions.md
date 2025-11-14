@@ -322,7 +322,7 @@ action = { type = "Keystroke", keys = "down" }
 [modes.mappings.action]
 type = "Repeat"
 count = 5
-delay_between_ms = 200  # 200ms between each press
+delay_ms = 200  # 200ms between each press
 action = { type = "Keystroke", keys = "down" }
 ```
 
@@ -331,7 +331,7 @@ action = { type = "Keystroke", keys = "down" }
 [modes.mappings.action]
 type = "Repeat"
 count = 3
-delay_between_ms = 1000
+delay_ms = 1000
 action = {
     type = "Sequence",
     actions = [
@@ -349,16 +349,14 @@ action = {
 [modes.mappings.action]
 type = "Repeat"
 count = 3
-delay_between_ms = 2000
-stop_on_error = true  # Stop if any iteration fails
+delay_ms = 2000
 action = { type = "Launch", app = "Xcode" }
 ```
 
 **Parameters**:
 - `count` (required): Number of repetitions (0 = no-op, 1 = run once)
 - `action` (required): Action to repeat
-- `delay_between_ms` (optional): Delay between iterations (not after last)
-- `stop_on_error` (optional): Stop on first failure (default: false)
+- `delay_ms` (optional): Delay in milliseconds between iterations (not applied after last iteration)
 
 **Edge Cases**:
 - `count = 0` is valid (no-op)
@@ -400,83 +398,174 @@ y = 300
 - Context menu automation
 - Drag-and-drop workflows (with sequences)
 
+## System Actions
+
+### VolumeControl
+
+Control system volume with platform-specific implementations.
+
+**Platform Support**:
+- **macOS**: AppleScript via `osascript` (full support)
+- **Linux/Windows**: Not yet implemented
+
+```toml
+# Volume up (increment by 5)
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Up"
+
+# Volume down (decrement by 5)
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Down"
+
+# Mute
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Mute"
+
+# Unmute
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Unmute"
+
+# Set specific volume (0-100)
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Set"
+value = 50
+```
+
+**Operations**:
+- `Up` - Increase volume by 5%
+- `Down` - Decrease volume by 5%
+- `Mute` - Mute audio output
+- `Unmute` - Unmute audio output
+- `Set` - Set volume to specific level (0-100), requires `value` parameter
+
+**Encoder Volume Control Example**:
+```toml
+[[global_mappings]]
+description = "Encoder for volume control"
+[global_mappings.trigger]
+type = "EncoderTurn"
+direction = "Clockwise"
+[global_mappings.action]
+type = "VolumeControl"
+operation = "Up"
+
+[[global_mappings]]
+description = "Encoder for volume control"
+[global_mappings.trigger]
+type = "EncoderTurn"
+direction = "CounterClockwise"
+[global_mappings.action]
+type = "VolumeControl"
+operation = "Down"
+```
+
+**Performance**: <100ms response time on macOS
+
+### ModeChange
+
+Switch between mapping modes programmatically.
+
+```toml
+# Switch to specific mode by name
+[modes.mappings.action]
+type = "ModeChange"
+mode = "Media"
+```
+
+**Use Cases**:
+- **Context Switching**: Switch to different mapping sets
+- **Workflow Modes**: Development, Media, Gaming modes
+- **Scene Control**: Different modes for streaming scenes
+
+**Example - Mode Switcher Pad**:
+```toml
+[[modes.mappings]]
+description = "Switch to Media mode"
+[modes.mappings.trigger]
+type = "Note"
+note = 15
+[modes.mappings.action]
+type = "ModeChange"
+mode = "Media"
+```
+
+**Note**: Mode changes trigger LED color updates and mapping context switches. The mode name must match a defined mode in your configuration.
+
 ## Advanced Actions
 
 ### Conditional
 
-Execute actions based on runtime conditions (app state, time, modifiers).
+Execute actions based on runtime conditions. Currently supports time-based conditions with plans for app state and modifier detection.
 
 ```toml
 [modes.mappings.action]
 type = "Conditional"
-conditions = [
-    { type = "AppRunning", bundle_id = "com.apple.Logic" }
-]
-operator = "And"
-then_action = { type = "Keystroke", keys = "space" }
-else_action = { type = "Launch", app = "Logic Pro" }
+condition = "TimeRange:09:00-17:00"
+then_action = { type = "Launch", app = "Slack" }
+else_action = { type = "Launch", app = "Discord" }
 ```
 
 **Parameters**:
-- `conditions` (array): Array of condition objects
-- `operator` (string, optional): "And" or "Or" (default: "And")
-- `then_action` (object): Action when conditions are true
-- `else_action` (object, optional): Action when conditions are false
+- `condition` (string): Condition to evaluate
+- `then_action` (object): Action when condition is true
+- `else_action` (object, optional): Action when condition is false
 
 **Condition Types**:
 
-**AppRunning / AppNotRunning** - Check if app is running:
+**Always** - Always evaluates to true (useful for testing):
 ```toml
-{ type = "AppRunning", bundle_id = "com.spotify.client" }
-{ type = "AppNotRunning", bundle_id = "com.microsoft.VSCode" }
+condition = "Always"
 ```
 
-**TimeRange** - Check current time:
+**Never** - Always evaluates to false (useful for testing):
 ```toml
-{ type = "TimeRange", start = "09:00", end = "17:00" }  # 24-hour format
+condition = "Never"
 ```
 
-**DayOfWeek** - Check day of week:
+**TimeRange** - Check if current time falls within range (24-hour format):
 ```toml
-{ type = "DayOfWeek", days = ["Mon", "Tue", "Wed", "Thu", "Fri"] }
-```
-
-**ModifierPressed** - Check if modifier key is held:
-```toml
-{ type = "ModifierPressed", modifier = "Shift" }  # Shift, Ctrl, Cmd, Alt
-```
-
-**ModeActive** - Check active mode:
-```toml
-{ type = "ModeActive", mode = 1 }  # Zero-based index
+condition = "TimeRange:09:00-17:00"  # During work hours
+condition = "TimeRange:18:00-23:59"  # Evening hours
+condition = "TimeRange:22:00-02:00"  # Crosses midnight
 ```
 
 **Example - Time-based launcher**:
 ```toml
+[[modes.mappings]]
+description = "Launch work/personal app based on time"
+[modes.mappings.trigger]
+type = "Note"
+note = 10
 [modes.mappings.action]
 type = "Conditional"
-conditions = [
-    { type = "TimeRange", start = "09:00", end = "17:00" },
-    { type = "DayOfWeek", days = ["Mon", "Tue", "Wed", "Thu", "Fri"] }
-]
-operator = "And"
-then_action = { type = "Launch", app = "Slack" }  # Work app
-else_action = { type = "Launch", app = "Discord" }  # Personal app
+condition = "TimeRange:09:00-17:00"
+then_action = { type = "Launch", app = "Slack" }  # Work hours
+else_action = { type = "Launch", app = "Discord" }  # Off hours
 ```
 
 **Example - Nested conditionals**:
 ```toml
 [modes.mappings.action]
 type = "Conditional"
-conditions = [{ type = "TimeRange", start = "09:00", end = "17:00" }]
+condition = "TimeRange:09:00-17:00"
 then_action = {
     type = "Conditional",
-    conditions = [{ type = "AppRunning", bundle_id = "com.microsoft.VSCode" }],
+    condition = "Always",  # Placeholder for future AppRunning condition
     then_action = { type = "Keystroke", keys = "b", modifiers = ["cmd", "shift"] },
     else_action = { type = "Launch", app = "Visual Studio Code" }
 }
 else_action = { type = "Launch", app = "Spotify" }
 ```
+
+**Future Condition Types** (not yet implemented):
+- `AppRunning:bundle_id` - Check if specific app is running
+- `ModifierPressed:Shift` - Check if modifier key is held
+- `ModeIs:1` - Check active mode index
 
 ## Action Composition Patterns
 

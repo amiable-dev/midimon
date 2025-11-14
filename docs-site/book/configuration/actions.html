@@ -461,14 +461,14 @@ action = { type = "Keystroke", keys = "down" }
 <pre><code class="language-toml">[modes.mappings.action]
 type = "Repeat"
 count = 5
-delay_between_ms = 200  # 200ms between each press
+delay_ms = 200  # 200ms between each press
 action = { type = "Keystroke", keys = "down" }
 </code></pre>
 <p><strong>Repeat a Sequence</strong>:</p>
 <pre><code class="language-toml">[modes.mappings.action]
 type = "Repeat"
 count = 3
-delay_between_ms = 1000
+delay_ms = 1000
 action = {
     type = "Sequence",
     actions = [
@@ -484,16 +484,14 @@ action = {
 <pre><code class="language-toml">[modes.mappings.action]
 type = "Repeat"
 count = 3
-delay_between_ms = 2000
-stop_on_error = true  # Stop if any iteration fails
+delay_ms = 2000
 action = { type = "Launch", app = "Xcode" }
 </code></pre>
 <p><strong>Parameters</strong>:</p>
 <ul>
 <li><code>count</code> (required): Number of repetitions (0 = no-op, 1 = run once)</li>
 <li><code>action</code> (required): Action to repeat</li>
-<li><code>delay_between_ms</code> (optional): Delay between iterations (not after last)</li>
-<li><code>stop_on_error</code> (optional): Stop on first failure (default: false)</li>
+<li><code>delay_ms</code> (optional): Delay in milliseconds between iterations (not applied after last iteration)</li>
 </ul>
 <p><strong>Edge Cases</strong>:</p>
 <ul>
@@ -532,65 +530,149 @@ y = 300
 <li>Context menu automation</li>
 <li>Drag-and-drop workflows (with sequences)</li>
 </ul>
+<h2 id="system-actions"><a class="header" href="#system-actions">System Actions</a></h2>
+<h3 id="volumecontrol"><a class="header" href="#volumecontrol">VolumeControl</a></h3>
+<p>Control system volume with platform-specific implementations.</p>
+<p><strong>Platform Support</strong>:</p>
+<ul>
+<li><strong>macOS</strong>: AppleScript via <code>osascript</code> (full support)</li>
+<li><strong>Linux/Windows</strong>: Not yet implemented</li>
+</ul>
+<pre><code class="language-toml"># Volume up (increment by 5)
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Up"
+
+# Volume down (decrement by 5)
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Down"
+
+# Mute
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Mute"
+
+# Unmute
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Unmute"
+
+# Set specific volume (0-100)
+[modes.mappings.action]
+type = "VolumeControl"
+operation = "Set"
+value = 50
+</code></pre>
+<p><strong>Operations</strong>:</p>
+<ul>
+<li><code>Up</code> - Increase volume by 5%</li>
+<li><code>Down</code> - Decrease volume by 5%</li>
+<li><code>Mute</code> - Mute audio output</li>
+<li><code>Unmute</code> - Unmute audio output</li>
+<li><code>Set</code> - Set volume to specific level (0-100), requires <code>value</code> parameter</li>
+</ul>
+<p><strong>Encoder Volume Control Example</strong>:</p>
+<pre><code class="language-toml">[[global_mappings]]
+description = "Encoder for volume control"
+[global_mappings.trigger]
+type = "EncoderTurn"
+direction = "Clockwise"
+[global_mappings.action]
+type = "VolumeControl"
+operation = "Up"
+
+[[global_mappings]]
+description = "Encoder for volume control"
+[global_mappings.trigger]
+type = "EncoderTurn"
+direction = "CounterClockwise"
+[global_mappings.action]
+type = "VolumeControl"
+operation = "Down"
+</code></pre>
+<p><strong>Performance</strong>: &lt;100ms response time on macOS</p>
+<h3 id="modechange"><a class="header" href="#modechange">ModeChange</a></h3>
+<p>Switch between mapping modes programmatically.</p>
+<pre><code class="language-toml"># Switch to specific mode by name
+[modes.mappings.action]
+type = "ModeChange"
+mode = "Media"
+</code></pre>
+<p><strong>Use Cases</strong>:</p>
+<ul>
+<li><strong>Context Switching</strong>: Switch to different mapping sets</li>
+<li><strong>Workflow Modes</strong>: Development, Media, Gaming modes</li>
+<li><strong>Scene Control</strong>: Different modes for streaming scenes</li>
+</ul>
+<p><strong>Example - Mode Switcher Pad</strong>:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Switch to Media mode"
+[modes.mappings.trigger]
+type = "Note"
+note = 15
+[modes.mappings.action]
+type = "ModeChange"
+mode = "Media"
+</code></pre>
+<p><strong>Note</strong>: Mode changes trigger LED color updates and mapping context switches. The mode name must match a defined mode in your configuration.</p>
 <h2 id="advanced-actions"><a class="header" href="#advanced-actions">Advanced Actions</a></h2>
 <h3 id="conditional"><a class="header" href="#conditional">Conditional</a></h3>
-<p>Execute actions based on runtime conditions (app state, time, modifiers).</p>
+<p>Execute actions based on runtime conditions. Currently supports time-based conditions with plans for app state and modifier detection.</p>
 <pre><code class="language-toml">[modes.mappings.action]
 type = "Conditional"
-conditions = [
-    { type = "AppRunning", bundle_id = "com.apple.Logic" }
-]
-operator = "And"
-then_action = { type = "Keystroke", keys = "space" }
-else_action = { type = "Launch", app = "Logic Pro" }
+condition = "TimeRange:09:00-17:00"
+then_action = { type = "Launch", app = "Slack" }
+else_action = { type = "Launch", app = "Discord" }
 </code></pre>
 <p><strong>Parameters</strong>:</p>
 <ul>
-<li><code>conditions</code> (array): Array of condition objects</li>
-<li><code>operator</code> (string, optional): "And" or "Or" (default: "And")</li>
-<li><code>then_action</code> (object): Action when conditions are true</li>
-<li><code>else_action</code> (object, optional): Action when conditions are false</li>
+<li><code>condition</code> (string): Condition to evaluate</li>
+<li><code>then_action</code> (object): Action when condition is true</li>
+<li><code>else_action</code> (object, optional): Action when condition is false</li>
 </ul>
 <p><strong>Condition Types</strong>:</p>
-<p><strong>AppRunning / AppNotRunning</strong> - Check if app is running:</p>
-<pre><code class="language-toml">{ type = "AppRunning", bundle_id = "com.spotify.client" }
-{ type = "AppNotRunning", bundle_id = "com.microsoft.VSCode" }
+<p><strong>Always</strong> - Always evaluates to true (useful for testing):</p>
+<pre><code class="language-toml">condition = "Always"
 </code></pre>
-<p><strong>TimeRange</strong> - Check current time:</p>
-<pre><code class="language-toml">{ type = "TimeRange", start = "09:00", end = "17:00" }  # 24-hour format
+<p><strong>Never</strong> - Always evaluates to false (useful for testing):</p>
+<pre><code class="language-toml">condition = "Never"
 </code></pre>
-<p><strong>DayOfWeek</strong> - Check day of week:</p>
-<pre><code class="language-toml">{ type = "DayOfWeek", days = ["Mon", "Tue", "Wed", "Thu", "Fri"] }
-</code></pre>
-<p><strong>ModifierPressed</strong> - Check if modifier key is held:</p>
-<pre><code class="language-toml">{ type = "ModifierPressed", modifier = "Shift" }  # Shift, Ctrl, Cmd, Alt
-</code></pre>
-<p><strong>ModeActive</strong> - Check active mode:</p>
-<pre><code class="language-toml">{ type = "ModeActive", mode = 1 }  # Zero-based index
+<p><strong>TimeRange</strong> - Check if current time falls within range (24-hour format):</p>
+<pre><code class="language-toml">condition = "TimeRange:09:00-17:00"  # During work hours
+condition = "TimeRange:18:00-23:59"  # Evening hours
+condition = "TimeRange:22:00-02:00"  # Crosses midnight
 </code></pre>
 <p><strong>Example - Time-based launcher</strong>:</p>
-<pre><code class="language-toml">[modes.mappings.action]
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Launch work/personal app based on time"
+[modes.mappings.trigger]
+type = "Note"
+note = 10
+[modes.mappings.action]
 type = "Conditional"
-conditions = [
-    { type = "TimeRange", start = "09:00", end = "17:00" },
-    { type = "DayOfWeek", days = ["Mon", "Tue", "Wed", "Thu", "Fri"] }
-]
-operator = "And"
-then_action = { type = "Launch", app = "Slack" }  # Work app
-else_action = { type = "Launch", app = "Discord" }  # Personal app
+condition = "TimeRange:09:00-17:00"
+then_action = { type = "Launch", app = "Slack" }  # Work hours
+else_action = { type = "Launch", app = "Discord" }  # Off hours
 </code></pre>
 <p><strong>Example - Nested conditionals</strong>:</p>
 <pre><code class="language-toml">[modes.mappings.action]
 type = "Conditional"
-conditions = [{ type = "TimeRange", start = "09:00", end = "17:00" }]
+condition = "TimeRange:09:00-17:00"
 then_action = {
     type = "Conditional",
-    conditions = [{ type = "AppRunning", bundle_id = "com.microsoft.VSCode" }],
+    condition = "Always",  # Placeholder for future AppRunning condition
     then_action = { type = "Keystroke", keys = "b", modifiers = ["cmd", "shift"] },
     else_action = { type = "Launch", app = "Visual Studio Code" }
 }
 else_action = { type = "Launch", app = "Spotify" }
 </code></pre>
+<p><strong>Future Condition Types</strong> (not yet implemented):</p>
+<ul>
+<li><code>AppRunning:bundle_id</code> - Check if specific app is running</li>
+<li><code>ModifierPressed:Shift</code> - Check if modifier key is held</li>
+<li><code>ModeIs:1</code> - Check active mode index</li>
+</ul>
 <h2 id="action-composition-patterns"><a class="header" href="#action-composition-patterns">Action Composition Patterns</a></h2>
 <h3 id="1-velocity-based-repeat-count"><a class="header" href="#1-velocity-based-repeat-count">1. Velocity-Based Repeat Count</a></h3>
 <p>Different repeat counts based on how hard you hit the pad:</p>

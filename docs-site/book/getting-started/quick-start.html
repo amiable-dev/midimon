@@ -181,188 +181,323 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
-<p>Get MIDIMon up and running in under 5 minutes.</p>
+                        <h1 id="quick-start-guide"><a class="header" href="#quick-start-guide">Quick Start Guide</a></h1>
+<p>Get MIDIMon v2.0.0 up and running in under 5 minutes using the visual GUI.</p>
 <h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
 <ul>
-<li><strong>Rust toolchain</strong> (1.70+) - <a href="https://rustup.rs/">Install from rustup.rs</a></li>
-<li><strong>Native Instruments Maschine Mikro MK3</strong> (or any MIDI controller)</li>
-<li><strong>macOS</strong> (primary support - Linux/Windows planned for Q4 2025)</li>
+<li><strong>macOS 11.0+</strong> (Big Sur or later) - Intel or Apple Silicon</li>
+<li><strong>MIDI controller</strong> (any USB MIDI device - Maschine Mikro MK3 recommended for full RGB LED support)</li>
+<li><strong>10 minutes</strong> for installation</li>
 </ul>
-<h2 id="step-1-clone-and-build"><a class="header" href="#step-1-clone-and-build">Step 1: Clone and Build</a></h2>
-<pre><code class="language-bash"># Clone the repository
-git clone https://github.com/amiable-dev/midimon.git
-cd midimon
-
-# Build release binary (optimized, ~3-5MB)
-cargo build --release
-</code></pre>
-<p>The release build takes 2-3 minutes and produces a highly optimized binary at <code>target/release/midimon</code>.</p>
-<h2 id="step-2-connect-your-device"><a class="header" href="#step-2-connect-your-device">Step 2: Connect Your Device</a></h2>
-<ol>
-<li><strong>Plug in your MIDI controller</strong> via USB</li>
-<li><strong>List available MIDI ports</strong>:</li>
-</ol>
-<pre><code class="language-bash">cargo run --release
-</code></pre>
-<p>You'll see output like:</p>
-<pre><code>Available MIDI input ports:
-  0: CoreMIDI - Mikro MK3 Public
-  1: CoreMIDI - Mikro MK3 Private
-  2: CoreMIDI - IAC Driver Bus 1
-
-Select a port number to connect...
-</code></pre>
-<ol start="3">
-<li><strong>Note the port number</strong> for your device (usually port <code>0</code> or <code>2</code> for Mikro MK3)</li>
-</ol>
-<h2 id="step-3-first-run"><a class="header" href="#step-3-first-run">Step 3: First Run</a></h2>
-<p>Connect to your device:</p>
-<pre><code class="language-bash">cargo run --release 2
-</code></pre>
-<p>(Replace <code>2</code> with your device's port number)</p>
-<p>You should see:</p>
-<pre><code>Connected to MIDI port 2: CoreMIDI - Mikro MK3 Public
-Loaded config from: config.toml
-Current mode: Default
-Listening for MIDI events... (Press Ctrl+C to exit)
-</code></pre>
-<h2 id="step-4-test-your-first-mapping"><a class="header" href="#step-4-test-your-first-mapping">Step 4: Test Your First Mapping</a></h2>
-<p>The included <code>config.toml</code> has a basic mapping:</p>
-<pre><code class="language-toml">[[modes.mappings]]
-trigger = { Note = { note = 60, velocity_min = 0 } }
-action = { Keystroke = { keys = ["Space"] } }
-</code></pre>
-<p><strong>Test it</strong>:</p>
-<ol>
-<li>Press the first pad (Note 60)</li>
-<li>It should trigger a Space key press</li>
-<li>LEDs should light up (if your device supports RGB)</li>
-</ol>
-<h2 id="step-5-enable-led-feedback-optional"><a class="header" href="#step-5-enable-led-feedback-optional">Step 5: Enable LED Feedback (Optional)</a></h2>
-<p>If you have a Maschine Mikro MK3, enable reactive LED feedback:</p>
-<pre><code class="language-bash">cargo run --release 2 --led reactive
-</code></pre>
-<p>Now pads will:</p>
+<h2 id="step-1-download-midimon"><a class="header" href="#step-1-download-midimon">Step 1: Download MIDIMon</a></h2>
+<p>Visit the <a href="https://github.com/amiable-dev/midimon/releases/latest">GitHub Releases page</a> and download:</p>
+<p><strong>For most users</strong> (recommended):</p>
 <ul>
-<li>Light up <strong>green</strong> for soft press (velocity 0-40)</li>
-<li>Light up <strong>yellow</strong> for medium press (velocity 41-80)</li>
-<li>Light up <strong>red</strong> for hard press (velocity 81-127)</li>
-<li>Fade out over 1 second after release</li>
+<li><code>midimon-gui-macos-universal.tar.gz</code> - GUI application (includes daemon)</li>
 </ul>
-<p>Try other LED schemes:</p>
-<pre><code class="language-bash">cargo run --release 2 --led rainbow   # Rainbow wave animation
-cargo run --release 2 --led pulse     # Pulsing brightness
-cargo run --release 2 --led spiral    # Spiral pattern
-</code></pre>
-<p>See all schemes: <a href="../configuration/led-feedback.html">LED Feedback Configuration</a></p>
-<h2 id="step-6-customize-your-mappings"><a class="header" href="#step-6-customize-your-mappings">Step 6: Customize Your Mappings</a></h2>
-<p>The default config is at <code>config.toml</code> in the project root. Edit it to add your own mappings:</p>
-<pre><code class="language-toml">[[modes.mappings]]
-trigger = { Note = { note = 61, velocity_min = 0 } }
-action = { Keystroke = { keys = ["Cmd", "T"] } }  # Open new tab
-</code></pre>
-<p>Reload the config:</p>
+<p><strong>For CLI-only users</strong>:</p>
 <ul>
-<li><strong>Stop</strong> MIDIMon (Ctrl+C)</li>
-<li><strong>Start</strong> it again: <code>cargo run --release 2</code></li>
+<li><code>midimon-aarch64-apple-darwin.tar.gz</code> (Apple Silicon)</li>
+<li><code>midimon-x86_64-apple-darwin.tar.gz</code> (Intel)</li>
 </ul>
-<blockquote>
-<p><strong>Future</strong>: Hot-reloading (Phase 2+) will let you reload config without restarting</p>
-</blockquote>
-<h2 id="step-7-explore-advanced-features"><a class="header" href="#step-7-explore-advanced-features">Step 7: Explore Advanced Features</a></h2>
+<h2 id="step-2-install-the-gui"><a class="header" href="#step-2-install-the-gui">Step 2: Install the GUI</a></h2>
+<pre><code class="language-bash"># Extract the downloaded file
+tar xzf midimon-gui-macos-universal.tar.gz
+
+# Move to Applications folder
+mv "MIDIMon GUI.app" /Applications/
+
+# Open the app
+open /Applications/"MIDIMon GUI.app"
+</code></pre>
+<p><strong>First launch</strong>: macOS will ask for permissions. Grant <strong>Input Monitoring</strong> permission when prompted (required for LED control and device access).</p>
+<h2 id="step-3-connect-your-device"><a class="header" href="#step-3-connect-your-device">Step 3: Connect Your Device</a></h2>
+<ol>
+<li>
+<p><strong>Plug in your MIDI controller</strong> via USB</p>
+</li>
+<li>
+<p><strong>In the MIDIMon GUI</strong>, go to the <strong>Device Connection</strong> panel</p>
+</li>
+<li>
+<p>Your device should appear in the list. Click <strong>Connect</strong></p>
+</li>
+<li>
+<p>The status bar at the bottom should show: <strong>"Connected to [Your Device]"</strong></p>
+</li>
+</ol>
+<p>If your device doesn't appear:</p>
+<ul>
+<li>Check USB cable</li>
+<li>Try a different USB port</li>
+<li>See <a href="../troubleshooting/device-connection.html">Troubleshooting Device Connection</a></li>
+</ul>
+<h2 id="step-4-create-your-first-mapping-with-midi-learn"><a class="header" href="#step-4-create-your-first-mapping-with-midi-learn">Step 4: Create Your First Mapping with MIDI Learn</a></h2>
+<p>The fastest way to create a mapping is using <strong>MIDI Learn mode</strong>:</p>
+<ol>
+<li>
+<p><strong>Click "Add Mapping"</strong> in the Mappings panel</p>
+</li>
+<li>
+<p><strong>Click "Learn"</strong> next to the Trigger field</p>
+</li>
+<li>
+<p><strong>Press any pad/button</strong> on your MIDI controller</p>
+</li>
+<li>
+<p>The trigger configuration <strong>auto-fills</strong> with the detected input</p>
+</li>
+<li>
+<p><strong>Choose an action</strong>:</p>
+<ul>
+<li><strong>Keystroke</strong> - Press a key (e.g., Cmd+C for copy)</li>
+<li><strong>Launch</strong> - Open an application</li>
+<li><strong>Text</strong> - Type text</li>
+<li><strong>Shell</strong> - Run a command</li>
+</ul>
+</li>
+<li>
+<p><strong>Click "Save"</strong></p>
+</li>
+<li>
+<p><strong>Test it!</strong> Press the same pad/button - the action should execute</p>
+</li>
+</ol>
+<p><strong>Example</strong>: Map pad to open Spotify:</p>
+<ul>
+<li>Trigger: Note 36 (auto-detected via MIDI Learn)</li>
+<li>Action: Launch → <code>/Applications/Spotify.app</code></li>
+</ul>
+<h2 id="step-5-explore-advanced-features"><a class="header" href="#step-5-explore-advanced-features">Step 5: Explore Advanced Features</a></h2>
 <h3 id="velocity-sensitivity"><a class="header" href="#velocity-sensitivity">Velocity Sensitivity</a></h3>
-<p>Different actions based on how hard you hit the pad:</p>
-<pre><code class="language-toml">[[modes.mappings]]
-trigger = { VelocityRange = { note = 62, min = 0, max = 40 } }
-action = { Text = { text = "soft" } }
-
-[[modes.mappings]]
-trigger = { VelocityRange = { note = 62, min = 81, max = 127 } }
-action = { Text = { text = "HARD" } }
-</code></pre>
+<p>Map different actions based on how hard you hit a pad:</p>
+<ol>
+<li>Select trigger type: <strong>Velocity Range</strong></li>
+<li>Use MIDI Learn to detect the note</li>
+<li>Set velocity ranges:
+<ul>
+<li><strong>Soft</strong> (0-40): Pause playback</li>
+<li><strong>Hard</strong> (81-127): Skip track</li>
+</ul>
+</li>
+</ol>
 <h3 id="long-press-detection"><a class="header" href="#long-press-detection">Long Press Detection</a></h3>
-<p>Hold a pad for 2 seconds to trigger a different action:</p>
-<pre><code class="language-toml">[[modes.mappings]]
-trigger = { LongPress = { note = 63, velocity_min = 0, hold_ms = 2000 } }
-action = { Shell = { command = "open -a Calculator" } }
-</code></pre>
+<p>Hold a pad for 2+ seconds to trigger a different action:</p>
+<ol>
+<li>Select trigger type: <strong>Long Press</strong></li>
+<li>Use MIDI Learn</li>
+<li>Set <strong>Hold Duration</strong>: 2000ms</li>
+<li>Action: Open Calculator</li>
+</ol>
 <h3 id="chord-detection"><a class="header" href="#chord-detection">Chord Detection</a></h3>
-<p>Press multiple pads simultaneously (within 100ms):</p>
-<pre><code class="language-toml">[[modes.mappings]]
-trigger = { NoteChord = { notes = [60, 64, 67], velocity_min = 0 } }
-action = { Text = { text = "C Major Chord!" } }
+<p>Press multiple pads simultaneously:</p>
+<ol>
+<li>Select trigger type: <strong>Chord</strong></li>
+<li>Use MIDI Learn and press all pads within 100ms</li>
+<li>Action: Launch your favorite app</li>
+</ol>
+<h2 id="step-6-use-device-templates"><a class="header" href="#step-6-use-device-templates">Step 6: Use Device Templates</a></h2>
+<p>Skip manual configuration with built-in device templates:</p>
+<ol>
+<li>
+<p>Go to <strong>Settings</strong> → <strong>Device Templates</strong></p>
+</li>
+<li>
+<p><strong>Select your controller</strong>:</p>
+<ul>
+<li>Maschine Mikro MK3</li>
+<li>Launchpad Mini</li>
+<li>APC Mini</li>
+<li>Korg nanoKONTROL2</li>
+<li>Novation Launchkey Mini</li>
+<li>AKAI MPK Mini</li>
+</ul>
+</li>
+<li>
+<p>Click <strong>Load Template</strong></p>
+</li>
+<li>
+<p>The template loads pre-configured mappings for common workflows</p>
+</li>
+<li>
+<p><strong>Customize</strong> as needed using MIDI Learn</p>
+</li>
+</ol>
+<h2 id="step-7-enable-auto-start-optional"><a class="header" href="#step-7-enable-auto-start-optional">Step 7: Enable Auto-Start (Optional)</a></h2>
+<p>Run MIDIMon automatically when you log in:</p>
+<ol>
+<li>
+<p>Go to <strong>Settings</strong> → <strong>General</strong></p>
+</li>
+<li>
+<p>Enable <strong>"Start MIDIMon on login"</strong></p>
+</li>
+<li>
+<p>Click <strong>Save</strong></p>
+</li>
+</ol>
+<p>The daemon will now start automatically in the background every time you log in.</p>
+<h2 id="using-the-daemon-cli-optional"><a class="header" href="#using-the-daemon-cli-optional">Using the Daemon CLI (Optional)</a></h2>
+<p>For advanced users who prefer terminal control:</p>
+<pre><code class="language-bash"># Check daemon status
+midimonctl status
+
+# Reload configuration (hot-reload in 0-10ms)
+midimonctl reload
+
+# Stop daemon
+midimonctl stop
+
+# Validate config without reloading
+midimonctl validate
+
+# Ping daemon (check latency)
+midimonctl ping
 </code></pre>
+<p>See <a href="../guides/daemon.html">Daemon &amp; CLI Guide</a> for full details.</p>
+<h2 id="per-app-profiles-automatic-profile-switching"><a class="header" href="#per-app-profiles-automatic-profile-switching">Per-App Profiles (Automatic Profile Switching)</a></h2>
+<p>MIDIMon v2.0.0 can automatically switch configurations based on which application is active:</p>
+<ol>
+<li>
+<p>Go to <strong>Per-App Profiles</strong> in the GUI</p>
+</li>
+<li>
+<p><strong>Add a new profile</strong>:</p>
+<ul>
+<li>Application: Select an app (e.g., "Visual Studio Code")</li>
+<li>Profile: Select a config profile</li>
+</ul>
+</li>
+<li>
+<p>When you switch to that application, MIDIMon automatically loads the configured profile</p>
+</li>
+<li>
+<p><strong>Example use cases</strong>:</p>
+<ul>
+<li><strong>Logic Pro</strong>: Pads control DAW functions (play, record, etc.)</li>
+<li><strong>VS Code</strong>: Pads trigger common shortcuts (run, debug, search)</li>
+<li><strong>Chrome</strong>: Pads control tabs and navigation</li>
+</ul>
+</li>
+</ol>
+<h2 id="live-event-console"><a class="header" href="#live-event-console">Live Event Console</a></h2>
+<p>Debug your mappings in real-time:</p>
+<ol>
+<li>
+<p>Go to <strong>Event Console</strong> in the GUI</p>
+</li>
+<li>
+<p><strong>Watch MIDI events</strong> as they happen:</p>
+<ul>
+<li>Note On/Off</li>
+<li>Velocity values</li>
+<li>Control Change</li>
+<li>Pitch Bend</li>
+<li>Aftertouch</li>
+</ul>
+</li>
+<li>
+<p><strong>Filter events</strong> by type or note number</p>
+</li>
+<li>
+<p><strong>Export logs</strong> for debugging</p>
+</li>
+</ol>
+<p>This is invaluable for troubleshooting "why isn't my mapping working?"</p>
 <h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
 <h3 id="device-not-found"><a class="header" href="#device-not-found">Device Not Found</a></h3>
-<pre><code class="language-bash"># Check USB connection
-system_profiler SPUSBDataType | grep -i mikro
-
-# List MIDI ports again
-cargo run --release
-
-# Check Audio MIDI Setup
-open -a "Audio MIDI Setup"
+<ol>
+<li>
+<p><strong>Check USB connection</strong>:</p>
+<pre><code class="language-bash">system_profiler SPUSBDataType | grep -i midi
 </code></pre>
+</li>
+<li>
+<p><strong>Restart the daemon</strong>:</p>
+<pre><code class="language-bash">midimonctl stop
+open /Applications/"MIDIMon GUI.app"
+</code></pre>
+</li>
+<li>
+<p><strong>Check Audio MIDI Setup</strong>:</p>
+<pre><code class="language-bash">open -a "Audio MIDI Setup"
+</code></pre>
+</li>
+</ol>
 <h3 id="leds-not-working"><a class="header" href="#leds-not-working">LEDs Not Working</a></h3>
 <ol>
-<li>Ensure Native Instruments drivers are installed</li>
-<li>Grant <strong>Input Monitoring</strong> permissions:
+<li>
+<p><strong>Ensure Native Instruments drivers are installed</strong> (for Maschine controllers)</p>
+</li>
+<li>
+<p><strong>Grant Input Monitoring permission</strong>:</p>
 <ul>
-<li><strong>System Settings</strong> → <strong>Privacy &amp; Security</strong> → <strong>Input Monitoring</strong></li>
-<li>Enable for your Terminal app</li>
+<li>System Settings → Privacy &amp; Security → Input Monitoring</li>
+<li>Enable for "MIDIMon GUI"</li>
 </ul>
 </li>
-<li>Try different LED schemes: <code>--led reactive</code>, <code>--led rainbow</code></li>
-<li>Check debug output: <code>DEBUG=1 cargo run --release 2</code></li>
+<li>
+<p><strong>Check LED scheme</strong> in GUI Settings</p>
+</li>
+<li>
+<p><strong>View debug logs</strong> in Event Console</p>
+</li>
 </ol>
-<h3 id="events-not-triggering"><a class="header" href="#events-not-triggering">Events Not Triggering</a></h3>
+<h3 id="mappings-not-triggering"><a class="header" href="#mappings-not-triggering">Mappings Not Triggering</a></h3>
 <ol>
-<li><strong>Run diagnostics</strong> to verify MIDI events:
-<pre><code class="language-bash">cargo run --bin midi_diagnostic 2
+<li>
+<p><strong>Use Event Console</strong> to verify MIDI events are being received</p>
+</li>
+<li>
+<p><strong>Use MIDI Learn</strong> to verify the correct note numbers</p>
+</li>
+<li>
+<p><strong>Check mode</strong> - is the mapping in the current mode or global?</p>
+</li>
+<li>
+<p><strong>Reload config</strong>:</p>
+<pre><code class="language-bash">midimonctl reload
 </code></pre>
 </li>
-<li><strong>Check note numbers</strong> match your config:
-<pre><code class="language-bash">cargo run --bin pad_mapper
-</code></pre>
-</li>
-<li><strong>Verify velocity thresholds</strong> aren't too restrictive</li>
-<li><strong>Check mode</strong> - is the mapping in the current mode or global?</li>
 </ol>
 <h3 id="permission-denied-macos"><a class="header" href="#permission-denied-macos">Permission Denied (macOS)</a></h3>
-<p>If you see "Permission denied" for HID devices:</p>
+<p>If you see "Permission denied" errors:</p>
 <ol>
 <li><strong>System Settings</strong> → <strong>Privacy &amp; Security</strong> → <strong>Input Monitoring</strong></li>
-<li>Add your Terminal app (Terminal.app, iTerm2, etc.)</li>
-<li>Restart your terminal</li>
-<li>Run MIDIMon again</li>
+<li>Add <strong>"MIDIMon GUI"</strong> to the list</li>
+<li>Restart the GUI app</li>
 </ol>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Now that you're up and running:</p>
+<h3 id="for-gui-users"><a class="header" href="#for-gui-users">For GUI Users</a></h3>
 <ul>
-<li><a href="./first-mapping.html">Create Your First Mapping</a> - Step-by-step mapping tutorial</li>
+<li><a href="./midi-learn.html">MIDI Learn Tutorial</a> - Master MIDI Learn mode</li>
+<li><a href="../guides/device-templates.html">Device Templates Guide</a> - Use pre-built templates</li>
+<li><a href="../guides/per-app-profiles.html">Per-App Profiles Guide</a> - Set up application-specific profiles</li>
+<li><a href="../guides/event-console.html">Live Event Console</a> - Debug with real-time monitoring</li>
+</ul>
+<h3 id="for-cli-users"><a class="header" href="#for-cli-users">For CLI Users</a></h3>
+<ul>
+<li><a href="../guides/daemon.html">Daemon &amp; Hot-Reload</a> - Master the daemon CLI</li>
+<li><a href="../configuration/overview.html">Manual Configuration</a> - Edit config.toml</li>
+<li><a href="../reference/triggers.html">Advanced Triggers</a> - All trigger types</li>
+<li><a href="../reference/actions.html">Advanced Actions</a> - All action types</li>
+</ul>
+<h3 id="for-all-users"><a class="header" href="#for-all-users">For All Users</a></h3>
+<ul>
 <li><a href="./modes.html">Understanding Modes</a> - Multi-mode workflow management</li>
-<li><a href="../configuration/overview.html">Configuration Overview</a> - Complete config reference</li>
+<li><a href="../guides/led-system.html">LED System</a> - Customize LED feedback</li>
 <li><a href="../configuration/examples.html">Example Configurations</a> - Pre-built configs</li>
 </ul>
 <h2 id="performance"><a class="header" href="#performance">Performance</a></h2>
-<p>MIDIMon is highly optimized:</p>
+<p>MIDIMon v2.0.0 is highly optimized:</p>
 <ul>
 <li><strong>Response latency</strong>: &lt;1ms typical</li>
-<li><strong>Memory usage</strong>: 5-10MB</li>
+<li><strong>Config hot-reload</strong>: 0-10ms</li>
+<li><strong>IPC round-trip</strong>: &lt;1ms</li>
+<li><strong>Memory usage</strong>: 5-10MB (daemon), ~60MB (GUI)</li>
 <li><strong>CPU usage</strong>: &lt;1% idle, &lt;5% active</li>
 <li><strong>Binary size</strong>: ~3-5MB (release with LTO)</li>
-</ul>
-<h2 id="debug-mode"><a class="header" href="#debug-mode">Debug Mode</a></h2>
-<p>Enable detailed logging for troubleshooting:</p>
-<pre><code class="language-bash">DEBUG=1 cargo run --release 2
-</code></pre>
-<p>You'll see:</p>
-<ul>
-<li>MIDI event parsing details</li>
-<li>Trigger matching logic</li>
-<li>Action execution results</li>
-<li>LED feedback commands</li>
-<li>Error stack traces</li>
 </ul>
 <h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
 <ul>
@@ -371,6 +506,8 @@ open -a "Audio MIDI Setup"
 <li><a href="https://github.com/amiable-dev/midimon/discussions">GitHub Discussions</a></li>
 <li><a href="https://github.com/amiable-dev/midimon/issues">Report Issues</a></li>
 </ul>
+<hr />
+<p><strong>Congratulations!</strong> You now have MIDIMon v2.0.0 running with visual configuration, hot-reload, and per-app profiles. 🎉</p>
 
                     </main>
 

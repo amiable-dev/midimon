@@ -185,11 +185,29 @@
 <p><strong>Transform any MIDI controller into an advanced, context-aware macro pad with professional-grade feedback and timing-based triggers.</strong></p>
 <p>MIDIMon is a powerful Rust-based MIDI controller mapping system that goes beyond simple note-to-key bindings. It provides velocity sensitivity, long press detection, double-tap, chord recognition, and full RGB LED feedback for modern workflows.</p>
 <h2 id="key-features"><a class="header" href="#key-features">Key Features</a></h2>
-<h3 id="core-capabilities"><a class="header" href="#core-capabilities">Core Capabilities</a></h3>
+<h3 id="core-capabilities-v200"><a class="header" href="#core-capabilities-v200">Core Capabilities (v2.0.0)</a></h3>
+<p><strong>Event Detection</strong>:</p>
 <ul>
 <li><strong>4 Core Triggers</strong>: Note, Velocity Range, Encoder, Control Change</li>
 <li><strong>5 Advanced Triggers</strong>: Long Press, Double-Tap, Chord, Aftertouch, Pitch Bend</li>
 <li><strong>10 Action Types</strong>: Keystroke, Text, Launch, Shell, Volume Control, and more</li>
+</ul>
+<p><strong>Visual Interface (NEW!)</strong>:</p>
+<ul>
+<li><strong>Tauri GUI</strong>: Modern desktop app for visual configuration</li>
+<li><strong>MIDI Learn</strong>: One-click auto-detection of MIDI inputs</li>
+<li><strong>Live Preview</strong>: Real-time event monitoring and testing</li>
+<li><strong>Device Templates</strong>: 6 built-in templates for popular controllers</li>
+</ul>
+<p><strong>Daemon Infrastructure (NEW!)</strong>:</p>
+<ul>
+<li><strong>Background Service</strong>: Runs as system service with auto-start</li>
+<li><strong>Hot-Reload</strong>: Config changes applied in 0-10ms without restart</li>
+<li><strong>IPC Control</strong>: Control daemon via CLI or GUI</li>
+<li><strong>Per-App Profiles</strong>: Automatic profile switching</li>
+</ul>
+<p><strong>LED &amp; Feedback</strong>:</p>
+<ul>
 <li><strong>10 LED Schemes</strong>: Reactive, Rainbow, Pulse, Breathing, and custom patterns</li>
 <li><strong>Multi-Mode System</strong>: Switch between mapping sets on the fly</li>
 <li><strong>Device Profile Support</strong>: Load Native Instruments Controller Editor configurations</li>
@@ -246,8 +264,16 @@ action = { type = "Launch", path = "/Applications/Utilities/Terminal.app" }
 <h2 id="get-started"><a class="header" href="#get-started">Get Started</a></h2>
 <p>Ready to dive in? Check out the <a href="getting-started/quick-start.html">Quick Start Guide</a> or <a href="installation/macos.html">Installation Instructions</a>.</p>
 <h2 id="project-status"><a class="header" href="#project-status">Project Status</a></h2>
-<p>MIDIMon is currently at <strong>v0.1.0-monolithic</strong> (pre-1.0 software). The core features are stable and production-ready, but the API may change before v1.0.0.</p>
-<p>See the <a href="resources/roadmap.html">Roadmap</a> for planned features and timeline.</p>
+<p>MIDIMon is currently at <strong>v2.0.0</strong> with production-ready daemon infrastructure and visual GUI configuration.</p>
+<p><strong>What's New in v2.0.0</strong>:</p>
+<ul>
+<li>🎛️ <strong>Tauri GUI</strong>: Visual configuration editor with MIDI Learn mode</li>
+<li>🔄 <strong>Hot-Reload Daemon</strong>: 0-10ms config reloads without restart</li>
+<li>🎯 <strong>Per-App Profiles</strong>: Automatic profile switching based on active app</li>
+<li>📊 <strong>Live Event Console</strong>: Real-time MIDI event monitoring</li>
+<li>📦 <strong>Device Templates</strong>: 6 built-in templates for popular controllers</li>
+</ul>
+<p>See the <a href="resources/roadmap.html">Roadmap</a> for planned features and <a href="resources/changelog.html">Changelog</a> for full release notes.</p>
 <h2 id="community"><a class="header" href="#community">Community</a></h2>
 <ul>
 <li><strong>GitHub</strong>: <a href="https://github.com/amiable-dev/midimon">https://github.com/amiable-dev/midimon</a></li>

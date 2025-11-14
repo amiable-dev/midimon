@@ -215,6 +215,57 @@ cargo --version  # Should show: cargo 1.75.0 (or later)
 <p>Keep your toolchain up to date:</p>
 <pre><code class="language-bash">rustup update
 </code></pre>
+<h2 id="workspace-architecture-v020"><a class="header" href="#workspace-architecture-v020">Workspace Architecture (v0.2.0+)</a></h2>
+<p>MIDIMon uses a <strong>Cargo workspace</strong> with three packages since v0.2.0:</p>
+<h3 id="package-structure"><a class="header" href="#package-structure">Package Structure</a></h3>
+<ol>
+<li>
+<p><strong>midimon-core</strong> - Pure Rust engine library</p>
+<ul>
+<li>Zero UI dependencies (no colored output, pure logic)</li>
+<li>Public API for embedding in other applications</li>
+<li>30+ public types exported</li>
+<li>Event processing, mapping engine, action execution</li>
+</ul>
+</li>
+<li>
+<p><strong>midimon-daemon</strong> - CLI daemon + diagnostic tools</p>
+<ul>
+<li>Main <code>midimon</code> binary (daemon service)</li>
+<li><code>midimonctl</code> - CLI control tool (v1.0.0+)</li>
+<li>6 diagnostic binaries:
+<ul>
+<li><code>midi_diagnostic</code> - MIDI event viewer</li>
+<li><code>led_diagnostic</code> - LED testing tool</li>
+<li><code>led_tester</code> - Interactive LED control</li>
+<li><code>pad_mapper</code> - Note number mapper</li>
+<li><code>test_midi</code> - Port connectivity test</li>
+<li><code>midi_simulator</code> - MIDI event simulator (testing)</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>midimon</strong> (root) - Backward compatibility layer</p>
+<ul>
+<li>Re-exports midimon-core types</li>
+<li>For existing v0.1.0 tests only</li>
+<li>New code should use midimon-core directly</li>
+</ul>
+</li>
+</ol>
+<h3 id="when-to-use-each-package"><a class="header" href="#when-to-use-each-package">When to Use Each Package</a></h3>
+<ul>
+<li><strong>Use midimon-core</strong>: Embed MIDIMon in your application</li>
+<li><strong>Use midimon-daemon</strong>: Run as standalone CLI/daemon</li>
+<li><strong>Use midimon (root)</strong>: Only for backward compatibility</li>
+</ul>
+<h3 id="public-api-example"><a class="header" href="#public-api-example">Public API Example</a></h3>
+<pre><code class="language-rust">use midimon_core::{Config, MappingEngine, EventProcessor, ActionExecutor};
+
+let config = Config::load("config.toml")?;
+let mut engine = MappingEngine::new();
+// Process events, execute actions...</code></pre>
 <h3 id="platform-specific-dependencies"><a class="header" href="#platform-specific-dependencies">Platform-Specific Dependencies</a></h3>
 <h4 id="macos"><a class="header" href="#macos">macOS</a></h4>
 <p><strong>Required</strong>:</p>
@@ -332,6 +383,47 @@ cd midimon
 # - docs/          (Documentation)
 </code></pre>
 <h2 id="build-commands"><a class="header" href="#build-commands">Build Commands</a></h2>
+<h3 id="workspace-builds-v020"><a class="header" href="#workspace-builds-v020">Workspace Builds (v0.2.0+)</a></h3>
+<p>Build the entire workspace (all 3 packages in parallel):</p>
+<pre><code class="language-bash"># Development build
+cargo build --workspace
+
+# Release build (optimized)
+cargo build --release --workspace
+</code></pre>
+<p><strong>Build times</strong> (workspace):</p>
+<ul>
+<li>Clean build: ~12s (was 15-20s in v0.1.0)</li>
+<li>Incremental: &lt;2s</li>
+<li>Parallel compilation across all packages</li>
+</ul>
+<h3 id="package-specific-builds"><a class="header" href="#package-specific-builds">Package-Specific Builds</a></h3>
+<p>Build individual packages for faster iteration:</p>
+<pre><code class="language-bash"># Core engine only
+cargo build --package midimon-core
+cargo build -p midimon-core  # Short form
+
+# Daemon + tools
+cargo build -p midimon-daemon
+
+# Compatibility layer
+cargo build -p midimon
+
+# Specific binary
+cargo build --release --bin midimon
+cargo build --release --bin midimonctl
+cargo build --release --bin midi_diagnostic
+</code></pre>
+<h3 id="running-binaries"><a class="header" href="#running-binaries">Running Binaries</a></h3>
+<pre><code class="language-bash"># Main daemon
+cargo run --release --bin midimon 2
+
+# Daemon control
+cargo run --release --bin midimonctl status
+
+# Diagnostic tool
+cargo run --release --bin midi_diagnostic 2
+</code></pre>
 <h3 id="debug-build"><a class="header" href="#debug-build">Debug Build</a></h3>
 <p>Fastest compilation, includes debug symbols, no optimization:</p>
 <pre><code class="language-bash">cargo build
@@ -355,7 +447,7 @@ cd midimon
 <li>Performance-critical applications</li>
 <li>Distribution</li>
 </ul>
-<p><strong>Build time</strong>: 2-5 minutes (first build), 30s-2m (incremental)</p>
+<p><strong>Build time</strong>: 12s clean, &lt;2s incremental (workspace)</p>
 <p><strong>Performance</strong>: Full optimization, &lt;1ms MIDI latency</p>
 <h3 id="clean-build"><a class="header" href="#clean-build">Clean Build</a></h3>
 <p>Remove all build artifacts and start fresh:</p>

@@ -182,33 +182,58 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="architecture-overview"><a class="header" href="#architecture-overview">Architecture Overview</a></h1>
-<h2 id="current-architecture-phase-1"><a class="header" href="#current-architecture-phase-1">Current Architecture (Phase 1)</a></h2>
-<p>MIDIMon is currently implemented as a <strong>single-binary Rust application</strong> with all functionality in one crate. This design prioritizes rapid development and feature validation.</p>
+<h2 id="current-architecture-v020---phase-2"><a class="header" href="#current-architecture-v020---phase-2">Current Architecture (v0.2.0 - Phase 2)</a></h2>
+<p>MIDIMon uses a <strong>Cargo workspace architecture</strong> with three packages. Phase 2 migration completed successfully with zero breaking changes.</p>
+<h3 id="workspace-packages"><a class="header" href="#workspace-packages">Workspace Packages</a></h3>
+<ol>
+<li><strong>midimon-core</strong>: Pure Rust engine library (zero UI dependencies)</li>
+<li><strong>midimon-daemon</strong>: CLI daemon + 6 diagnostic tools</li>
+<li><strong>midimon</strong>: Backward compatibility layer for existing tests</li>
+</ol>
 <h3 id="system-architecture"><a class="header" href="#system-architecture">System Architecture</a></h3>
 <pre><code>┌─────────────────────────────────────────────────────────────┐
-│                        MIDIMon CLI                          │
-│                    (Single Binary)                          │
+│                    midimon-daemon                           │
+│              (CLI Daemon + Diagnostic Tools)                │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
+│   main.rs       6 diagnostic binaries                      │
+│   (daemon)      (tools for MIDI/LED testing)               │
+│                                                             │
+│                      ▼  imports                             │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────┐
+│                    midimon-core                             │
+│              (Pure Rust Engine Library)                     │
+├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐  │
-│  │   Config    │───▶│    Engine    │◀──▶│  Feedback    │  │
-│  │   Loader    │    │              │    │   System     │  │
+│  │   Config    │───▶│    Mapping   │◀──▶│  Feedback    │  │
+│  │   Loader    │    │    Engine    │    │   System     │  │
 │  └─────────────┘    └──────────────┘    └──────────────┘  │
 │         │                   │                    │         │
 │         │                   │                    │         │
 │         ▼                   ▼                    ▼         │
 │  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐  │
-│  │  Mappings   │    │    Event     │    │  HID/MIDI    │  │
-│  │   Engine    │    │  Processor   │    │   LEDs       │  │
+│  │   Events    │    │    Event     │    │  HID/MIDI    │  │
+│  │   Types     │    │  Processor   │    │   LEDs       │  │
 │  └─────────────┘    └──────────────┘    └──────────────┘  │
-│         │                   │                              │
-│         │                   │                              │
-│         ▼                   ▼                              │
-│  ┌─────────────┐    ┌──────────────┐                      │
-│  │   Actions   │    │  Device I/O  │                      │
-│  │  Executor   │    │ (midir/HID)  │                      │
-│  └─────────────┘    └──────────────┘                      │
+│         │                   │                    │         │
+│         │                   │                    │         │
+│         ▼                   ▼                    ▼         │
+│  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐  │
+│  │   Actions   │    │    Device    │    │    Error     │  │
+│  │  Executor   │    │   Profiles   │    │    Types     │  │
+│  └─────────────┘    └──────────────┘    └──────────────┘  │
 │                                                             │
+│  Zero UI dependencies • Public API • Reusable library      │
+└─────────────────────────────────────────────────────────────┘
+                       ▲
+┌──────────────────────┴──────────────────────────────────────┐
+│                      midimon (root)                         │
+│               (Backward Compatibility Layer)                │
+├─────────────────────────────────────────────────────────────┤
+│  Re-exports midimon_core types for existing tests          │
+│  Maintains v0.1.0 import paths • Zero breaking changes     │
 └─────────────────────────────────────────────────────────────┘
 </code></pre>
 <h3 id="event-processing-pipeline"><a class="header" href="#event-processing-pipeline">Event Processing Pipeline</a></h3>
@@ -417,7 +442,7 @@
 <li>Linux: <code>xdotool</code> (optional, for input simulation)</li>
 <li>Windows: Native Windows APIs</li>
 </ul>
-<h2 id="future-architecture-phase-2"><a class="header" href="#future-architecture-phase-2">Future Architecture (Phase 2+)</a></h2>
+<h2 id="future-phases-phase-4-gui"><a class="header" href="#future-phases-phase-4-gui">Future Phases (Phase 4+: GUI)</a></h2>
 <p>The roadmap includes migrating to a <strong>workspace structure</strong> with separate crates. See <a href="../../docs/workspace-structure.html">Workspace Structure Design</a> for complete details (AMI-124).</p>
 <h3 id="target-structure"><a class="header" href="#target-structure">Target Structure</a></h3>
 <pre><code>midimon/
@@ -461,7 +486,7 @@
     style A fill:#50c878,stroke:#2d7a4d,stroke-width:2px,color:#fff
     style B fill:#50c878,stroke:#2d7a4d,stroke-width:2px,color:#fff
 </code></pre>
-<h3 id="phase-2-core-library-extraction"><a class="header" href="#phase-2-core-library-extraction">Phase 2: Core Library Extraction</a></h3>
+<h3 id="phase-2-core-library-extraction--complete-v020"><a class="header" href="#phase-2-core-library-extraction--complete-v020">Phase 2: Core Library Extraction ✅ COMPLETE (v0.2.0)</a></h3>
 <p><strong>Goal</strong>: Extract engine logic into reusable <code>midimon-core</code> crate (AMI-123, AMI-124).</p>
 <p><strong>Public API</strong> (from <a href="../../docs/api-design.html">API Design</a>):</p>
 <pre><code class="language-rust">pub struct MidiMonEngine;
