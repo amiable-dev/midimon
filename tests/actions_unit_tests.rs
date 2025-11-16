@@ -8,6 +8,7 @@
 
 use midimon::actions::Action;
 use midimon::config::ActionConfig;
+use midimon_daemon::ActionExecutor;
 
 // ============================================================================
 // Action Construction Tests

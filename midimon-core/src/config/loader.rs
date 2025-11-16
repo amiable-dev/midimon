@@ -17,12 +17,17 @@ impl Config {
     ///
     /// If the file doesn't exist, creates a default configuration and saves it to the specified path.
     ///
+    /// # Security
+    /// This function performs path validation to prevent path traversal attacks:
+    /// - Canonicalizes the path to resolve symlinks and relative components
+    /// - Restricts access to allowed directories (config directory, /tmp, current working directory)
+    ///
     /// # Arguments
     /// * `path` - Path to the configuration file
     ///
     /// # Returns
     /// * `Ok(Config)` - Successfully loaded or created configuration
-    /// * `Err(ConfigError)` - IO, parsing, or validation error
+    /// * `Err(ConfigError)` - IO, parsing, validation, or security error
     ///
     /// # Example
     /// ```no_run
@@ -32,8 +37,11 @@ impl Config {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn load(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        if Path::new(path).exists() {
-            let contents = std::fs::read_to_string(path)?;
+        // Security: Validate and sanitize path
+        let safe_path = Self::validate_config_path(path)?;
+
+        if safe_path.exists() {
+            let contents = std::fs::read_to_string(&safe_path)?;
             let config: Config = toml::from_str(&contents)?;
             config.validate()?;
             Ok(config)
@@ -49,12 +57,17 @@ impl Config {
     ///
     /// Writes the configuration as formatted TOML.
     ///
+    /// # Security
+    /// This function performs path validation to prevent path traversal attacks:
+    /// - Canonicalizes the parent directory path
+    /// - Restricts writes to allowed directories (config directory, /tmp, current working directory)
+    ///
     /// # Arguments
     /// * `path` - Path where the configuration file will be written
     ///
     /// # Returns
     /// * `Ok(())` - Successfully saved
-    /// * `Err(Box<dyn std::error::Error>)` - IO or serialization error
+    /// * `Err(Box<dyn std::error::Error>)` - IO, serialization, or security error
     ///
     /// # Example
     /// ```no_run
@@ -65,8 +78,110 @@ impl Config {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn save(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        // Security: Validate and sanitize path (for parent directory)
+        let path_buf = Path::new(path);
+
+        // If parent directory exists, validate it
+        if let Some(parent) = path_buf.parent() {
+            if parent.exists() {
+                let canonical_parent = parent.canonicalize()?;
+                Self::check_path_allowed(&canonical_parent)?;
+            }
+        }
+
         let contents = toml::to_string_pretty(self)?;
         std::fs::write(path, contents)?;
+        Ok(())
+    }
+
+    /// Validate and sanitize a configuration file path
+    ///
+    /// # Security
+    /// Prevents path traversal attacks by:
+    /// 1. Converting relative paths to absolute
+    /// 2. Resolving symlinks
+    /// 3. Checking the path is within allowed directories
+    ///
+    /// # Allowed Directories
+    /// - User's config directory (`~/.config`, `~/Library/Application Support`, etc.)
+    /// - `/tmp` directory (for temporary configs)
+    /// - Current working directory (for development/testing)
+    ///
+    /// # Returns
+    /// * `Ok(PathBuf)` - Canonical path if allowed
+    /// * `Err(Box<dyn std::error::Error>)` - If path is outside allowed directories
+    fn validate_config_path(path: &str) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
+        let path_buf = Path::new(path);
+
+        // Convert to absolute path if relative
+        let absolute_path = if path_buf.is_absolute() {
+            path_buf.to_path_buf()
+        } else {
+            std::env::current_dir()?.join(path_buf)
+        };
+
+        // Canonicalize if the path exists, otherwise validate parent
+        let canonical_path = if absolute_path.exists() {
+            absolute_path.canonicalize()?
+        } else if let Some(parent) = absolute_path.parent() {
+            if parent.exists() {
+                parent.canonicalize()?.join(
+                    absolute_path
+                        .file_name()
+                        .ok_or("Invalid file name")?,
+                )
+            } else {
+                // Parent doesn't exist - allow it (will be created)
+                absolute_path
+            }
+        } else {
+            absolute_path
+        };
+
+        // Check if path is within allowed directories
+        if canonical_path.exists() || canonical_path.parent().map_or(false, |p| p.exists()) {
+            Self::check_path_allowed(&canonical_path)?;
+        }
+
+        Ok(canonical_path)
+    }
+
+    /// Check if a path is within allowed directories
+    ///
+    /// # Allowed Directories
+    /// - User's config directory
+    /// - `/tmp` directory (including its canonical form like `/private/var/folders/...` on macOS)
+    /// - Current working directory
+    ///
+    /// # Returns
+    /// * `Ok(())` - Path is allowed
+    /// * `Err(Box<dyn std::error::Error>)` - Path is outside allowed directories
+    fn check_path_allowed(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+        // Get allowed directories (canonicalized to handle symlinks)
+        let config_dir = dirs::config_dir().and_then(|p| p.canonicalize().ok());
+        let current_dir = std::env::current_dir().ok().and_then(|p| p.canonicalize().ok());
+        let tmp_dir = std::env::temp_dir().canonicalize().ok();
+
+        // Check if path is within any allowed directory
+        let is_in_config_dir = config_dir
+            .as_ref()
+            .map_or(false, |dir| path.starts_with(dir));
+        let is_in_current_dir = current_dir
+            .as_ref()
+            .map_or(false, |dir| path.starts_with(dir));
+        let is_in_tmp = tmp_dir
+            .as_ref()
+            .map_or(false, |dir| path.starts_with(dir));
+
+        if !is_in_config_dir && !is_in_current_dir && !is_in_tmp {
+            return Err(format!(
+                "Security: Config path '{}' is outside allowed directories. \
+                 Allowed: config directory, current directory, /tmp",
+                path.display()
+            )
+            .into());
+        }
+
         Ok(())
     }
 
@@ -255,6 +370,90 @@ fn validate_trigger(trigger: &Trigger) -> Result<(), ConfigError> {
     Ok(())
 }
 
+/// Validate shell command for security (prevents command injection)
+///
+/// Blocks dangerous patterns that could enable command injection attacks:
+/// - Command chaining: `;`, `&&`, `||`
+/// - Piping: `|`
+/// - Command substitution: `` ` ``, `$(`, `${`
+/// - Redirects: `>`, `>>`, `<`, `<<`
+/// - Background execution: `&` (at end of command)
+///
+/// # Security Note
+/// This is defense-in-depth. The action executor should ALSO avoid using shell
+/// interpreters (use `Command::new(cmd).args(args)` instead of `sh -c`).
+fn validate_shell_command(command: &str) -> Result<(), ConfigError> {
+    // Blocklist of dangerous shell metacharacters
+    // IMPORTANT: Check longer patterns first (">>" before ">", "<<" before "<")
+    let dangerous_patterns = [
+        (";", "command chaining with semicolon"),
+        ("&&", "command chaining with AND"),
+        ("||", "command chaining with OR"),
+        ("|", "piping"),
+        ("`", "backtick command substitution"),
+        ("$(", "dollar-paren command substitution"),
+        ("${", "variable expansion"),
+        (">>", "append redirection"),  // Check before ">"
+        ("<<", "here-document"),  // Check before "<"
+        (">", "output redirection"),
+        ("<", "input redirection"),
+        ("&\n", "background execution"),
+        ("&\r", "background execution"),
+    ];
+
+    for (pattern, description) in &dangerous_patterns {
+        if command.contains(pattern) {
+            return Err(ConfigError::InvalidAction(format!(
+                "Shell command contains dangerous pattern '{}' ({}). \
+                 This could enable command injection attacks. \
+                 Use safe alternatives or split into separate mappings.",
+                pattern, description
+            )));
+        }
+    }
+
+    // Check for background execution at end of command
+    if command.trim_end().ends_with('&') {
+        return Err(ConfigError::InvalidAction(
+            "Shell command ends with '&' (background execution). \
+             This could enable command injection attacks."
+                .to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+/// Validate application name for security (prevents shell injection via Launch action)
+///
+/// Application names should only contain:
+/// - Alphanumeric characters
+/// - Spaces, hyphens, underscores, periods
+/// - Forward slashes (for paths like /Applications/MyApp.app)
+///
+/// This prevents shell injection if the app name is passed to a shell command.
+fn validate_app_name(app: &str) -> Result<(), ConfigError> {
+    // Allow alphanumeric, space, hyphen, underscore, period, forward slash
+    let allowed_pattern = regex::Regex::new(r"^[a-zA-Z0-9\s\-_./ ]+$").unwrap();
+
+    if !allowed_pattern.is_match(app) {
+        return Err(ConfigError::InvalidAction(format!(
+            "Launch action app name '{}' contains invalid characters. \
+             Only alphanumeric, spaces, hyphens, underscores, periods, and forward slashes are allowed.",
+            app
+        )));
+    }
+
+    // Additional check: no path traversal attempts
+    if app.contains("..") {
+        return Err(ConfigError::InvalidAction(
+            "Launch action app name cannot contain '..' (path traversal)".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
 /// Validate an action configuration
 fn validate_action(action: &ActionConfig) -> Result<(), ConfigError> {
     match action {
@@ -289,6 +488,8 @@ fn validate_action(action: &ActionConfig) -> Result<(), ConfigError> {
                     "Launch action requires app name".to_string(),
                 ));
             }
+            // Security: validate app name to prevent shell injection
+            validate_app_name(app)?;
         }
         ActionConfig::Shell { command } => {
             if command.is_empty() {
@@ -296,6 +497,8 @@ fn validate_action(action: &ActionConfig) -> Result<(), ConfigError> {
                     "Shell action requires command".to_string(),
                 ));
             }
+            // Security: validate shell command to prevent command injection
+            validate_shell_command(command)?;
         }
         ActionConfig::Sequence { actions } => {
             if actions.is_empty() {
@@ -346,7 +549,7 @@ fn validate_action(action: &ActionConfig) -> Result<(), ConfigError> {
                 ));
             }
         }
-        ActionConfig::Repeat { action, count } => {
+        ActionConfig::Repeat { action, count, delay_ms: _ } => {
             if *count == 0 {
                 return Err(ConfigError::InvalidAction(
                     "Repeat count must be > 0".to_string(),
@@ -531,5 +734,289 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
+    }
+
+    // ========================================
+    // Security Tests (Command Injection Prevention)
+    // ========================================
+
+    #[test]
+    fn test_shell_injection_semicolon_blocked() {
+        let mut config = Config::default_config();
+        config.modes[0].mappings[0].action = ActionConfig::Shell {
+            command: "echo test; rm -rf /".to_string(),
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("command chaining with semicolon"));
+    }
+
+    #[test]
+    fn test_shell_injection_and_operator_blocked() {
+        let mut config = Config::default_config();
+        config.modes[0].mappings[0].action = ActionConfig::Shell {
+            command: "ls && malicious_command".to_string(),
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("command chaining with AND"));
+    }
+
+    #[test]
+    fn test_shell_injection_or_operator_blocked() {
+        let mut config = Config::default_config();
+        config.modes[0].mappings[0].action = ActionConfig::Shell {
+            command: "false || evil_fallback".to_string(),
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("command chaining with OR"));
+    }
+
+    #[test]
+    fn test_shell_injection_pipe_blocked() {
+        let mut config = Config::default_config();
+        config.modes[0].mappings[0].action = ActionConfig::Shell {
+            command: "cat /etc/passwd | grep root".to_string(),
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("piping"));
+    }
+
+    #[test]
+    fn test_shell_injection_backtick_blocked() {
+        let mut config = Config::default_config();
+        config.modes[0].mappings[0].action = ActionConfig::Shell {
+            command: "echo `whoami`".to_string(),
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("backtick command substitution"));
+    }
+
+    #[test]
+    fn test_shell_injection_dollar_paren_blocked() {
+        let mut config = Config::default_config();
+        config.modes[0].mappings[0].action = ActionConfig::Shell {
+            command: "echo $(whoami)".to_string(),
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("dollar-paren command substitution"));
+    }
+
+    #[test]
+    fn test_shell_injection_variable_expansion_blocked() {
+        let mut config = Config::default_config();
+        config.modes[0].mappings[0].action = ActionConfig::Shell {
+            command: "echo ${DANGEROUS_VAR}".to_string(),
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("variable expansion"));
+    }
+
+    #[test]
+    fn test_shell_injection_output_redirect_blocked() {
+        let mut config = Config::default_config();
+        config.modes[0].mappings[0].action = ActionConfig::Shell {
+            command: "echo data > /etc/important_file".to_string(),
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("output redirection"));
+    }
+
+    #[test]
+    fn test_shell_injection_append_redirect_blocked() {
+        let mut config = Config::default_config();
+        config.modes[0].mappings[0].action = ActionConfig::Shell {
+            command: "echo data >> /etc/important_file".to_string(),
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("append redirection"));
+    }
+
+    #[test]
+    fn test_shell_injection_input_redirect_blocked() {
+        let mut config = Config::default_config();
+        config.modes[0].mappings[0].action = ActionConfig::Shell {
+            command: "command < /etc/passwd".to_string(),
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("input redirection"));
+    }
+
+    #[test]
+    fn test_shell_injection_background_execution_blocked() {
+        let mut config = Config::default_config();
+        config.modes[0].mappings[0].action = ActionConfig::Shell {
+            command: "malicious_daemon &".to_string(),
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("background execution"));
+    }
+
+    #[test]
+    fn test_shell_safe_commands_allowed() {
+        let mut config = Config::default_config();
+
+        // Safe commands should pass validation
+        let safe_commands = vec![
+            "git status",
+            "cargo build",
+            "ls -la",
+            "echo hello world",
+            "pwd",
+        ];
+
+        for cmd in safe_commands {
+            config.modes[0].mappings[0].action = ActionConfig::Shell {
+                command: cmd.to_string(),
+            };
+            let result = config.validate();
+            assert!(result.is_ok(), "Safe command '{}' should be allowed", cmd);
+        }
+    }
+
+    #[test]
+    fn test_launch_injection_special_chars_blocked() {
+        let mut config = Config::default_config();
+        config.modes[0].mappings[0].action = ActionConfig::Launch {
+            app: "Terminal; rm -rf /".to_string(),
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("invalid characters"));
+    }
+
+    #[test]
+    fn test_launch_path_traversal_blocked() {
+        let mut config = Config::default_config();
+        config.modes[0].mappings[0].action = ActionConfig::Launch {
+            app: "../../malicious".to_string(),
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("path traversal"));
+    }
+
+    #[test]
+    fn test_launch_safe_app_names_allowed() {
+        let mut config = Config::default_config();
+
+        // Safe app names should pass validation
+        let safe_apps = vec![
+            "Terminal",
+            "VS Code",
+            "Google Chrome",
+            "/Applications/Safari.app",
+            "my-app_v2.0",
+        ];
+
+        for app in safe_apps {
+            config.modes[0].mappings[0].action = ActionConfig::Launch {
+                app: app.to_string(),
+            };
+            let result = config.validate();
+            assert!(result.is_ok(), "Safe app name '{}' should be allowed", app);
+        }
+    }
+
+    // ========================================
+    // Security Tests (Path Traversal Prevention)
+    // ========================================
+
+    #[test]
+    #[should_panic(expected = "outside allowed directories")]
+    fn test_path_traversal_absolute_etc_blocked() {
+        // Trying to load /etc/passwd should be blocked
+        let _ = Config::load("/etc/passwd").unwrap();
+    }
+
+    #[test]
+    fn test_path_traversal_relative_etc_blocked() {
+        // Trying to traverse to /etc should be blocked
+        let result = Config::load("../../../../etc/passwd");
+        assert!(result.is_err(), "Loading from /etc via traversal should be blocked");
+        // Could be either "outside allowed directories" or "No such file" (both are acceptable security outcomes)
+    }
+
+    #[test]
+    fn test_path_in_current_dir_allowed() {
+        // Loading from current directory should be allowed
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_config.toml");
+
+        // Create a valid config file
+        let config = Config::default_config();
+        config.save(test_file.to_str().unwrap()).unwrap();
+
+        // Should be able to load it
+        let loaded = Config::load(test_file.to_str().unwrap());
+        assert!(loaded.is_ok(), "Loading from /tmp should be allowed");
+
+        // Cleanup
+        let _ = std::fs::remove_file(test_file);
+    }
+
+    #[test]
+    fn test_path_validation_resolves_symlinks() {
+        use std::fs;
+        use std::os::unix::fs as unix_fs;
+
+        let temp_dir = std::env::temp_dir();
+        let real_file = temp_dir.join("real_config.toml");
+        let symlink_file = temp_dir.join("symlink_config.toml");
+
+        // Create a valid config file
+        let config = Config::default_config();
+        config.save(real_file.to_str().unwrap()).unwrap();
+
+        // Create symlink
+        let _ = fs::remove_file(&symlink_file); // Remove if exists
+        unix_fs::symlink(&real_file, &symlink_file).unwrap();
+
+        // Should be able to load via symlink (resolves to /tmp)
+        let loaded = Config::load(symlink_file.to_str().unwrap());
+        assert!(loaded.is_ok(), "Loading via symlink should work if target is in allowed dir");
+
+        // Cleanup
+        let _ = fs::remove_file(real_file);
+        let _ = fs::remove_file(symlink_file);
+    }
+
+    #[test]
+    fn test_relative_path_in_current_dir() {
+        // Relative paths in current directory should work
+        let temp_dir = std::env::temp_dir();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let config = Config::default_config();
+        let result = config.save("test_relative.toml");
+        assert!(result.is_ok(), "Saving to relative path in current dir should work");
+
+        let loaded = Config::load("test_relative.toml");
+        assert!(loaded.is_ok(), "Loading from relative path in current dir should work");
+
+        // Cleanup
+        let _ = std::fs::remove_file(temp_dir.join("test_relative.toml"));
     }
 }

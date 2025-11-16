@@ -320,6 +320,9 @@ pub enum ActionConfig {
         action: Box<ActionConfig>,
         /// Number of times to repeat
         count: usize,
+        /// Optional delay in milliseconds between repetitions
+        #[serde(default)]
+        delay_ms: Option<u64>,
     },
 
     /// Conditional action execution
