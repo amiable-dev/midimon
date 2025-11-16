@@ -22,6 +22,8 @@ pub mod event_processor {
 
 pub mod actions {
     pub use midimon_core::actions::*;
+    // Note: ActionExecutor moved to midimon-daemon in Phase 2 refactor
+    // Use `midimon_daemon::ActionExecutor` instead
 }
 
 pub mod mappings {

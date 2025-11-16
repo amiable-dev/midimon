@@ -13,7 +13,6 @@ path = "src/lib.rs"
 [dependencies]
 # Core engine dependencies
 midir.workspace = true
-enigo.workspace = true
 serde.workspace = true
 toml.workspace = true
 hidapi.workspace = true
@@ -21,6 +20,9 @@ quick-xml.workspace = true
 crossbeam-channel.workspace = true
 thiserror.workspace = true
 rand.workspace = true
+regex.workspace = true  # Security validation
+dirs.workspace = true  # Path handling
+enigo.workspace = true  # Still needed for Key and Button types in Action enum
 
 # Structured logging
 tracing = "0.1"
@@ -28,6 +30,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"]
 tracing-appender = "0.2"
 
 [dev-dependencies]
+midimon-daemon = { path = "../midimon-daemon" }  # For integration tests
 proptest.workspace = true
 rstest.workspace = true
 criterion = { version = "0.5", features = ["html_reports"] }
@@ -40,9 +43,7 @@ harness = false
 name = "mapping_engine"
 harness = false
 
-[[bench]]
-name = "action_executor"
-harness = false
+# action_executor benchmark moved to midimon-daemon (Phase 2 refactor)
 
 [[bench]]
 name = "end_to_end"

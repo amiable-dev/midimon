@@ -25,7 +25,7 @@
 //! # Quick Start
 //!
 //! ```rust,no_run
-//! use midimon_core::{Config, MappingEngine, EventProcessor, ActionExecutor};
+//! use midimon_core::{Config, MappingEngine, EventProcessor};
 //!
 //! // Load configuration
 //! let config = Config::load("config.toml").expect("Failed to load config");
@@ -33,14 +33,12 @@
 //! // Create engine components
 //! let mut event_processor = EventProcessor::new();
 //! let mut mapping_engine = MappingEngine::new();
-//! let mut action_executor = ActionExecutor::new();
 //!
 //! // Process MIDI events (in your event loop)
 //! // let midi_event = ...; // from your MIDI input
 //! // let processed = event_processor.process(midi_event);
-//! // if let Some(action) = mapping_engine.map_event(&processed, &config) {
-//! //     action_executor.execute(&action);
-//! // }
+//! // let action = mapping_engine.map_event(&processed, &config);
+//! // Action execution is handled by midimon-daemon's ActionExecutor
 //! ```
 //!
 //! # Features
@@ -115,8 +113,8 @@ pub use config::{ActionConfig, Config, DeviceConfig, LoggingConfig, Mapping, Mod
 pub use event_processor::EventProcessor;
 pub use events::{EncoderDirection, InputEvent, MidiEvent, ProcessedEvent, VelocityLevel};
 
-// Actions
-pub use actions::{Action, ActionExecutor};
+// Actions (ActionExecutor moved to midimon-daemon in Phase 2 security refactor)
+pub use actions::{Action, VolumeOperation};
 
 // Feedback
 pub use feedback::{FeedbackManager, LightingScheme, PadFeedback};

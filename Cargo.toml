@@ -31,6 +31,8 @@ path = "src/lib.rs"
 midimon-core = { path = "midimon-core" }
 
 [dev-dependencies]
+# For integration tests that use ActionExecutor
+midimon-daemon = { path = "midimon-daemon" }
 proptest.workspace = true
 rstest.workspace = true
 chrono.workspace = true
@@ -47,6 +49,8 @@ quick-xml = { version = "0.37", features = ["serialize"] }
 crossbeam-channel = "0.5"
 thiserror = "2.0"
 rand = "0.8"
+regex = "1.10"  # Security validation
+dirs = "5.0"  # Path handling
 
 # CLI/display dependencies (NOT in midimon-core, only midimon-daemon)
 enigo = "0.6"

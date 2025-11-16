@@ -59,6 +59,9 @@ chrono.workspace = true
 ctrlc.workspace = true
 clap.workspace = true
 
+# Action execution (moved from core for architectural purity)
+enigo.workspace = true
+
 # MIDI I/O and threading
 midir.workspace = true
 crossbeam-channel.workspace = true

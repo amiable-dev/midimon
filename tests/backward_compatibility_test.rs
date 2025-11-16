@@ -4,7 +4,8 @@
 //! Test backward compatibility layer - verifies old import paths work
 
 // Test old-style imports through the compatibility layer
-use midimon::actions::{Action, ActionExecutor};
+use midimon::actions::Action;
+use midimon_daemon::ActionExecutor;  // ActionExecutor moved to daemon in Phase 2
 use midimon::config::{ActionConfig, Config, Trigger};
 use midimon::device_profile::{DeviceProfile, PadPageMapping};
 use midimon::event_processor::EventProcessor;
@@ -63,7 +64,8 @@ fn test_device_profile_module_accessible() {
 )]
 fn test_root_level_imports_work() {
     // Test that root-level re-exports also work
-    use midimon::{ActionExecutor, Config, MidiEvent, ProcessedEvent};
+    use midimon::{Config, MidiEvent, ProcessedEvent};
+    use midimon_daemon::ActionExecutor;
 
     let _: Option<Config> = None;
     let _: Option<MidiEvent> = None;

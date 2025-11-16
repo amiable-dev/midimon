@@ -3,13 +3,12 @@
 
 //! Integration test to verify public API exports work correctly
 
+use midimon_daemon::ActionExecutor;
 use midimon_core::{
     // Actions
     Action,
     ActionConfig,
-
     ActionError,
-    ActionExecutor,
 
     // Configuration
     Config,

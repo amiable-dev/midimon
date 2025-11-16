@@ -165,6 +165,7 @@
 //! - [`daemon::error`] - Error types and handling
 
 pub mod daemon;
+pub mod action_executor;
 
 // Re-export core types for convenience
 pub use daemon::{
@@ -174,3 +175,6 @@ pub use daemon::{
     PersistedState, ReloadMetrics, ResponseStatus, Result, StateManager, calculate_checksum,
     create_success_response, get_socket_path, get_state_dir, run_daemon, run_daemon_with_config,
 };
+
+// Re-export ActionExecutor for daemon use
+pub use action_executor::ActionExecutor;

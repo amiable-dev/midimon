@@ -7,10 +7,10 @@
 //! 1. Raw MIDI event input
 //! 2. EventProcessor: MIDI → ProcessedEvent
 //! 3. MappingEngine: ProcessedEvent → Action
-//! 4. ActionExecutor: Action execution
+//! 4. Action execution (moved to midimon-daemon in Phase 2)
 //!
-//! These benchmarks measure the total latency from MIDI input to action execution,
-//! providing insight into real-world performance characteristics.
+//! These benchmarks measure the latency from MIDI input to action dispatch.
+//! Action execution benchmarks are now in midimon-daemon.
 //!
 //! Performance targets:
 //! - Complete pipeline (input to action dispatch): <1ms
@@ -19,7 +19,7 @@
 
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use midimon_core::{
-    ActionConfig, ActionExecutor, Config, DeviceConfig, EventProcessor, Mapping, MappingEngine,
+    ActionConfig, Config, DeviceConfig, EventProcessor, Mapping, MappingEngine,
     MidiEvent, Mode, Trigger,
 };
 use std::time::Instant;
@@ -56,13 +56,13 @@ fn create_test_config(num_mappings: usize) -> Config {
     }
 }
 
-/// Benchmark simple note press → keystroke execution
-/// This is the most common user interaction: press a pad, trigger an action.
+/// Benchmark simple note press → action dispatch
+/// This is the most common user interaction: press a pad, get an action.
+/// Action execution is now handled by midimon-daemon's ActionExecutor.
 fn bench_simple_note_to_action(c: &mut Criterion) {
     let config = create_test_config(10);
     let mut processor = EventProcessor::new();
     let mut engine = MappingEngine::new();
-    let mut executor = ActionExecutor::new();
     engine.load_from_config(&config);
 
     let now = Instant::now();
@@ -78,11 +78,8 @@ fn bench_simple_note_to_action(c: &mut Criterion) {
             // Process MIDI event
             let _processed = processor.process(midi_event.clone());
 
-            // Get action from mapping
-            if let Some(action) = engine.get_action(&midi_event, 0) {
-                // Execute action (this involves OS interaction, so it's slower)
-                executor.execute(action);
-            }
+            // Get action from mapping (execution moved to daemon)
+            let _action = engine.get_action(&midi_event, 0);
         })
     });
 }
