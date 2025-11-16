@@ -1,392 +1,236 @@
 // Copyright 2025 Amiable
 // SPDX-License-Identifier: MIT
 
-use chrono::Local;
-use clap::{Parser, ValueEnum};
-use colored::*;
-use crossbeam_channel::{Receiver, bounded};
-use midir::{MidiInput, MidiInputConnection};
+//! MIDIMon Daemon - Background MIDI controller mapping service
+//!
+//! This is the main entry point for the MIDIMon daemon service.
+//! It parses command-line arguments and launches the daemon infrastructure
+//! with IPC control, config hot-reload, and state persistence.
+
+use clap::Parser;
+use midimon_daemon::{get_socket_path, run_daemon_with_config};
 use std::path::PathBuf;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
-use std::thread;
-use std::time::{Duration, Instant};
+use tracing::{error, info};
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
-// Import from midimon_core instead of inline modules
-use midimon_core::{Config, MidiEvent, mapping::MappingEngine};
-use midimon_daemon::ActionExecutor;
-
-/// MIDIMon - MIDI controller mapping system
+/// MIDIMon Daemon - MIDI controller mapping service
 ///
 /// Transform MIDI devices into advanced macro pads with velocity sensitivity,
 /// long press detection, double-tap, chord detection, and RGB LED feedback.
+///
+/// The daemon runs as a background service with:
+/// - Config hot-reload (zero downtime)
+/// - IPC control via Unix domain socket
+/// - State persistence across restarts
+/// - Performance metrics and health monitoring
+///
+/// Control the daemon using `midimonctl`:
+///   midimonctl status   - Check daemon state
+///   midimonctl reload   - Hot-reload configuration
+///   midimonctl validate - Validate config without reloading
+///   midimonctl ping     - Health check
+///   midimonctl stop     - Graceful shutdown
 #[derive(Parser, Debug)]
 #[command(name = "midimon")]
 #[command(version)]
-#[command(about = "MIDI Macro Pad Controller", long_about = None)]
+#[command(about = "MIDIMon Daemon - MIDI Macro Pad Service", long_about = None)]
 struct Args {
-    /// MIDI port index to connect to (list ports with --list)
-    #[arg(value_name = "PORT")]
-    port: Option<usize>,
-
     /// Path to configuration file
-    #[arg(short, long, value_name = "FILE", default_value = "config.toml")]
-    config: PathBuf,
-
-    /// LED lighting scheme
-    #[arg(short, long, value_enum)]
-    led: Option<LedScheme>,
-
-    /// Device profile file (.ncmm3 for Native Instruments)
+    ///
+    /// Defaults to ~/Library/Application Support/midimon/config.toml on macOS
+    /// or ~/.config/midimon/config.toml on Linux
     #[arg(short, long, value_name = "FILE")]
-    profile: Option<PathBuf>,
+    config: Option<PathBuf>,
 
-    /// Pad page to use (A-H for Mikro MK3)
-    #[arg(long, value_name = "PAGE")]
-    pad_page: Option<String>,
-
-    /// List available MIDI ports and exit
-    #[arg(short = 'L', long)]
-    list: bool,
-
-    /// Enable debug logging
+    /// Enable verbose logging (debug level)
+    ///
+    /// Sets logging level to DEBUG for all MIDIMon modules.
+    /// Can also be controlled via RUST_LOG environment variable.
     #[arg(short, long)]
-    debug: bool,
-}
+    verbose: bool,
 
-/// LED lighting schemes
-#[derive(Copy, Clone, Debug, ValueEnum)]
-enum LedScheme {
-    /// LEDs off
-    Off,
-    /// Static color based on mode
-    Static,
-    /// Slow breathing effect
-    Breathing,
-    /// Fast pulse effect
-    Pulse,
-    /// Rainbow cycle
-    Rainbow,
-    /// Wave pattern
-    Wave,
-    /// Random sparkles
-    Sparkle,
-    /// React to MIDI events only
-    Reactive,
-    /// VU meter style (bottom-up)
-    VuMeter,
-    /// Spiral pattern
-    Spiral,
-}
+    /// Enable trace-level logging
+    ///
+    /// Sets logging level to TRACE (very verbose, includes all events).
+    /// Useful for diagnosing event processing issues.
+    #[arg(short = 'T', long)]
+    trace: bool,
 
-pub struct MidiMacroPad {
-    config: Config,
-    midi_connection: Option<MidiInputConnection<()>>,
-    #[allow(dead_code)]
-    action_executor: ActionExecutor,
-    #[allow(dead_code)]
-    mapping_engine: MappingEngine,
-    current_mode: Arc<AtomicU8>,
-    running: Arc<AtomicBool>,
-}
-
-impl MidiMacroPad {
-    pub fn new(config_path: &std::path::Path) -> Result<Self, Box<dyn std::error::Error>> {
-        let config = Config::load(config_path.to_str().unwrap_or("config.toml"))?;
-
-        Ok(Self {
-            config,
-            midi_connection: None,
-            action_executor: ActionExecutor::new(),
-            mapping_engine: MappingEngine::new(),
-            current_mode: Arc::new(AtomicU8::new(0)),
-            running: Arc::new(AtomicBool::new(true)),
-        })
-    }
-
-    pub fn list_midi_ports(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let midi_in = MidiInput::new("MidiMacroPad Scanner")?;
-
-        println!("{}", "Available MIDI input ports:".green().bold());
-        println!("{}", "─".repeat(40).dimmed());
-
-        let ports = midi_in.ports();
-        for (i, p) in ports.iter().enumerate() {
-            let name = midi_in.port_name(p)?;
-            println!("  {} {}", format!("[{}]", i).cyan(), name);
-        }
-
-        if ports.is_empty() {
-            println!("  {}", "No MIDI devices found!".red());
-        }
-
-        Ok(())
-    }
-
-    pub fn connect(&mut self, port_index: usize) -> Result<(), Box<dyn std::error::Error>> {
-        let midi_in = MidiInput::new("MidiMacroPad")?;
-        let ports = midi_in.ports();
-
-        if port_index >= ports.len() {
-            return Err("Invalid port index".into());
-        }
-
-        let port = &ports[port_index];
-        let port_name = midi_in.port_name(port)?;
-
-        println!("{} {}", "Connecting to:".green(), port_name.yellow());
-
-        let (tx, rx) = bounded::<MidiEvent>(100);
-        let _current_mode = Arc::clone(&self.current_mode);
-
-        // Set up MIDI input callback
-        let connection = midi_in.connect(
-            port,
-            "midi-macro-pad",
-            move |_timestamp, message, _| {
-                let now = Instant::now();
-                let event = match message[0] & 0xF0 {
-                    0x90 if message[2] > 0 => Some(MidiEvent::NoteOn {
-                        note: message[1],
-                        velocity: message[2],
-                        time: now,
-                    }),
-                    0x80 | 0x90 => Some(MidiEvent::NoteOff {
-                        note: message[1],
-                        time: now,
-                    }),
-                    0xB0 => Some(MidiEvent::ControlChange {
-                        cc: message[1],
-                        value: message[2],
-                        time: now,
-                    }),
-                    0xC0 => Some(MidiEvent::ProgramChange {
-                        program: message[1],
-                        time: now,
-                    }),
-                    _ => None,
-                };
-
-                if let Some(event) = event {
-                    let _ = tx.try_send(event);
-                }
-            },
-            (),
-        )?;
-
-        self.midi_connection = Some(connection);
-
-        // Start event processing thread
-        let running = Arc::clone(&self.running);
-        let config = self.config.clone();
-        let current_mode_thread = Arc::clone(&self.current_mode);
-
-        thread::spawn(move || {
-            Self::process_events(rx, config, running, current_mode_thread);
-        });
-
-        Ok(())
-    }
-
-    fn process_events(
-        rx: Receiver<MidiEvent>,
-        config: Config,
-        running: Arc<AtomicBool>,
-        current_mode: Arc<AtomicU8>,
-    ) {
-        let mut executor = ActionExecutor::new();
-        let mut mapping_engine = MappingEngine::new();
-
-        // Load mappings from config
-        mapping_engine.load_from_config(&config);
-
-        while running.load(Ordering::Relaxed) {
-            match rx.recv_timeout(Duration::from_millis(100)) {
-                Ok(event) => {
-                    let mode = current_mode.load(Ordering::Relaxed);
-
-                    // Log the event
-                    Self::log_event(&event, mode);
-
-                    // Check for mode change
-                    if let Some(new_mode) = Self::check_mode_change(&event, &config) {
-                        current_mode.store(new_mode, Ordering::Relaxed);
-                        println!(
-                            "{} {}",
-                            "Mode changed to:".cyan().bold(),
-                            config
-                                .modes
-                                .get(new_mode as usize)
-                                .map(|m| m.name.as_str())
-                                .unwrap_or("Unknown")
-                                .yellow()
-                        );
-                        continue;
-                    }
-
-                    // Get and execute action
-                    if let Some(action) = mapping_engine.get_action(&event, mode) {
-                        executor.execute(action);
-                    }
-                }
-                Err(crossbeam_channel::RecvTimeoutError::Timeout) => continue,
-                Err(crossbeam_channel::RecvTimeoutError::Disconnected) => break,
-            }
-        }
-    }
-
-    fn log_event(event: &MidiEvent, mode: u8) {
-        let timestamp = Local::now().format("%H:%M:%S%.3f");
-        let mode_str = format!("[Mode {}]", mode).cyan();
-
-        let event_str = match event {
-            MidiEvent::NoteOn { note, velocity, .. } => {
-                format!("Note ON  {:3} vel {:3}", note, velocity).green()
-            }
-            MidiEvent::NoteOff { note, .. } => format!("Note OFF {:3}        ", note).yellow(),
-            MidiEvent::ControlChange { cc, value, .. } => {
-                format!("CC       {:3} val {:3}", cc, value).blue()
-            }
-            MidiEvent::ProgramChange { program, .. } => {
-                format!("Program  {:3}        ", program).magenta()
-            }
-            MidiEvent::Aftertouch { pressure, .. } => {
-                format!("Aftertouch   {:3}    ", pressure).cyan()
-            }
-            MidiEvent::PitchBend { value, .. } => format!("PitchBend    {:5}   ", value).magenta(),
-        };
-
-        println!(
-            "{} {} {}",
-            timestamp.to_string().dimmed(),
-            mode_str,
-            event_str
-        );
-    }
-
-    fn check_mode_change(event: &MidiEvent, config: &Config) -> Option<u8> {
-        // Use CC 0 for mode changes (bank select)
-        match event {
-            MidiEvent::ControlChange { cc: 0, value, .. } => {
-                if (*value as usize) < config.modes.len() {
-                    Some(*value)
-                } else {
-                    None
-                }
-            }
-            _ => None,
-        }
-    }
-
-    pub fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
-        println!(
-            "{}",
-            "MIDI Macro Pad running. Press Ctrl+C to exit."
-                .green()
-                .bold()
-        );
-        println!("{}", "─".repeat(50).dimmed());
-
-        // Wait for Ctrl+C
-        let running = Arc::clone(&self.running);
-        ctrlc::set_handler(move || {
-            running.store(false, Ordering::Relaxed);
-        })?;
-
-        while self.running.load(Ordering::Relaxed) {
-            thread::sleep(Duration::from_millis(100));
-        }
-
-        println!("\n{}", "Shutting down...".yellow());
-        Ok(())
-    }
+    /// Run in foreground mode (don't detach)
+    ///
+    /// By default the daemon runs in foreground mode.
+    /// Use systemd/launchd for proper background service management.
+    #[arg(short, long)]
+    foreground: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse command line arguments
     let args = Args::parse();
 
-    // Enable debug logging if requested
-    if args.debug {
-        unsafe {
-            std::env::set_var("DEBUG", "1");
-        }
-        println!("{}", "Debug logging enabled".yellow());
-    }
+    // Initialize logging
+    setup_logging(args.verbose, args.trace);
 
-    // Print banner
-    println!("{}", "╔══════════════════════════════════╗".cyan().bold());
-    println!("{}", "║     MIDI Macro Pad Controller    ║".cyan().bold());
-    println!("{}", "╚══════════════════════════════════╝".cyan().bold());
-    println!();
+    info!("MIDIMon daemon starting");
+    info!("Version: {}", env!("CARGO_PKG_VERSION"));
 
-    // Show configuration info
-    if args.debug {
-        println!("{}", format!("Config: {}", args.config.display()).dimmed());
-        if let Some(ref profile) = args.profile {
-            println!("{}", format!("Profile: {}", profile.display()).dimmed());
-        }
-        if let Some(ref led) = args.led {
-            println!("{}", format!("LED scheme: {:?}", led).dimmed());
-        }
-        if let Some(ref page) = args.pad_page {
-            println!("{}", format!("Pad page: {}", page).dimmed());
-        }
-        println!();
-    }
-
-    // Create MIDI pad with specified config
-    let mut pad = MidiMacroPad::new(&args.config)?;
-
-    // List available ports
-    pad.list_midi_ports()?;
-
-    // If --list flag is set, exit after listing ports
-    if args.list {
-        return Ok(());
-    }
-
-    // Determine which port to connect to
-    let port_index = match args.port {
-        Some(port) => port,
+    // Determine config path
+    let config_path = match args.config {
+        Some(path) => path,
         None => {
-            // Try to auto-connect to first device
-            let midi_in = midir::MidiInput::new("MidiMacroPad Scanner")?;
-            let ports = midi_in.ports();
-            if ports.is_empty() {
-                eprintln!("{}", "No MIDI devices found!".red());
-                return Err("No MIDI devices available".into());
-            }
-            0 // Default to first port
+            // Use default path based on platform
+            let default_path = get_default_config_path()?;
+            info!("Using default config path: {}", default_path.display());
+            default_path
         }
     };
 
-    // Connect to the selected port
-    pad.connect(port_index)?;
-
-    // Display LED scheme if specified
-    if let Some(led) = args.led {
-        println!("{} {:?}", "LED scheme:".cyan(), led);
-        // Note: LED scheme integration would go here
-        // This would require passing the scheme to the feedback system
+    // Verify config file exists
+    if !config_path.exists() {
+        error!("Config file not found: {}", config_path.display());
+        eprintln!("Error: Configuration file not found: {}", config_path.display());
+        eprintln!();
+        eprintln!("Please create a config file at this location or specify a different path with --config");
+        eprintln!();
+        eprintln!("Example config.toml:");
+        eprintln!("{}", get_example_config());
+        std::process::exit(1);
     }
 
-    // Display profile info if specified
-    if let Some(ref profile) = args.profile {
-        println!(
-            "{} {}",
-            "Using profile:".cyan(),
-            profile.display().to_string().yellow()
-        );
-        if let Some(ref page) = args.pad_page {
-            println!("{} {}", "Pad page:".cyan(), page.yellow());
+    info!("Config file: {}", config_path.display());
+
+    // Show socket path for IPC
+    let socket_path = get_socket_path()?;
+    info!("IPC socket: {}", socket_path.display());
+
+    // Run in foreground mode (tokio runtime required for async daemon)
+    let rt = tokio::runtime::Runtime::new()?;
+
+    info!("Starting daemon service (foreground mode: {})", args.foreground);
+
+    let result = rt.block_on(async {
+        run_daemon_with_config(config_path).await
+    });
+
+    match result {
+        Ok(()) => {
+            info!("Daemon stopped successfully");
+            Ok(())
         }
-        // Note: Profile loading would go here
-        // This would require integrating with the device profile system
+        Err(e) => {
+            error!("Daemon error: {}", e);
+            eprintln!("Error: {}", e);
+            std::process::exit(1);
+        }
+    }
+}
+
+/// Setup logging with tracing-subscriber
+fn setup_logging(verbose: bool, trace: bool) {
+    let log_level = if trace {
+        "trace"
+    } else if verbose {
+        "debug"
+    } else {
+        "info"
+    };
+
+    // Build filter: MIDIMon modules at specified level, others at WARN
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| {
+            EnvFilter::new(format!(
+                "midimon={},midimon_core={},midimon_daemon={},warn",
+                log_level, log_level, log_level
+            ))
+        });
+
+    // Use human-readable format with timestamps
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(
+            fmt::layer()
+                .with_target(true)
+                .with_level(true)
+                .with_thread_ids(false)
+                .with_thread_names(false)
+                .with_line_number(true)
+        )
+        .init();
+}
+
+/// Get default config path based on platform
+fn get_default_config_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
+    #[cfg(target_os = "macos")]
+    {
+        let home = std::env::var("HOME")
+            .map_err(|_| "HOME environment variable not set")?;
+        Ok(PathBuf::from(home)
+            .join("Library")
+            .join("Application Support")
+            .join("midimon")
+            .join("config.toml"))
     }
 
-    // Run the MIDI pad
-    pad.run()?;
+    #[cfg(target_os = "linux")]
+    {
+        let home = std::env::var("HOME")
+            .map_err(|_| "HOME environment variable not set")?;
+        let config_home = std::env::var("XDG_CONFIG_HOME")
+            .unwrap_or_else(|_| format!("{}/.config", home));
+        Ok(PathBuf::from(config_home)
+            .join("midimon")
+            .join("config.toml"))
+    }
 
-    Ok(())
+    #[cfg(target_os = "windows")]
+    {
+        let appdata = std::env::var("APPDATA")
+            .map_err(|_| "APPDATA environment variable not set")?;
+        Ok(PathBuf::from(appdata)
+            .join("midimon")
+            .join("config.toml"))
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+    {
+        Err("Unsupported platform".into())
+    }
+}
+
+/// Get example config for error messages
+fn get_example_config() -> &'static str {
+    r#"[device]
+name = "Mikro"
+auto_connect = true
+
+[advanced_settings]
+chord_timeout_ms = 50
+double_tap_timeout_ms = 300
+hold_threshold_ms = 2000
+
+[[modes]]
+name = "Default"
+color = "blue"
+
+[[modes.mappings]]
+description = "Pad 1 triggers Cmd+Space (Spotlight)"
+[modes.mappings.trigger]
+type = "Note"
+note = 60
+
+[modes.mappings.action]
+type = "Keystroke"
+keys = "space"
+modifiers = ["cmd"]
+
+[[global_mappings]]
+description = "Emergency exit on Pad 16 (Note 75)"
+[global_mappings.trigger]
+type = "Note"
+note = 75
+
+[global_mappings.action]
+type = "Shell"
+command = "pkill midimon"
+"#
 }
