@@ -114,7 +114,8 @@ pub use event_processor::EventProcessor;
 pub use events::{EncoderDirection, InputEvent, MidiEvent, ProcessedEvent, VelocityLevel};
 
 // Actions (ActionExecutor moved to midimon-daemon in Phase 2 security refactor)
-pub use actions::{Action, VolumeOperation};
+// Domain-specific types for platform-independent action representation
+pub use actions::{Action, KeyCode, ModifierKey, MouseButton, VolumeOperation};
 
 // Feedback
 pub use feedback::{FeedbackManager, LightingScheme, PadFeedback};

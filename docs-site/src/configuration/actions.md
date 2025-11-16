@@ -212,7 +212,7 @@ actions = [
 
 ### Shell
 
-Execute arbitrary shell commands. Provides full system access.
+Execute system commands directly without shell interpreter (secure execution).
 
 ```toml
 [modes.mappings.action]
@@ -220,19 +220,40 @@ type = "Shell"
 command = "git status"
 ```
 
-**Common Examples**:
-```toml
-# Git operations
-command = "git add . && git commit -m 'quick save'"
+**Security Design**: Commands are executed directly via `Command::new(program).args(args)` without using shell interpreters (`sh`, `bash`, `cmd`). This prevents command injection attacks while supporting common use cases.
 
-# System info
-command = "system_profiler SPUSBDataType | grep -i mikro"
+**Supported Examples**:
+```toml
+# Simple commands
+command = "git status"
+command = "ls -la /tmp"
 
 # File operations
 command = "open ~/Downloads"
 
+# System info
+command = "system_profiler SPUSBDataType"
+
 # AppleScript (macOS)
+command = "osascript -e 'set volume 50'"
 command = "osascript -e 'display notification \"MIDI triggered!\"'"
+```
+
+**Shell Features NOT Supported** (for security):
+- Command chaining: `&&`, `||`, `;`
+- Piping: `|`
+- Redirection: `>`, `<`, `>>`
+- Command substitution: `$(...)`, `` `...` ``
+- Variable expansion: `$HOME`, `${VAR}`
+
+**Alternative**: Use `Sequence` action to chain multiple commands:
+```toml
+# Instead of: "git add . && git commit -m 'save'"
+type = "Sequence"
+actions = [
+    { type = "Shell", command = "git add ." },
+    { type = "Shell", command = "git commit -m 'save'" }
+]
 ```
 
 ## Timing & Flow Control

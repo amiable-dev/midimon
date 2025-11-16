@@ -3314,6 +3314,32 @@ midimonctl reload
 <li><code>stop</code> - Graceful shutdown</li>
 <li><code>ping</code> - Latency check</li>
 </ul>
+<h3 id="security-limits"><a class="header" href="#security-limits">Security Limits</a></h3>
+<p>The IPC protocol enforces security limits to prevent abuse:</p>
+<p><strong>Request Size Limit</strong>: 1MB (1,048,576 bytes)</p>
+<p>Requests exceeding this limit will be rejected with error code <code>1004</code> (InvalidRequest):</p>
+<pre><code class="language-json">{
+  "status": "error",
+  "error": {
+    "code": 1004,
+    "message": "Request too large: 1500000 bytes exceeds maximum of 1048576 bytes (1MB)",
+    "details": {
+      "request_size": 1500000,
+      "max_size": 1048576,
+      "security": "Request rejected to prevent memory exhaustion"
+    }
+  }
+}
+</code></pre>
+<p><strong>Why this limit exists</strong>: Prevents memory exhaustion denial-of-service attacks where an attacker sends arbitrarily large requests to consume daemon memory.</p>
+<p><strong>Is 1MB enough?</strong>: Yes. Typical IPC requests are:</p>
+<ul>
+<li><code>status</code>: ~200 bytes</li>
+<li><code>reload</code>: ~100 bytes</li>
+<li><code>validate</code>: ~150 bytes</li>
+<li><code>ping</code>: ~50 bytes</li>
+</ul>
+<p>Even large configuration payloads are well under 100KB. The 1MB limit provides 10x safety margin.</p>
 <h2 id="performance-metrics"><a class="header" href="#performance-metrics">Performance Metrics</a></h2>
 <p>The daemon tracks and reports performance metrics:</p>
 <h3 id="config-reload-latency"><a class="header" href="#config-reload-latency">Config Reload Latency</a></h3>
@@ -3468,6 +3494,427 @@ midimon
 <hr />
 <p><strong>Last Updated</strong>: November 14, 2025 (v2.0.0)</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="gui-configuration"><a class="header" href="#gui-configuration">GUI Configuration</a></h1>
+<p>The MIDIMon GUI provides a visual interface for configuring your MIDI controller without manually editing TOML files.</p>
+<h2 id="overview-3"><a class="header" href="#overview-3">Overview</a></h2>
+<p>The GUI application is built with Tauri v2 and provides:</p>
+<ul>
+<li><strong>Visual mode management</strong> - Create and edit mapping modes with different button layouts</li>
+<li><strong>Mapping editor</strong> - Configure triggers and actions with visual selectors</li>
+<li><strong>MIDI Learn</strong> - Auto-detect trigger patterns by pressing device buttons</li>
+<li><strong>Device management</strong> - Connect to MIDI devices and apply templates</li>
+<li><strong>Profile management</strong> - Per-app profiles that switch automatically</li>
+<li><strong>Live event console</strong> - Debug MIDI events in real-time</li>
+<li><strong>Settings panel</strong> - Configure application preferences</li>
+</ul>
+<h2 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h2>
+<h3 id="launch-the-gui"><a class="header" href="#launch-the-gui">Launch the GUI</a></h3>
+<pre><code class="language-bash"># Start the GUI application
+./midimon-gui
+
+# Or if installed system-wide
+midimon-gui
+</code></pre>
+<p>The GUI will appear in your system tray with quick access to:</p>
+<ul>
+<li>Status display</li>
+<li>Reload configuration</li>
+<li>Pause/resume processing</li>
+<li>Mode switching</li>
+<li>Open config file</li>
+<li>View logs</li>
+</ul>
+<h3 id="initial-setup"><a class="header" href="#initial-setup">Initial Setup</a></h3>
+<ol>
+<li>
+<p><strong>Connect a Device</strong></p>
+<ul>
+<li>Navigate to <strong>Devices</strong> tab</li>
+<li>Select your MIDI controller from the list</li>
+<li>Click <strong>Connect</strong></li>
+</ul>
+</li>
+<li>
+<p><strong>Choose a Template</strong> (optional)</p>
+<ul>
+<li>Click <strong>Device Templates</strong></li>
+<li>Select a pre-configured template for your device</li>
+<li>Click <strong>Apply Template</strong></li>
+</ul>
+</li>
+<li>
+<p><strong>Create Your First Mode</strong></p>
+<ul>
+<li>Navigate to <strong>Modes</strong> tab</li>
+<li>Click <strong>+ Add Mode</strong></li>
+<li>Set a name and color</li>
+<li>Click <strong>Save</strong></li>
+</ul>
+</li>
+</ol>
+<h2 id="mode-configuration"><a class="header" href="#mode-configuration">Mode Configuration</a></h2>
+<h3 id="creating-modes"><a class="header" href="#creating-modes">Creating Modes</a></h3>
+<p>Modes allow different button mappings for different contexts (e.g., "Development", "Media", "Gaming").</p>
+<ol>
+<li>Go to <strong>Modes</strong> tab</li>
+<li>Click <strong>+ Add Mode</strong></li>
+<li>Fill in:
+<ul>
+<li><strong>Name</strong>: Descriptive name (e.g., "Video Editing")</li>
+<li><strong>Color</strong>: Visual identifier (blue, green, purple, etc.)</li>
+</ul>
+</li>
+<li>Click <strong>Save</strong></li>
+</ol>
+<h3 id="editing-modes"><a class="header" href="#editing-modes">Editing Modes</a></h3>
+<ol>
+<li>Select the mode from the list</li>
+<li>Click <strong>Edit Mode</strong></li>
+<li>Modify settings:
+<ul>
+<li>Name</li>
+<li>Color</li>
+<li>Mode-specific mappings</li>
+</ul>
+</li>
+<li>Click <strong>Save Changes</strong></li>
+</ol>
+<h3 id="deleting-modes"><a class="header" href="#deleting-modes">Deleting Modes</a></h3>
+<ol>
+<li>Select the mode</li>
+<li>Click <strong>Delete Mode</strong></li>
+<li>Confirm deletion</li>
+</ol>
+<p><strong>Note</strong>: You cannot delete the last remaining mode.</p>
+<h2 id="mapping-configuration"><a class="header" href="#mapping-configuration">Mapping Configuration</a></h2>
+<h3 id="creating-mappings"><a class="header" href="#creating-mappings">Creating Mappings</a></h3>
+<p>Mappings define what happens when you press a button or turn a knob.</p>
+<ol>
+<li>Go to <strong>Mappings</strong> tab</li>
+<li>Choose:
+<ul>
+<li><strong>Mode-specific</strong> mappings (active only in selected mode)</li>
+<li><strong>Global</strong> mappings (active across all modes)</li>
+</ul>
+</li>
+<li>Click <strong>+ Add Mapping</strong></li>
+</ol>
+<h3 id="using-midi-learn"><a class="header" href="#using-midi-learn">Using MIDI Learn</a></h3>
+<p>The fastest way to create mappings:</p>
+<ol>
+<li>Click <strong>🎹 MIDI Learn</strong> button</li>
+<li>Press/turn the button/knob on your device</li>
+<li>MIDIMon detects the pattern (note, velocity, long press, etc.)</li>
+<li>The trigger is auto-filled</li>
+<li>Configure the action (what to do)</li>
+<li>Click <strong>Save Mapping</strong></li>
+</ol>
+<p>See the <a href="guides/../getting-started/midi-learn.html">MIDI Learn guide</a> for details.</p>
+<h3 id="manual-trigger-configuration"><a class="header" href="#manual-trigger-configuration">Manual Trigger Configuration</a></h3>
+<p>If you prefer manual setup:</p>
+<h4 id="trigger-types"><a class="header" href="#trigger-types">Trigger Types</a></h4>
+<ul>
+<li>
+<p><strong>Note</strong>: Basic note on/off</p>
+<ul>
+<li>Set note number (0-127)</li>
+<li>Optional velocity range</li>
+</ul>
+</li>
+<li>
+<p><strong>Velocity Range</strong>: Different actions for soft/medium/hard presses</p>
+<ul>
+<li>Soft: 0-40</li>
+<li>Medium: 41-80</li>
+<li>Hard: 81-127</li>
+</ul>
+</li>
+<li>
+<p><strong>Long Press</strong>: Hold detection</p>
+<ul>
+<li>Set duration (default 2000ms)</li>
+</ul>
+</li>
+<li>
+<p><strong>Double Tap</strong>: Quick double-press</p>
+<ul>
+<li>Set timeout window (default 300ms)</li>
+</ul>
+</li>
+<li>
+<p><strong>Note Chord</strong>: Multiple notes simultaneously</p>
+<ul>
+<li>Add 2+ notes</li>
+<li>Set detection window (default 100ms)</li>
+</ul>
+</li>
+<li>
+<p><strong>Encoder Turn</strong>: Knob rotation</p>
+<ul>
+<li>Set CC number</li>
+<li>Choose direction (Clockwise/CounterClockwise)</li>
+</ul>
+</li>
+<li>
+<p><strong>Control Change (CC)</strong>: MIDI CC messages</p>
+<ul>
+<li>Set CC number</li>
+<li>Optional value range</li>
+</ul>
+</li>
+<li>
+<p><strong>Aftertouch</strong>: Pressure sensitivity</p>
+<ul>
+<li>Optional minimum pressure</li>
+</ul>
+</li>
+<li>
+<p><strong>Pitch Bend</strong>: Touch strip control</p>
+<ul>
+<li>Optional value range</li>
+</ul>
+</li>
+</ul>
+<h3 id="action-configuration"><a class="header" href="#action-configuration">Action Configuration</a></h3>
+<h4 id="action-types"><a class="header" href="#action-types">Action Types</a></h4>
+<ul>
+<li>
+<p><strong>Keystroke</strong>: Keyboard shortcuts</p>
+<ul>
+<li>Select modifiers (Ctrl, Alt, Shift, Super/Cmd)</li>
+<li>Set key(s)</li>
+</ul>
+</li>
+<li>
+<p><strong>Text</strong>: Type text strings</p>
+<ul>
+<li>Enter text to type</li>
+</ul>
+</li>
+<li>
+<p><strong>Launch</strong>: Open applications</p>
+<ul>
+<li>Enter application name or path</li>
+</ul>
+</li>
+<li>
+<p><strong>Shell</strong>: Execute shell commands</p>
+<ul>
+<li>Enter command</li>
+<li>Optional working directory</li>
+</ul>
+</li>
+<li>
+<p><strong>Volume Control</strong>: System volume</p>
+<ul>
+<li>Up/Down/Mute/Set</li>
+</ul>
+</li>
+<li>
+<p><strong>Mode Change</strong>: Switch modes</p>
+<ul>
+<li>Select target mode</li>
+</ul>
+</li>
+<li>
+<p><strong>Sequence</strong>: Chain multiple actions</p>
+<ul>
+<li>Add multiple actions in order</li>
+</ul>
+</li>
+<li>
+<p><strong>Delay</strong>: Wait between actions</p>
+<ul>
+<li>Set duration in milliseconds</li>
+</ul>
+</li>
+<li>
+<p><strong>Mouse Click</strong>: Simulate mouse input</p>
+<ul>
+<li>Left/Right/Middle button</li>
+<li>Single/Double/Triple click</li>
+</ul>
+</li>
+<li>
+<p><strong>Repeat</strong>: Repeat an action</p>
+<ul>
+<li>Set count</li>
+</ul>
+</li>
+</ul>
+<h3 id="editing-mappings"><a class="header" href="#editing-mappings">Editing Mappings</a></h3>
+<ol>
+<li>In the <strong>Mappings</strong> tab</li>
+<li>Click the mapping to edit</li>
+<li>Modify trigger or action</li>
+<li>Click <strong>Save Changes</strong></li>
+</ol>
+<h3 id="deleting-mappings"><a class="header" href="#deleting-mappings">Deleting Mappings</a></h3>
+<ol>
+<li>Select the mapping</li>
+<li>Click <strong>Delete</strong></li>
+<li>Confirm deletion</li>
+</ol>
+<h2 id="device-management"><a class="header" href="#device-management">Device Management</a></h2>
+<h3 id="connecting-devices"><a class="header" href="#connecting-devices">Connecting Devices</a></h3>
+<ol>
+<li>Go to <strong>Devices</strong> tab</li>
+<li>View available MIDI devices</li>
+<li>See connection status</li>
+<li>Monitor daemon status (running, uptime, events processed)</li>
+</ol>
+<h3 id="using-device-templates"><a class="header" href="#using-device-templates">Using Device Templates</a></h3>
+<p>Templates provide pre-configured mappings for popular controllers:</p>
+<ol>
+<li>Click <strong>📋 Device Templates</strong></li>
+<li>Browse available templates:
+<ul>
+<li>Maschine Mikro MK3</li>
+<li>Launchpad Mini</li>
+<li>Korg nanoKONTROL</li>
+<li>Custom templates</li>
+</ul>
+</li>
+<li>Select a template</li>
+<li>Click <strong>Apply</strong></li>
+<li>Reload daemon configuration</li>
+</ol>
+<h3 id="profile-management"><a class="header" href="#profile-management">Profile Management</a></h3>
+<p>Profiles let you switch entire configurations:</p>
+<ol>
+<li>Click <strong>🔄 Profiles</strong></li>
+<li>View available profiles</li>
+<li>Switch manually or enable per-app automatic switching</li>
+<li>Export/import profiles for backup</li>
+</ol>
+<h2 id="per-app-profiles"><a class="header" href="#per-app-profiles">Per-App Profiles</a></h2>
+<p>Automatically switch profiles based on the frontmost application.</p>
+<p>See the <a href="guides/./per-app-profiles.html">Per-App Profiles guide</a> for complete setup.</p>
+<h2 id="live-event-console-1"><a class="header" href="#live-event-console-1">Live Event Console</a></h2>
+<p>Debug MIDI events in real-time:</p>
+<ol>
+<li>Go to <strong>Settings</strong> tab</li>
+<li>Click <strong>📊 Show Event Console</strong></li>
+<li>View live MIDI events:
+<ul>
+<li>Note on/off</li>
+<li>Velocity values</li>
+<li>Control changes</li>
+<li>Timing information</li>
+</ul>
+</li>
+<li>Use for troubleshooting and discovering note numbers</li>
+</ol>
+<h2 id="settings"><a class="header" href="#settings">Settings</a></h2>
+<h3 id="application-settings"><a class="header" href="#application-settings">Application Settings</a></h3>
+<p>Configure MIDIMon preferences:</p>
+<ul>
+<li><strong>Auto-start</strong>: Launch on system startup</li>
+<li><strong>Log Level</strong>: Control logging verbosity (debug, info, warn, error)</li>
+<li><strong>Theme</strong>: Light/dark theme (future)</li>
+</ul>
+<h3 id="configuration-file"><a class="header" href="#configuration-file">Configuration File</a></h3>
+<p>View and edit the raw config file:</p>
+<ol>
+<li>See the file path</li>
+<li>Click <strong>📋</strong> to copy path to clipboard</li>
+<li>Click <strong>📝</strong> to open in your default editor</li>
+</ol>
+<h2 id="menu-bar-system-tray"><a class="header" href="#menu-bar-system-tray">Menu Bar (System Tray)</a></h2>
+<p>The menu bar icon provides quick access:</p>
+<h3 id="menu-options"><a class="header" href="#menu-options">Menu Options</a></h3>
+<ul>
+<li><strong>Status</strong>: View daemon state</li>
+<li><strong>Reload Configuration</strong>: Hot-reload config changes</li>
+<li><strong>Pause Processing</strong>: Temporarily disable event processing</li>
+<li><strong>Resume Processing</strong>: Re-enable event processing</li>
+<li><strong>Switch Mode</strong>: Quick mode switching
+<ul>
+<li>Default</li>
+<li>Development</li>
+<li>Media</li>
+</ul>
+</li>
+<li><strong>View Logs</strong>: Open system logs</li>
+<li><strong>Open Config File</strong>: Edit configuration</li>
+<li><strong>Quit MIDIMon</strong>: Stop daemon and quit</li>
+</ul>
+<h3 id="icon-states"><a class="header" href="#icon-states">Icon States</a></h3>
+<ul>
+<li><strong>🟢 Running</strong>: Daemon active and processing events</li>
+<li><strong>🟡 Paused</strong>: Processing paused</li>
+<li><strong>🔴 Stopped</strong>: Daemon not running</li>
+<li><strong>⚠️ Error</strong>: Error state</li>
+</ul>
+<h2 id="keyboard-shortcuts"><a class="header" href="#keyboard-shortcuts">Keyboard Shortcuts</a></h2>
+<p>Global shortcuts (when GUI is focused):</p>
+<ul>
+<li><strong>Cmd/Ctrl + R</strong>: Reload configuration</li>
+<li><strong>Cmd/Ctrl + Q</strong>: Quit application</li>
+<li><strong>Cmd/Ctrl + ,</strong>: Open settings</li>
+</ul>
+<h2 id="tips--best-practices-1"><a class="header" href="#tips--best-practices-1">Tips &amp; Best Practices</a></h2>
+<ol>
+<li>
+<p><strong>Use MIDI Learn</strong> for faster setup - it's more accurate than manual entry</p>
+</li>
+<li>
+<p><strong>Test mappings immediately</strong> after creation - press the button to verify</p>
+</li>
+<li>
+<p><strong>Start with global mappings</strong> for frequently used actions (volume, mode switch)</p>
+</li>
+<li>
+<p><strong>Use descriptive names</strong> for modes and mappings - future you will thank you</p>
+</li>
+<li>
+<p><strong>Export your config regularly</strong> - back up your work</p>
+</li>
+<li>
+<p><strong>Use the event console</strong> when troubleshooting - see exactly what MIDI data is coming in</p>
+</li>
+<li>
+<p><strong>Organize with modes</strong> - keep related mappings together</p>
+</li>
+<li>
+<p><strong>Device templates save time</strong> - start with a template and customize</p>
+</li>
+</ol>
+<h2 id="troubleshooting-4"><a class="header" href="#troubleshooting-4">Troubleshooting</a></h2>
+<h3 id="gui-wont-connect-to-daemon"><a class="header" href="#gui-wont-connect-to-daemon">GUI Won't Connect to Daemon</a></h3>
+<ol>
+<li>Check daemon is running: <code>midimonctl status</code></li>
+<li>Start daemon if needed: <code>midimon</code></li>
+<li>Check IPC socket exists: <code>ls /tmp/midimon.sock</code></li>
+<li>Restart daemon: <code>midimonctl stop &amp;&amp; midimon</code></li>
+</ol>
+<h3 id="mappings-not-saving"><a class="header" href="#mappings-not-saving">Mappings Not Saving</a></h3>
+<ol>
+<li>Check file permissions on config file</li>
+<li>Verify config path in Settings tab</li>
+<li>Check daemon logs for errors</li>
+<li>Try manual edit to verify TOML syntax</li>
+</ol>
+<h3 id="midi-events-not-detected"><a class="header" href="#midi-events-not-detected">MIDI Events Not Detected</a></h3>
+<ol>
+<li>Check device connection in Devices tab</li>
+<li>Use event console to verify MIDI data</li>
+<li>Ensure correct MIDI port selected</li>
+<li>Check device permissions (Input Monitoring on macOS)</li>
+</ol>
+<h3 id="menu-bar-icon-missing"><a class="header" href="#menu-bar-icon-missing">Menu Bar Icon Missing</a></h3>
+<ul>
+<li>macOS: Check System Settings → Privacy &amp; Security → Accessibility</li>
+<li>Linux: Ensure system tray extension installed</li>
+<li>Try restarting the GUI application</li>
+</ul>
+<h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
+<ul>
+<li>Learn about <a href="guides/../getting-started/midi-learn.html">MIDI Learn mode</a></li>
+<li>Set up <a href="guides/./per-app-profiles.html">per-app profiles</a></li>
+<li>Explore <a href="guides/./device-templates.html">device templates</a></li>
+<li>Configure <a href="guides/./led-system.html">LED feedback</a></li>
+<li>Use the <a href="guides/./event-console.html">event console</a> for debugging</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="device-templates-guide"><a class="header" href="#device-templates-guide">Device Templates Guide</a></h1>
 <p>Device templates provide pre-configured mappings for popular MIDI controllers, letting you get started in seconds instead of hours.</p>
 <h2 id="what-are-device-templates"><a class="header" href="#what-are-device-templates">What are Device Templates?</a></h2>
@@ -3683,7 +4130,7 @@ device_ids = ["USB MIDI Device", "My Controller MIDI 1"]
 <li>⚠️ Newer features may not load in older versions</li>
 <li>✅ Missing features gracefully ignored</li>
 </ul>
-<h2 id="troubleshooting-4"><a class="header" href="#troubleshooting-4">Troubleshooting</a></h2>
+<h2 id="troubleshooting-5"><a class="header" href="#troubleshooting-5">Troubleshooting</a></h2>
 <h3 id="template-not-loading"><a class="header" href="#template-not-loading">Template Not Loading</a></h3>
 <p><strong>Symptoms</strong>: "Failed to load template" error</p>
 <p><strong>Solutions</strong>:</p>
@@ -3745,7 +4192,7 @@ customized_at = "2025-11-14"
 <li>✅ Test in multiple apps</li>
 <li>✅ Document any device-specific quirks</li>
 </ul>
-<h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
+<h2 id="next-steps-7"><a class="header" href="#next-steps-7">Next Steps</a></h2>
 <ul>
 <li><a href="guides/../getting-started/midi-learn.html">MIDI Learn Mode</a> - Customize templates</li>
 <li><a href="guides/./per-app-profiles.html">Per-App Profiles</a> - Create app-specific variants</li>
@@ -3754,9 +4201,1098 @@ customized_at = "2025-11-14"
 </ul>
 <hr />
 <p><strong>Last Updated</strong>: November 14, 2025 (v2.0.0)</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="per-app-profiles"><a class="header" href="#per-app-profiles">Per-App Profiles</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="per-app-profiles-1"><a class="header" href="#per-app-profiles-1">Per-App Profiles</a></h1>
+<p>Automatically switch configurations based on the frontmost application. Use different MIDI mappings for VS Code, Photoshop, Final Cut Pro, etc.</p>
+<h2 id="overview-4"><a class="header" href="#overview-4">Overview</a></h2>
+<p>Per-app profiles enable context-aware MIDI control:</p>
+<ul>
+<li><strong>Automatic switching</strong>: Profiles activate when you switch apps</li>
+<li><strong>App-specific mappings</strong>: Different buttons for different workflows</li>
+<li><strong>Manual override</strong>: Force a specific profile when needed</li>
+<li><strong>Profile inheritance</strong>: Share common mappings across profiles</li>
+</ul>
+<h2 id="getting-started-1"><a class="header" href="#getting-started-1">Getting Started</a></h2>
+<h3 id="1-enable-app-detection"><a class="header" href="#1-enable-app-detection">1. Enable App Detection</a></h3>
+<pre><code class="language-bash"># macOS: Grant Accessibility permissions
+# System Settings → Privacy &amp; Security → Accessibility → MIDIMon
+
+# Verify app detection is working
+midimonctl frontmost-app
+</code></pre>
+<h3 id="2-create-profiles"><a class="header" href="#2-create-profiles">2. Create Profiles</a></h3>
+<h4 id="via-gui"><a class="header" href="#via-gui">Via GUI</a></h4>
+<ol>
+<li>Open MIDIMon GUI</li>
+<li>Navigate to <strong>Devices</strong> tab</li>
+<li>Click <strong>🔄 Profiles</strong></li>
+<li>Click <strong>+ New Profile</strong></li>
+<li>Enter profile name (e.g., "vscode-profile")</li>
+<li>Configure mappings</li>
+<li>Save profile</li>
+</ol>
+<h4 id="via-config-file"><a class="header" href="#via-config-file">Via Config File</a></h4>
+<p>Create separate profile files in <code>~/.config/midimon/profiles/</code>:</p>
+<pre><code class="language-bash">~/.config/midimon/profiles/
+├── default.toml          # Fallback profile
+├── vscode.toml           # VS Code mappings
+├── photoshop.toml        # Photoshop mappings
+└── fcpx.toml             # Final Cut Pro mappings
+</code></pre>
+<h3 id="3-register-app-associations"><a class="header" href="#3-register-app-associations">3. Register App Associations</a></h3>
+<p>Map applications to profiles:</p>
+<h4 id="gui-method"><a class="header" href="#gui-method">GUI Method</a></h4>
+<ol>
+<li>In Profile Manager dialog</li>
+<li>Click <strong>Associate App</strong></li>
+<li>Select profile</li>
+<li>Choose application from list</li>
+<li>Click <strong>Save</strong></li>
+</ol>
+<h4 id="config-method"><a class="header" href="#config-method">Config Method</a></h4>
+<p>Edit <code>~/.config/midimon/app_profiles.toml</code>:</p>
+<pre><code class="language-toml">[app_associations]
+"Visual Studio Code" = "vscode"
+"Code" = "vscode"  # Alternative app name
+"Adobe Photoshop" = "photoshop"
+"Final Cut Pro" = "fcpx"
+</code></pre>
+<h2 id="profile-configuration"><a class="header" href="#profile-configuration">Profile Configuration</a></h2>
+<h3 id="profile-structure"><a class="header" href="#profile-structure">Profile Structure</a></h3>
+<p>Each profile is a complete MIDIMon configuration:</p>
+<pre><code class="language-toml"># profiles/vscode.toml
+
+[device]
+name = "Mikro"
+auto_connect = true
+
+[[modes]]
+name = "Coding"
+color = "blue"
+
+# Code navigation mappings
+[[modes.mappings]]
+[modes.mappings.trigger]
+type = "Note"
+note = 36
+
+[modes.mappings.action]
+type = "Keystroke"
+modifiers = ["Ctrl"]
+keys = "P"  # Quick file open
+
+[[modes.mappings]]
+[modes.mappings.trigger]
+type = "Note"
+note = 37
+
+[modes.mappings.action]
+type = "Keystroke"
+modifiers = ["Ctrl", "Shift"]
+keys = "F"  # Find in files
+
+# Debug controls
+[[modes.mappings]]
+[modes.mappings.trigger]
+type = "Note"
+note = 38
+
+[modes.mappings.action]
+type = "Keystroke"
+keys = "F5"  # Start debugging
+</code></pre>
+<h3 id="shared-mappings"><a class="header" href="#shared-mappings">Shared Mappings</a></h3>
+<p>Use global mappings that work across all profiles:</p>
+<pre><code class="language-toml"># In each profile, include common mappings
+[[global_mappings]]
+[global_mappings.trigger]
+type = "EncoderTurn"
+cc = 7
+direction = "Clockwise"
+
+[global_mappings.action]
+type = "VolumeControl"
+action = "Up"
+</code></pre>
+<h2 id="app-detection"><a class="header" href="#app-detection">App Detection</a></h2>
+<h3 id="supported-platforms"><a class="header" href="#supported-platforms">Supported Platforms</a></h3>
+<ul>
+<li><strong>macOS</strong>: Full support via Accessibility API</li>
+<li><strong>Linux</strong>: Full support via X11/Wayland</li>
+<li><strong>Windows</strong>: Full support via Win32 API</li>
+</ul>
+<h3 id="app-name-matching"><a class="header" href="#app-name-matching">App Name Matching</a></h3>
+<p>MIDIMon matches application names flexibly:</p>
+<pre><code class="language-toml"># All of these will match Visual Studio Code
+"Visual Studio Code" = "vscode"
+"Code" = "vscode"
+"code" = "vscode"
+"VSCode" = "vscode"
+</code></pre>
+<h3 id="wildcards"><a class="header" href="#wildcards">Wildcards</a></h3>
+<p>Use wildcards for partial matching:</p>
+<pre><code class="language-toml">"*Adobe*" = "adobe-suite"  # Matches any Adobe app
+"Chrome*" = "browser"       # Matches Chrome variants
+</code></pre>
+<h2 id="profile-switching"><a class="header" href="#profile-switching">Profile Switching</a></h2>
+<h3 id="automatic-switching"><a class="header" href="#automatic-switching">Automatic Switching</a></h3>
+<p>When app detection is enabled:</p>
+<ol>
+<li>Focus changes to new application</li>
+<li>MIDIMon detects the frontmost app</li>
+<li>Looks up associated profile</li>
+<li>Loads and activates profile</li>
+<li>LED feedback shows profile change (optional)</li>
+</ol>
+<p>Switching latency: ~50ms</p>
+<h3 id="manual-override"><a class="header" href="#manual-override">Manual Override</a></h3>
+<p>Force a specific profile:</p>
+<h4 id="gui-method-1"><a class="header" href="#gui-method-1">GUI Method</a></h4>
+<ol>
+<li>Click <strong>🔄 Profiles</strong> button</li>
+<li>Select profile from list</li>
+<li>Click <strong>Activate</strong></li>
+</ol>
+<h4 id="cli-method"><a class="header" href="#cli-method">CLI Method</a></h4>
+<pre><code class="language-bash">midimonctl switch-profile vscode
+</code></pre>
+<h3 id="default-fallback"><a class="header" href="#default-fallback">Default Fallback</a></h3>
+<p>If no profile matches the current app, MIDIMon uses:</p>
+<ol>
+<li><code>default</code> profile (if exists)</li>
+<li>Main <code>config.toml</code></li>
+</ol>
+<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
+<h3 id="software-development"><a class="header" href="#software-development">Software Development</a></h3>
+<pre><code class="language-toml"># profiles/dev.toml
+# Buttons for common IDE actions
+
+[[modes.mappings]]
+# Run tests
+[modes.mappings.trigger]
+type = "Note"
+note = 36
+[modes.mappings.action]
+type = "Keystroke"
+modifiers = ["Ctrl"]
+keys = "T"
+
+[[modes.mappings]]
+# Git commit
+[modes.mappings.trigger]
+type = "Note"
+note = 37
+[modes.mappings.action]
+type = "Shell"
+command = "git commit"
+
+[[modes.mappings]]
+# Format code
+[modes.mappings.trigger]
+type = "Note"
+note = 38
+[modes.mappings.action]
+type = "Keystroke"
+modifiers = ["Shift", "Alt"]
+keys = "F"
+</code></pre>
+<h3 id="video-editing"><a class="header" href="#video-editing">Video Editing</a></h3>
+<pre><code class="language-toml"># profiles/video.toml
+# Timeline control and playback
+
+[[modes.mappings]]
+# Play/Pause
+[modes.mappings.trigger]
+type = "Note"
+note = 36
+[modes.mappings.action]
+type = "Keystroke"
+keys = "Space"
+
+[[modes.mappings]]
+# Cut clip
+[modes.mappings.trigger]
+type = "Note"
+note = 37
+[modes.mappings.action]
+type = "Keystroke"
+modifiers = ["Cmd"]
+keys = "B"
+
+[[modes.mappings]]
+# Ripple delete
+[modes.mappings.trigger]
+type = "LongPress"
+note = 37
+duration_ms = 1000
+[modes.mappings.action]
+type = "Keystroke"
+modifiers = ["Shift"]
+keys = "Delete"
+</code></pre>
+<h3 id="photo-editing"><a class="header" href="#photo-editing">Photo Editing</a></h3>
+<pre><code class="language-toml"># profiles/photo.toml
+# Brush size, zoom, undo/redo
+
+[[modes.mappings]]
+# Increase brush size
+[modes.mappings.trigger]
+type = "EncoderTurn"
+cc = 1
+direction = "Clockwise"
+[modes.mappings.action]
+type = "Keystroke"
+keys = "]"
+
+[[modes.mappings]]
+# Decrease brush size
+[modes.mappings.trigger]
+type = "EncoderTurn"
+cc = 1
+direction = "CounterClockwise"
+[modes.mappings.action]
+type = "Keystroke"
+keys = "["
+
+[[modes.mappings]]
+# Undo
+[modes.mappings.trigger]
+type = "Note"
+note = 36
+[modes.mappings.action]
+type = "Keystroke"
+modifiers = ["Cmd"]
+keys = "Z"
+</code></pre>
+<h2 id="profile-management-1"><a class="header" href="#profile-management-1">Profile Management</a></h2>
+<h3 id="export-profiles"><a class="header" href="#export-profiles">Export Profiles</a></h3>
+<p>Share or back up profiles:</p>
+<h4 id="gui-method-2"><a class="header" href="#gui-method-2">GUI Method</a></h4>
+<ol>
+<li>Profile Manager → Select profile</li>
+<li>Click <strong>Export</strong></li>
+<li>Choose format (TOML/JSON)</li>
+<li>Save file</li>
+</ol>
+<h4 id="cli-method-1"><a class="header" href="#cli-method-1">CLI Method</a></h4>
+<pre><code class="language-bash">midimonctl export-profile vscode &gt; vscode-profile.toml
+</code></pre>
+<h3 id="import-profiles"><a class="header" href="#import-profiles">Import Profiles</a></h3>
+<p>Load profiles from files:</p>
+<h4 id="gui-method-3"><a class="header" href="#gui-method-3">GUI Method</a></h4>
+<ol>
+<li>Profile Manager → <strong>Import</strong></li>
+<li>Select file</li>
+<li>Choose name for imported profile</li>
+<li>Click <strong>Import</strong></li>
+</ol>
+<h4 id="cli-method-2"><a class="header" href="#cli-method-2">CLI Method</a></h4>
+<pre><code class="language-bash">midimonctl import-profile vscode-profile.toml
+</code></pre>
+<h3 id="profile-validation"><a class="header" href="#profile-validation">Profile Validation</a></h3>
+<p>Test profiles before activating:</p>
+<pre><code class="language-bash">midimonctl validate-profile vscode
+</code></pre>
+<h2 id="troubleshooting-6"><a class="header" href="#troubleshooting-6">Troubleshooting</a></h2>
+<h3 id="app-not-detected"><a class="header" href="#app-not-detected">App Not Detected</a></h3>
+<ol>
+<li>
+<p><strong>Check permissions</strong>:</p>
+<ul>
+<li>macOS: Accessibility permissions granted</li>
+<li>Linux: Running with sufficient privileges</li>
+<li>Windows: No UAC blocking</li>
+</ul>
+</li>
+<li>
+<p><strong>Verify app name</strong>:</p>
+<pre><code class="language-bash">midimonctl frontmost-app
+</code></pre>
+</li>
+<li>
+<p><strong>Check association</strong>:</p>
+<ul>
+<li>Ensure app name in config matches actual name</li>
+<li>Use wildcards if app name varies</li>
+</ul>
+</li>
+</ol>
+<h3 id="profile-not-switching"><a class="header" href="#profile-not-switching">Profile Not Switching</a></h3>
+<ol>
+<li>
+<p><strong>Check app detection is enabled</strong>:</p>
+<pre><code class="language-bash">midimonctl status
+</code></pre>
+</li>
+<li>
+<p><strong>Verify profile exists</strong>:</p>
+<pre><code class="language-bash">ls ~/.config/midimon/profiles/
+</code></pre>
+</li>
+<li>
+<p><strong>Test manual switch</strong>:</p>
+<pre><code class="language-bash">midimonctl switch-profile vscode
+</code></pre>
+</li>
+<li>
+<p><strong>Check logs</strong>:</p>
+<pre><code class="language-bash">midimonctl logs | grep profile
+</code></pre>
+</li>
+</ol>
+<h3 id="wrong-profile-activates"><a class="header" href="#wrong-profile-activates">Wrong Profile Activates</a></h3>
+<ol>
+<li>Check association priority</li>
+<li>Verify no conflicting wildcards</li>
+<li>Review app name matching in logs</li>
+</ol>
+<h2 id="best-practices-1"><a class="header" href="#best-practices-1">Best Practices</a></h2>
+<ol>
+<li>
+<p><strong>Start with defaults</strong>: Create a base profile with common mappings</p>
+</li>
+<li>
+<p><strong>Use inheritance</strong>: Share global mappings across profiles</p>
+</li>
+<li>
+<p><strong>Test thoroughly</strong>: Verify each profile works in target app</p>
+</li>
+<li>
+<p><strong>Name clearly</strong>: Use descriptive profile names (e.g., "davinci-resolve" not "prof1")</p>
+</li>
+<li>
+<p><strong>Document mappings</strong>: Add comments in TOML files</p>
+</li>
+<li>
+<p><strong>Version control</strong>: Keep profiles in git for history</p>
+</li>
+<li>
+<p><strong>Export regularly</strong>: Back up working profiles</p>
+</li>
+<li>
+<p><strong>Share templates</strong>: Contribute profiles for popular apps</p>
+</li>
+</ol>
+<h2 id="advanced-features"><a class="header" href="#advanced-features">Advanced Features</a></h2>
+<h3 id="conditional-switching"><a class="header" href="#conditional-switching">Conditional Switching</a></h3>
+<p>Switch based on multiple criteria:</p>
+<pre><code class="language-toml">[switching_rules]
+# Only switch to fcpx profile if specific project is open
+[[switching_rules.conditions]]
+app = "Final Cut Pro"
+window_title = "*MyProject*"
+profile = "fcpx-myproject"
+</code></pre>
+<h3 id="profile-chains"><a class="header" href="#profile-chains">Profile Chains</a></h3>
+<p>Load multiple profiles in sequence:</p>
+<pre><code class="language-toml">[profile_chain]
+base = "default"
+overlay = "vscode"
+# Loads default, then overlays vscode-specific mappings
+</code></pre>
+<h3 id="hot-reload"><a class="header" href="#hot-reload">Hot Reload</a></h3>
+<p>Profiles support hot reload:</p>
+<ol>
+<li>Edit profile file</li>
+<li>Save changes</li>
+<li>Switch to different app and back</li>
+<li>Profile reloads automatically</li>
+</ol>
+<h2 id="next-steps-8"><a class="header" href="#next-steps-8">Next Steps</a></h2>
+<ul>
+<li>Learn about <a href="guides/../getting-started/midi-learn.html">MIDI Learn</a> to quickly create profile mappings</li>
+<li>Set up <a href="guides/./device-templates.html">device templates</a> for consistent layouts</li>
+<li>Use the <a href="guides/./event-console.html">event console</a> to test profile mappings</li>
+<li>Explore <a href="guides/./led-system.html">LED feedback</a> for visual profile indication</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="led-system"><a class="header" href="#led-system">LED System</a></h1>
+<p>MIDIMon provides RGB LED feedback for controllers that support it, creating visual indicators for pad presses, modes, and system state.</p>
+<h2 id="overview-5"><a class="header" href="#overview-5">Overview</a></h2>
+<p>The LED system provides:</p>
+<ul>
+<li><strong>Real-time feedback</strong>: LEDs respond instantly to pad presses</li>
+<li><strong>Mode visualization</strong>: Different colors for different modes</li>
+<li><strong>Multiple schemes</strong>: Reactive, rainbow, breathing, and more</li>
+<li><strong>Velocity sensitivity</strong>: LED brightness/color reflects press intensity</li>
+<li><strong>HID support</strong>: Direct RGB control for Maschine Mikro MK3 and similar devices</li>
+<li><strong>MIDI fallback</strong>: Basic on/off for standard MIDI controllers</li>
+</ul>
+<h2 id="supported-devices"><a class="header" href="#supported-devices">Supported Devices</a></h2>
+<h3 id="full-rgb-support-hid"><a class="header" href="#full-rgb-support-hid">Full RGB Support (HID)</a></h3>
+<ul>
+<li><strong>Native Instruments Maschine Mikro MK3</strong>: 16 RGB pads</li>
+<li><strong>Maschine MK3</strong>: 16 RGB pads</li>
+<li><strong>Other HID RGB devices</strong>: Configurable via device profiles</li>
+</ul>
+<h3 id="midi-led-support"><a class="header" href="#midi-led-support">MIDI LED Support</a></h3>
+<ul>
+<li><strong>Launchpad series</strong>: Note-based LED control</li>
+<li><strong>APC series</strong>: CC-based LED control</li>
+<li><strong>Generic MIDI</strong>: Via Note On/Off messages</li>
+</ul>
+<h2 id="lighting-schemes"><a class="header" href="#lighting-schemes">Lighting Schemes</a></h2>
+<h3 id="reactive-default"><a class="header" href="#reactive-default">Reactive (Default)</a></h3>
+<p>LEDs respond to pad velocity and fade after release:</p>
+<ul>
+<li><strong>Soft</strong> (0-40): Green</li>
+<li><strong>Medium</strong> (41-80): Yellow</li>
+<li><strong>Hard</strong> (81-127): Red</li>
+<li><strong>Fade time</strong>: 1 second</li>
+</ul>
+<pre><code class="language-bash"># Enable reactive mode
+midimon --led reactive 2
+</code></pre>
+<h3 id="rainbow"><a class="header" href="#rainbow">Rainbow</a></h3>
+<p>Rotating rainbow pattern across all pads:</p>
+<pre><code class="language-bash">midimon --led rainbow 2
+</code></pre>
+<h3 id="breathing"><a class="header" href="#breathing">Breathing</a></h3>
+<p>Pulsing effect synced across all pads:</p>
+<pre><code class="language-bash">midimon --led breathing 2
+</code></pre>
+<h3 id="wave"><a class="header" href="#wave">Wave</a></h3>
+<p>Cascading wave pattern:</p>
+<pre><code class="language-bash">midimon --led wave 2
+</code></pre>
+<h3 id="sparkle"><a class="header" href="#sparkle">Sparkle</a></h3>
+<p>Random twinkling effect:</p>
+<pre><code class="language-bash">midimon --led sparkle 2
+</code></pre>
+<h3 id="vu-meter"><a class="header" href="#vu-meter">VU Meter</a></h3>
+<p>Bottom-to-top audio level visualization:</p>
+<pre><code class="language-bash">midimon --led vumeter 2
+</code></pre>
+<h3 id="static"><a class="header" href="#static">Static</a></h3>
+<p>Solid color based on current mode:</p>
+<pre><code class="language-bash">midimon --led static 2
+</code></pre>
+<h3 id="off"><a class="header" href="#off">Off</a></h3>
+<p>Disable LED feedback:</p>
+<pre><code class="language-bash">midimon --led off 2
+</code></pre>
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
+<h3 id="global-led-settings"><a class="header" href="#global-led-settings">Global LED Settings</a></h3>
+<p>In <code>config.toml</code>:</p>
+<pre><code class="language-toml">[led_settings]
+scheme = "reactive"
+brightness = 100  # 0-100
+fade_time_ms = 1000
+enable_mode_colors = true
+</code></pre>
+<h3 id="mode-specific-colors"><a class="header" href="#mode-specific-colors">Mode-Specific Colors</a></h3>
+<p>Each mode can have its own LED color theme:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Default"
+color = "blue"  # LEDs tint blue when in this mode
+
+[[modes]]
+name = "Development"
+color = "green"
+
+[[modes]]
+name = "Media"
+color = "purple"
+</code></pre>
+<p>Available colors:</p>
+<ul>
+<li><code>blue</code>, <code>green</code>, <code>purple</code>, <code>red</code>, <code>yellow</code>, <code>orange</code>, <code>pink</code>, <code>cyan</code>, <code>white</code></li>
+</ul>
+<h3 id="per-mapping-led-feedback"><a class="header" href="#per-mapping-led-feedback">Per-Mapping LED Feedback</a></h3>
+<p>Individual mappings can override LED behavior:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+[modes.mappings.trigger]
+type = "Note"
+note = 36
+
+[modes.mappings.action]
+type = "Keystroke"
+keys = "Space"
+
+[modes.mappings.led]
+color = "red"
+brightness = 80
+duration_ms = 500  # Override fade time
+</code></pre>
+<h2 id="hid-led-control-maschine-mikro-mk3"><a class="header" href="#hid-led-control-maschine-mikro-mk3">HID LED Control (Maschine Mikro MK3)</a></h2>
+<h3 id="direct-rgb-access"><a class="header" href="#direct-rgb-access">Direct RGB Access</a></h3>
+<p>MIDIMon uses HID for precise RGB control:</p>
+<ul>
+<li><strong>Latency</strong>: &lt;1ms response time</li>
+<li><strong>Color depth</strong>: 24-bit RGB (16.7M colors)</li>
+<li><strong>Refresh rate</strong>: 60Hz</li>
+<li><strong>Shared access</strong>: Works alongside Native Instruments software</li>
+</ul>
+<h3 id="led-mapping"><a class="header" href="#led-mapping">LED Mapping</a></h3>
+<p>Physical pad layout to LED indices:</p>
+<pre><code>Pad Page A-H (16 pads):
+┌────┬────┬────┬────┐
+│ 36 │ 37 │ 38 │ 39 │  LED indices 0-3
+├────┼────┼────┼────┤
+│ 40 │ 41 │ 42 │ 43 │  LED indices 4-7
+├────┼────┼────┼────┤
+│ 44 │ 45 │ 46 │ 47 │  LED indices 8-11
+├────┼────┼────┼────┤
+│ 48 │ 49 │ 50 │ 51 │  LED indices 12-15
+└────┴────┴────┴────┘
+</code></pre>
+<h3 id="custom-hid-patterns"><a class="header" href="#custom-hid-patterns">Custom HID Patterns</a></h3>
+<p>Advanced users can create custom LED patterns:</p>
+<pre><code class="language-rust">// Example: Custom chase pattern
+pub fn led_chase_pattern(leds: &amp;mut MikroMK3LEDs, frame: u32) {
+    let pos = (frame / 10) % 16;
+    for i in 0..16 {
+        if i == pos {
+            leds.set_pad_rgb(i, 255, 0, 0); // Red
+        } else if i == (pos + 1) % 16 {
+            leds.set_pad_rgb(i, 128, 0, 0); // Dim red
+        } else {
+            leds.set_pad_rgb(i, 0, 0, 0); // Off
+        }
+    }
+    leds.update();
+}</code></pre>
+<h2 id="midi-led-control"><a class="header" href="#midi-led-control">MIDI LED Control</a></h2>
+<h3 id="standard-midi-devices"><a class="header" href="#standard-midi-devices">Standard MIDI Devices</a></h3>
+<p>For devices without HID RGB support, MIDIMon uses MIDI:</p>
+<pre><code class="language-toml">[led_settings]
+use_midi_leds = true
+midi_channel = 1
+note_on_velocity = 127  # LED on brightness
+note_off_velocity = 0   # LED off
+</code></pre>
+<h3 id="launchpad-style-control"><a class="header" href="#launchpad-style-control">Launchpad-Style Control</a></h3>
+<p>Map LED colors to velocity values:</p>
+<pre><code class="language-toml">[led_settings.midi_colors]
+red = 5
+green = 21
+yellow = 13
+amber = 9
+off = 12
+</code></pre>
+<h3 id="custom-midi-led-mapping"><a class="header" href="#custom-midi-led-mapping">Custom MIDI LED Mapping</a></h3>
+<p>Define custom LED control messages:</p>
+<pre><code class="language-toml">[[led_settings.custom_mappings]]
+pad = 36  # MIDI note
+led_on = { type = "NoteOn", channel = 1, note = 36, velocity = 127 }
+led_off = { type = "NoteOff", channel = 1, note = 36, velocity = 0 }
+color_map = { red = 5, green = 21, yellow = 13 }
+</code></pre>
+<h2 id="gui-configuration-1"><a class="header" href="#gui-configuration-1">GUI Configuration</a></h2>
+<h3 id="via-settings-panel"><a class="header" href="#via-settings-panel">Via Settings Panel</a></h3>
+<ol>
+<li>Open MIDIMon GUI</li>
+<li>Navigate to <strong>Settings</strong> tab</li>
+<li>Scroll to <strong>LED Configuration</strong></li>
+<li>Select scheme from dropdown</li>
+<li>Adjust brightness slider</li>
+<li>Configure fade time</li>
+<li>Enable/disable mode colors</li>
+<li>Click <strong>Save</strong></li>
+</ol>
+<h2 id="performance-optimization"><a class="header" href="#performance-optimization">Performance Optimization</a></h2>
+<h3 id="reduce-led-updates"><a class="header" href="#reduce-led-updates">Reduce LED Updates</a></h3>
+<p>For battery-powered devices or performance optimization:</p>
+<pre><code class="language-toml">[led_settings]
+update_rate_hz = 30  # Default: 60Hz
+skip_intermediate_frames = true  # Only update on significant changes
+</code></pre>
+<h3 id="disable-leds-selectively"><a class="header" href="#disable-leds-selectively">Disable LEDs Selectively</a></h3>
+<p>Turn off LEDs for specific modes:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Silent Mode"
+color = "off"  # No LED feedback in this mode
+</code></pre>
+<h2 id="troubleshooting-7"><a class="header" href="#troubleshooting-7">Troubleshooting</a></h2>
+<h3 id="leds-not-responding"><a class="header" href="#leds-not-responding">LEDs Not Responding</a></h3>
+<ol>
+<li>
+<p><strong>Check device support</strong>:</p>
+<pre><code class="language-bash"># List HID devices
+ls /dev/hidraw*  # Linux
+system_profiler SPUSBDataType  # macOS
+</code></pre>
+</li>
+<li>
+<p><strong>Verify permissions</strong> (macOS):</p>
+<ul>
+<li>System Settings → Privacy &amp; Security → Input Monitoring</li>
+<li>Grant access to MIDIMon</li>
+</ul>
+</li>
+<li>
+<p><strong>Test with diagnostic tool</strong>:</p>
+<pre><code class="language-bash">cargo run --bin led_diagnostic
+</code></pre>
+</li>
+<li>
+<p><strong>Check HID access</strong>:</p>
+<pre><code class="language-bash"># macOS: Ensure shared device access
+DEBUG=1 midimon 2 --led reactive
+</code></pre>
+</li>
+</ol>
+<h3 id="wrong-colors"><a class="header" href="#wrong-colors">Wrong Colors</a></h3>
+<ol>
+<li>Verify color mapping in config</li>
+<li>Check if device uses non-standard RGB order (some use GRB or BGR)</li>
+<li>Try different lighting scheme</li>
+<li>Calibrate brightness</li>
+</ol>
+<h3 id="flickering-leds"><a class="header" href="#flickering-leds">Flickering LEDs</a></h3>
+<ol>
+<li>Reduce update rate: <code>update_rate_hz = 30</code></li>
+<li>Enable frame skipping: <code>skip_intermediate_frames = true</code></li>
+<li>Check USB power supply</li>
+<li>Disable other LED-controlling software</li>
+</ol>
+<h3 id="leds-stuck-onoff"><a class="header" href="#leds-stuck-onoff">LEDs Stuck On/Off</a></h3>
+<ol>
+<li>Restart MIDIMon</li>
+<li>Power cycle MIDI device</li>
+<li>Check for conflicting LED control (e.g., Native Instruments software)</li>
+<li>Reset LEDs: <code>midimon --led off 2</code> then restart</li>
+</ol>
+<h2 id="advanced-customization"><a class="header" href="#advanced-customization">Advanced Customization</a></h2>
+<h3 id="create-custom-schemes"><a class="header" href="#create-custom-schemes">Create Custom Schemes</a></h3>
+<p>Write custom lighting patterns in <code>~/.config/midimon/led_schemes/</code>:</p>
+<pre><code class="language-rust">// custom_pulse.rs
+pub struct CustomPulse {
+    frame: u32,
+}
+
+impl LedScheme for CustomPulse {
+    fn update(&amp;mut self, leds: &amp;mut dyn PadFeedback) {
+        self.frame += 1;
+        let brightness = ((self.frame as f32 / 30.0).sin() * 127.0 + 128.0) as u8;
+
+        for i in 0..16 {
+            leds.set_pad_color(i, brightness, brightness, 255);
+        }
+    }
+}</code></pre>
+<p>Load custom scheme:</p>
+<pre><code class="language-toml">[led_settings]
+scheme = "custom:custom_pulse"
+</code></pre>
+<h3 id="mode-transition-effects"><a class="header" href="#mode-transition-effects">Mode Transition Effects</a></h3>
+<p>Animate LED transitions when switching modes:</p>
+<pre><code class="language-toml">[led_settings.transitions]
+enabled = true
+duration_ms = 300
+effect = "fade"  # fade, sweep, flash
+</code></pre>
+<h2 id="best-practices-2"><a class="header" href="#best-practices-2">Best Practices</a></h2>
+<ol>
+<li>
+<p><strong>Start with reactive</strong>: Most intuitive for new users</p>
+</li>
+<li>
+<p><strong>Match mode colors to usage</strong>: Visual cues help remember mode purpose</p>
+</li>
+<li>
+<p><strong>Test visibility</strong>: Ensure LEDs visible in your lighting conditions</p>
+</li>
+<li>
+<p><strong>Don't overdo it</strong>: Complex animations can be distracting</p>
+</li>
+<li>
+<p><strong>Battery consideration</strong>: Disable LEDs for battery-powered setups</p>
+</li>
+<li>
+<p><strong>Accessibility</strong>: Use high-contrast colors for visibility</p>
+</li>
+</ol>
+<h2 id="integration-examples"><a class="header" href="#integration-examples">Integration Examples</a></h2>
+<h3 id="led-feedback-for-successfailure"><a class="header" href="#led-feedback-for-successfailure">LED Feedback for Success/Failure</a></h3>
+<p>Flash green on success, red on failure:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+[modes.mappings.trigger]
+type = "Note"
+note = 36
+
+[modes.mappings.action]
+type = "Shell"
+command = "./run_tests.sh"
+
+[modes.mappings.led]
+success_color = "green"
+failure_color = "red"
+flash_duration_ms = 500
+</code></pre>
+<h3 id="vu-meter-for-audio-input"><a class="header" href="#vu-meter-for-audio-input">VU Meter for Audio Input</a></h3>
+<p>Display audio levels:</p>
+<pre><code class="language-bash">midimon --led vumeter --audio-input "System Audio" 2
+</code></pre>
+<h3 id="custom-mode-indicators"><a class="header" href="#custom-mode-indicators">Custom Mode Indicators</a></h3>
+<p>Reserve specific pads for mode indication:</p>
+<pre><code class="language-toml">[led_settings.mode_indicators]
+pad_36 = "mode_0"  # Blue when in mode 0
+pad_37 = "mode_1"  # Green when in mode 1
+pad_38 = "mode_2"  # Purple when in mode 2
+always_on = true
+</code></pre>
+<h2 id="next-steps-9"><a class="header" href="#next-steps-9">Next Steps</a></h2>
+<ul>
+<li>Explore <a href="guides/./gui.html">GUI configuration</a> for visual LED setup</li>
+<li>Use <a href="guides/../getting-started/midi-learn.html">MIDI Learn</a> with LED feedback</li>
+<li>Set up <a href="guides/./per-app-profiles.html">per-app profiles</a> with different LED schemes</li>
+<li>Try the <a href="guides/./event-console.html">event console</a> to debug LED behavior</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="event-console"><a class="header" href="#event-console">Event Console</a></h1>
+<p>The Live Event Console provides real-time visualization of MIDI events, helping you debug mappings, discover note numbers, and understand your controller's behavior.</p>
+<h2 id="overview-6"><a class="header" href="#overview-6">Overview</a></h2>
+<p>The Event Console displays:</p>
+<ul>
+<li><strong>MIDI events</strong>: Note on/off, CC, aftertouch, pitch bend</li>
+<li><strong>Timing information</strong>: Timestamps and event duration</li>
+<li><strong>Velocity data</strong>: Press intensity values</li>
+<li><strong>Processed events</strong>: Long press, double-tap, chord detection</li>
+<li><strong>Action execution</strong>: What actions were triggered</li>
+<li><strong>Error messages</strong>: Failed actions or validation issues</li>
+</ul>
+<h2 id="access-the-console"><a class="header" href="#access-the-console">Access the Console</a></h2>
+<h3 id="gui-method-4"><a class="header" href="#gui-method-4">GUI Method</a></h3>
+<ol>
+<li>Open MIDIMon GUI</li>
+<li>Navigate to <strong>Settings</strong> tab</li>
+<li>Click <strong>📊 Show Event Console</strong></li>
+<li>View live events in real-time</li>
+</ol>
+<h3 id="cli-method-3"><a class="header" href="#cli-method-3">CLI Method</a></h3>
+<pre><code class="language-bash"># Monitor all events
+midimonctl events
+
+# Filter by event type
+midimonctl events --type note
+
+# Follow mode (live tail)
+midimonctl events --follow
+</code></pre>
+<h2 id="event-types"><a class="header" href="#event-types">Event Types</a></h2>
+<h3 id="midi-events"><a class="header" href="#midi-events">MIDI Events</a></h3>
+<h4 id="note-onoff"><a class="header" href="#note-onoff">Note On/Off</a></h4>
+<pre><code>[12:34:56.789] NOTE_ON  | Note: 36 | Vel: 87 | Ch: 1
+[12:34:57.120] NOTE_OFF | Note: 36 | Vel: 0  | Ch: 1
+Duration: 331ms
+</code></pre>
+<h4 id="control-change"><a class="header" href="#control-change">Control Change</a></h4>
+<pre><code>[12:34:58.456] CC | CC: 7 | Value: 64 | Ch: 1
+</code></pre>
+<h4 id="aftertouch"><a class="header" href="#aftertouch">Aftertouch</a></h4>
+<pre><code>[12:35:00.123] AFTERTOUCH | Pressure: 95 | Ch: 1
+</code></pre>
+<h4 id="pitch-bend"><a class="header" href="#pitch-bend">Pitch Bend</a></h4>
+<pre><code>[12:35:01.789] PITCH_BEND | Value: 8192 | Ch: 1
+</code></pre>
+<h3 id="processed-events"><a class="header" href="#processed-events">Processed Events</a></h3>
+<h4 id="long-press-detected"><a class="header" href="#long-press-detected">Long Press Detected</a></h4>
+<pre><code>[12:35:05.000] LONG_PRESS | Note: 36 | Duration: 2150ms
+Trigger matched: "Emergency Stop" (mapping #5)
+</code></pre>
+<h4 id="double-tap-detected"><a class="header" href="#double-tap-detected">Double Tap Detected</a></h4>
+<pre><code>[12:35:10.100] DOUBLE_TAP | Note: 37 | Interval: 245ms
+Trigger matched: "Quick Launch" (mapping #8)
+</code></pre>
+<h4 id="chord-detected"><a class="header" href="#chord-detected">Chord Detected</a></h4>
+<pre><code>[12:35:15.500] CHORD | Notes: [36, 40, 43] | Window: 87ms
+Trigger matched: "Save All" (mapping #12)
+</code></pre>
+<h4 id="encoder-turn"><a class="header" href="#encoder-turn">Encoder Turn</a></h4>
+<pre><code>[12:35:20.750] ENCODER_TURN | CC: 1 | Direction: Clockwise | Steps: 3
+Trigger matched: "Volume Up" (mapping #2)
+</code></pre>
+<h3 id="action-execution"><a class="header" href="#action-execution">Action Execution</a></h3>
+<pre><code>[12:35:25.100] ACTION_START | Type: Keystroke
+  Modifiers: [Cmd, Shift]
+  Keys: "S"
+[12:35:25.105] ACTION_COMPLETE | Duration: 5ms | Status: Success
+</code></pre>
+<h3 id="errors"><a class="header" href="#errors">Errors</a></h3>
+<pre><code>[12:35:30.000] ERROR | Failed to execute shell command
+  Command: "/usr/bin/notexist"
+  Error: "No such file or directory"
+  Mapping: #15 ("Custom Script")
+</code></pre>
+<h2 id="filtering-events"><a class="header" href="#filtering-events">Filtering Events</a></h2>
+<h3 id="by-event-type"><a class="header" href="#by-event-type">By Event Type</a></h3>
+<pre><code class="language-bash"># Only note events
+midimonctl events --type note
+
+# Only CC events
+midimonctl events --type cc
+
+# Only processed events
+midimonctl events --type processed
+
+# Only actions
+midimonctl events --type action
+
+# Only errors
+midimonctl events --type error
+</code></pre>
+<h3 id="by-midi-channel"><a class="header" href="#by-midi-channel">By MIDI Channel</a></h3>
+<pre><code class="language-bash">midimonctl events --channel 1
+</code></pre>
+<h3 id="by-note-range"><a class="header" href="#by-note-range">By Note Range</a></h3>
+<pre><code class="language-bash"># Only pads (notes 36-51)
+midimonctl events --note-min 36 --note-max 51
+</code></pre>
+<h3 id="by-time-range"><a class="header" href="#by-time-range">By Time Range</a></h3>
+<pre><code class="language-bash"># Last 5 minutes
+midimonctl events --since 5m
+
+# Last hour
+midimonctl events --since 1h
+
+# Specific time
+midimonctl events --since "2025-01-15 12:00"
+</code></pre>
+<h2 id="use-cases-1"><a class="header" href="#use-cases-1">Use Cases</a></h2>
+<h3 id="discover-note-numbers"><a class="header" href="#discover-note-numbers">Discover Note Numbers</a></h3>
+<p><strong>Problem</strong>: Don't know which MIDI note a pad sends</p>
+<p><strong>Solution</strong>:</p>
+<ol>
+<li>Open Event Console</li>
+<li>Press the pad</li>
+<li>See <code>NOTE_ON | Note: 36</code> in console</li>
+<li>Use note 36 in your mapping</li>
+</ol>
+<pre><code>[12:40:00.000] NOTE_ON | Note: 36 | Vel: 92 | Ch: 1
+                       ↑
+                   This is the note number
+</code></pre>
+<h3 id="debug-long-press-not-triggering"><a class="header" href="#debug-long-press-not-triggering">Debug Long Press Not Triggering</a></h3>
+<p><strong>Problem</strong>: Long press mapping not activating</p>
+<p><strong>Solution</strong>:</p>
+<ol>
+<li>Open Event Console</li>
+<li>Hold the pad</li>
+<li>Check if <code>LONG_PRESS</code> event appears</li>
+<li>Compare duration with your config:</li>
+</ol>
+<pre><code>[12:45:00.000] NOTE_ON    | Note: 36 | Vel: 87
+[12:45:01.500] NOTE_OFF   | Note: 36 | Duration: 1500ms
+                                      ↑
+                        Too short! Config requires 2000ms
+</code></pre>
+<p>Fix by reducing <code>duration_ms</code> in config or holding longer.</p>
+<h3 id="verify-velocity-ranges"><a class="header" href="#verify-velocity-ranges">Verify Velocity Ranges</a></h3>
+<p><strong>Problem</strong>: Soft/medium/hard velocity ranges not working as expected</p>
+<p><strong>Solution</strong>:</p>
+<ol>
+<li>Press pad softly: Check velocity value</li>
+<li>Press pad medium: Check velocity value</li>
+<li>Press pad hard: Check velocity value</li>
+<li>Adjust ranges in config</li>
+</ol>
+<pre><code>Soft press:   [12:50:00.000] NOTE_ON | Vel: 25  ← Within 0-40
+Medium press: [12:50:05.000] NOTE_ON | Vel: 65  ← Within 41-80
+Hard press:   [12:50:10.000] NOTE_ON | Vel: 110 ← Within 81-127
+</code></pre>
+<h3 id="debug-chord-detection"><a class="header" href="#debug-chord-detection">Debug Chord Detection</a></h3>
+<p><strong>Problem</strong>: Chord mapping not triggering</p>
+<p><strong>Solution</strong>:</p>
+<ol>
+<li>Press chord notes</li>
+<li>Check timing window in console:</li>
+</ol>
+<pre><code>[13:00:00.000] NOTE_ON | Note: 36
+[13:00:00.150] NOTE_ON | Note: 40  ← 150ms gap, too slow!
+[13:00:00.300] NOTE_ON | Note: 43
+
+Config requires all notes within 100ms
+</code></pre>
+<p>Fix: Press notes faster OR increase <code>chord_timeout_ms</code> in config.</p>
+<h3 id="test-action-execution"><a class="header" href="#test-action-execution">Test Action Execution</a></h3>
+<p><strong>Problem</strong>: Action not executing as expected</p>
+<p><strong>Solution</strong>:</p>
+<ol>
+<li>Trigger the mapping</li>
+<li>Watch action execution in console</li>
+<li>Check for errors</li>
+</ol>
+<pre><code>[13:05:00.000] ACTION_START | Type: Shell
+  Command: "open -a 'Visual Studio Code'"
+[13:05:00.250] ACTION_COMPLETE | Duration: 250ms | Status: Success
+
+vs.
+
+[13:05:05.000] ACTION_START | Type: Shell
+  Command: "open -a 'NotExist'"
+[13:05:05.100] ERROR | Application not found
+                ↑
+            This tells you what went wrong
+</code></pre>
+<h3 id="monitor-system-performance"><a class="header" href="#monitor-system-performance">Monitor System Performance</a></h3>
+<p>Watch event processing latency:</p>
+<pre><code>[13:10:00.000] NOTE_ON      | Note: 36
+[13:10:00.001] PROCESSED    | Duration: 1ms  ← Very fast!
+[13:10:00.002] ACTION_START
+[13:10:00.007] ACTION_COMPLETE | Duration: 5ms
+
+Total: 7ms from button press to action complete
+</code></pre>
+<p>If latency &gt;50ms, investigate performance issues.</p>
+<h2 id="gui-console-features"><a class="header" href="#gui-console-features">GUI Console Features</a></h2>
+<h3 id="visual-event-timeline"><a class="header" href="#visual-event-timeline">Visual Event Timeline</a></h3>
+<p>The GUI console includes a visual timeline showing:</p>
+<ul>
+<li>Event type (color-coded)</li>
+<li>Timestamp</li>
+<li>Event details</li>
+<li>Expandable for full info</li>
+</ul>
+<h3 id="event-highlighting"><a class="header" href="#event-highlighting">Event Highlighting</a></h3>
+<ul>
+<li><strong>Green</strong>: Successful events</li>
+<li><strong>Yellow</strong>: Warnings (e.g., near timeout)</li>
+<li><strong>Red</strong>: Errors</li>
+<li><strong>Blue</strong>: Info (e.g., mode changes)</li>
+</ul>
+<h3 id="auto-scroll"><a class="header" href="#auto-scroll">Auto-Scroll</a></h3>
+<p>Console auto-scrolls to latest events. Click <strong>Pause</strong> to freeze for inspection.</p>
+<h3 id="event-export"><a class="header" href="#event-export">Event Export</a></h3>
+<ol>
+<li>Select events</li>
+<li>Click <strong>Export</strong></li>
+<li>Save as JSON/CSV for analysis</li>
+</ol>
+<h3 id="event-statistics"><a class="header" href="#event-statistics">Event Statistics</a></h3>
+<p>View live statistics:</p>
+<ul>
+<li>Events per second</li>
+<li>Average velocity</li>
+<li>Most-pressed pad</li>
+<li>Error rate</li>
+</ul>
+<h2 id="advanced-features-1"><a class="header" href="#advanced-features-1">Advanced Features</a></h2>
+<h3 id="pattern-recording"><a class="header" href="#pattern-recording">Pattern Recording</a></h3>
+<p>Record event sequences for analysis:</p>
+<pre><code class="language-bash">midimonctl record-events --duration 30s --output session.json
+</code></pre>
+<p>Playback recorded events:</p>
+<pre><code class="language-bash">midimonctl playback-events session.json
+</code></pre>
+<h3 id="event-filtering-rules"><a class="header" href="#event-filtering-rules">Event Filtering Rules</a></h3>
+<p>Create custom filters in config:</p>
+<pre><code class="language-toml">[event_console]
+[[event_console.filters]]
+name = "Only My Pads"
+include_notes = [36, 37, 38, 39]
+include_types = ["note", "processed"]
+
+[[event_console.filters]]
+name = "Errors Only"
+include_types = ["error"]
+min_severity = "warning"
+</code></pre>
+<p>Activate filter in GUI or CLI:</p>
+<pre><code class="language-bash">midimonctl events --filter "Only My Pads"
+</code></pre>
+<h3 id="event-triggers"><a class="header" href="#event-triggers">Event Triggers</a></h3>
+<p>Trigger actions based on events:</p>
+<pre><code class="language-toml">[event_console.triggers]
+[[event_console.triggers.rules]]
+condition = "error_rate &gt; 5 per_minute"
+action = { type = "Notification", message = "High error rate detected!" }
+
+[[event_console.triggers.rules]]
+condition = "note_36 pressed &gt; 10 times in 5s"
+action = { type = "Notification", message = "Stop mashing that button!" }
+</code></pre>
+<h3 id="performance-profiling"><a class="header" href="#performance-profiling">Performance Profiling</a></h3>
+<p>Enable detailed performance metrics:</p>
+<pre><code class="language-toml">[event_console]
+enable_profiling = true
+track_latency = true
+track_memory = true
+</code></pre>
+<p>View profiling data:</p>
+<pre><code class="language-bash">midimonctl events --profiling
+</code></pre>
+<p>Output includes:</p>
+<ul>
+<li>Event processing time</li>
+<li>Memory allocation</li>
+<li>CPU usage per event</li>
+<li>Bottleneck identification</li>
+</ul>
+<h2 id="troubleshooting-8"><a class="header" href="#troubleshooting-8">Troubleshooting</a></h2>
+<h3 id="console-not-updating"><a class="header" href="#console-not-updating">Console Not Updating</a></h3>
+<ol>
+<li>Check daemon is running: <code>midimonctl status</code></li>
+<li>Verify events are being generated (press pads)</li>
+<li>Restart daemon: <code>midimonctl restart</code></li>
+<li>Check event monitoring is active: <code>midimonctl is-event-monitoring-active</code></li>
+</ol>
+<h3 id="too-many-events"><a class="header" href="#too-many-events">Too Many Events</a></h3>
+<p>Filter aggressively:</p>
+<pre><code class="language-bash"># Only errors and warnings
+midimonctl events --type error --type warning
+
+# Debounce rapid events
+midimonctl events --debounce 100ms
+</code></pre>
+<p>Or reduce update rate in config:</p>
+<pre><code class="language-toml">[event_console]
+max_events_per_second = 30
+</code></pre>
+<h3 id="missing-events"><a class="header" href="#missing-events">Missing Events</a></h3>
+<ol>
+<li>
+<p>Check buffer size isn't full:</p>
+<pre><code class="language-toml">[event_console]
+buffer_size = 10000  # Increase if needed
+</code></pre>
+</li>
+<li>
+<p>Verify event types are enabled:</p>
+<pre><code class="language-toml">[event_console]
+capture_midi = true
+capture_processed = true
+capture_actions = true
+</code></pre>
+</li>
+<li>
+<p>Check log level:</p>
+<pre><code class="language-bash">DEBUG=1 midimonctl events
+</code></pre>
+</li>
+</ol>
+<h2 id="best-practices-3"><a class="header" href="#best-practices-3">Best Practices</a></h2>
+<ol>
+<li><strong>Start with full view</strong>: See all event types initially</li>
+<li><strong>Filter progressively</strong>: Add filters as you narrow down issues</li>
+<li><strong>Use follow mode</strong>: <code>-f</code> flag for live monitoring</li>
+<li><strong>Export for analysis</strong>: Save interesting sessions</li>
+<li><strong>Watch timing</strong>: Event timing reveals latency issues</li>
+<li><strong>Compare configs</strong>: Record events, change config, compare results</li>
+<li><strong>Document discoveries</strong>: Note note numbers and velocities for future reference</li>
+</ol>
+<h2 id="integration-with-other-tools"><a class="header" href="#integration-with-other-tools">Integration with Other Tools</a></h2>
+<h3 id="export-to-csv-for-analysis"><a class="header" href="#export-to-csv-for-analysis">Export to CSV for Analysis</a></h3>
+<pre><code class="language-bash">midimonctl events --output events.csv --duration 60s
+</code></pre>
+<p>Analyze in Excel/Google Sheets:</p>
+<ul>
+<li>Event frequency</li>
+<li>Velocity distribution</li>
+<li>Timing patterns</li>
+</ul>
+<h3 id="send-to-external-monitoring"><a class="header" href="#send-to-external-monitoring">Send to External Monitoring</a></h3>
+<pre><code class="language-bash"># Stream events to external tool
+midimonctl events --format json | jq '.' | your-monitoring-tool
+</code></pre>
+<h3 id="log-to-file"><a class="header" href="#log-to-file">Log to File</a></h3>
+<pre><code class="language-bash"># Continuous logging
+midimonctl events -f &gt;&gt; midimon-events.log
+</code></pre>
+<h2 id="next-steps-10"><a class="header" href="#next-steps-10">Next Steps</a></h2>
+<ul>
+<li>Use console to build mappings with <a href="guides/../getting-started/midi-learn.html">MIDI Learn</a></li>
+<li>Debug complex triggers in <a href="guides/./gui.html#mapping-configuration">mapping configuration</a></li>
+<li>Monitor <a href="guides/./led-system.html">LED feedback</a> in real-time</li>
+<li>Analyze <a href="guides/./per-app-profiles.html">per-app profile</a> switching behavior</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-overview"><a class="header" href="#configuration-overview">Configuration Overview</a></h1>
 <h2 id="introduction-1"><a class="header" href="#introduction-1">Introduction</a></h2>
 <p>MIDIMon uses a single <code>config.toml</code> file to define all device settings, modes, mappings, and advanced behavior. This file uses TOML (Tom's Obvious, Minimal Language) - a human-friendly configuration format that's easy to read and edit.</p>
@@ -4409,7 +5945,7 @@ killall midimon
 <li><a href="configuration/../getting-started/first-mapping.html">First Mapping Tutorial</a> - Step-by-step guide</li>
 <li><a href="https://toml.io/">TOML Specification</a> - Official TOML documentation</li>
 </ul>
-<h2 id="troubleshooting-5"><a class="header" href="#troubleshooting-5">Troubleshooting</a></h2>
+<h2 id="troubleshooting-9"><a class="header" href="#troubleshooting-9">Troubleshooting</a></h2>
 <h3 id="config-not-loading"><a class="header" href="#config-not-loading">Config Not Loading</a></h3>
 <p><strong>Problem</strong>: MIDIMon says "Config file not found"</p>
 <p><strong>Solutions</strong>:</p>
@@ -4660,23 +6196,42 @@ actions = [
 <li>Ensure scripts have execute permissions: <code>chmod +x script.sh</code></li>
 </ul>
 <h3 id="shell"><a class="header" href="#shell">Shell</a></h3>
-<p>Execute arbitrary shell commands. Provides full system access.</p>
+<p>Execute system commands directly without shell interpreter (secure execution).</p>
 <pre><code class="language-toml">[modes.mappings.action]
 type = "Shell"
 command = "git status"
 </code></pre>
-<p><strong>Common Examples</strong>:</p>
-<pre><code class="language-toml"># Git operations
-command = "git add . &amp;&amp; git commit -m 'quick save'"
-
-# System info
-command = "system_profiler SPUSBDataType | grep -i mikro"
+<p><strong>Security Design</strong>: Commands are executed directly via <code>Command::new(program).args(args)</code> without using shell interpreters (<code>sh</code>, <code>bash</code>, <code>cmd</code>). This prevents command injection attacks while supporting common use cases.</p>
+<p><strong>Supported Examples</strong>:</p>
+<pre><code class="language-toml"># Simple commands
+command = "git status"
+command = "ls -la /tmp"
 
 # File operations
 command = "open ~/Downloads"
 
+# System info
+command = "system_profiler SPUSBDataType"
+
 # AppleScript (macOS)
+command = "osascript -e 'set volume 50'"
 command = "osascript -e 'display notification \"MIDI triggered!\"'"
+</code></pre>
+<p><strong>Shell Features NOT Supported</strong> (for security):</p>
+<ul>
+<li>Command chaining: <code>&amp;&amp;</code>, <code>||</code>, <code>;</code></li>
+<li>Piping: <code>|</code></li>
+<li>Redirection: <code>&gt;</code>, <code>&lt;</code>, <code>&gt;&gt;</code></li>
+<li>Command substitution: <code>$(...)</code>, <code>`...`</code></li>
+<li>Variable expansion: <code>$HOME</code>, <code>${VAR}</code></li>
+</ul>
+<p><strong>Alternative</strong>: Use <code>Sequence</code> action to chain multiple commands:</p>
+<pre><code class="language-toml"># Instead of: "git add . &amp;&amp; git commit -m 'save'"
+type = "Sequence"
+actions = [
+    { type = "Shell", command = "git add ." },
+    { type = "Shell", command = "git commit -m 'save'" }
+]
 </code></pre>
 <h2 id="timing--flow-control"><a class="header" href="#timing--flow-control">Timing &amp; Flow Control</a></h2>
 <h3 id="delay"><a class="header" href="#delay">Delay</a></h3>
@@ -5116,7 +6671,7 @@ cargo run --release 2 --led off
 <li><strong>vumeter</strong> - VU meter style (bottom-up)</li>
 <li><strong>spiral</strong> - Spiral pattern animation</li>
 </ul>
-<h2 id="configuration-file"><a class="header" href="#configuration-file">Configuration File</a></h2>
+<h2 id="configuration-file-1"><a class="header" href="#configuration-file-1">Configuration File</a></h2>
 <h3 id="basic-setup"><a class="header" href="#basic-setup">Basic Setup</a></h3>
 <p>Add LED settings to your <code>config.toml</code>:</p>
 <pre><code class="language-toml">[device]
@@ -5180,7 +6735,7 @@ led_active_brightness = 200
 <li><code>"white"</code> - (255, 255, 255)</li>
 <li>Custom: <code>{ r = 128, g = 64, b = 200 }</code></li>
 </ul>
-<h3 id="mode-transition-effects"><a class="header" href="#mode-transition-effects">Mode Transition Effects</a></h3>
+<h3 id="mode-transition-effects-1"><a class="header" href="#mode-transition-effects-1">Mode Transition Effects</a></h3>
 <p>Add visual effects when switching modes:</p>
 <pre><code class="language-toml">[[global_mappings]]
 description = "Next Mode with Sweep Effect"
@@ -5292,7 +6847,7 @@ sudo udevadm trigger
 <li>Native Instruments drivers installed</li>
 <li>USB device permissions (Windows 10+)</li>
 </ul>
-<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
+<h2 id="use-cases-2"><a class="header" href="#use-cases-2">Use Cases</a></h2>
 <h3 id="performancelive-use"><a class="header" href="#performancelive-use">Performance/Live Use</a></h3>
 <pre><code class="language-toml">[led_settings]
 scheme = "reactive"  # Immediate velocity feedback
@@ -5312,8 +6867,8 @@ brightness = 200     # Bright but not overwhelming
 <pre><code class="language-toml">[led_settings]
 scheme = "off"       # No distractions
 </code></pre>
-<h2 id="troubleshooting-6"><a class="header" href="#troubleshooting-6">Troubleshooting</a></h2>
-<h3 id="leds-not-responding"><a class="header" href="#leds-not-responding">LEDs Not Responding</a></h3>
+<h2 id="troubleshooting-10"><a class="header" href="#troubleshooting-10">Troubleshooting</a></h2>
+<h3 id="leds-not-responding-1"><a class="header" href="#leds-not-responding-1">LEDs Not Responding</a></h3>
 <ol>
 <li>
 <p><strong>Check device connection:</strong></p>
@@ -5335,7 +6890,7 @@ use_hid = false  # Force MIDI mode
 </code></pre>
 </li>
 </ol>
-<h3 id="wrong-colors"><a class="header" href="#wrong-colors">Wrong Colors</a></h3>
+<h3 id="wrong-colors-1"><a class="header" href="#wrong-colors-1">Wrong Colors</a></h3>
 <ul>
 <li><strong>Issue</strong>: Colors don't match expected RGB values</li>
 <li><strong>Cause</strong>: LED manufacturing variance (±10%)</li>
@@ -5641,7 +7196,7 @@ keys = "down"
 modifiers = ["cmd", "shift"]
 </code></pre>
 <h2 id="content-creation"><a class="header" href="#content-creation">Content Creation</a></h2>
-<h3 id="video-editing"><a class="header" href="#video-editing">Video Editing</a></h3>
+<h3 id="video-editing-1"><a class="header" href="#video-editing-1">Video Editing</a></h3>
 <p>Timeline navigation and editing:</p>
 <pre><code class="language-toml">[[modes]]
 name = "Video"
@@ -6265,7 +7820,7 @@ else_action = {
 <li><a href="configuration/../reference/action-types.html">Action Types Reference</a> - Technical specifications</li>
 <li><a href="configuration/../reference/trigger-types.html">Trigger Types</a> - Trigger configuration</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="trigger-types"><a class="header" href="#trigger-types">Trigger Types</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="trigger-types-1"><a class="header" href="#trigger-types-1">Trigger Types</a></h1>
 <p>Triggers define when an action should execute. MIDIMon supports a wide range of trigger types from simple note presses to complex patterns like chords and long presses.</p>
 <h2 id="core-triggers"><a class="header" href="#core-triggers">Core Triggers</a></h2>
 <h3 id="note"><a class="header" href="#note">Note</a></h3>
@@ -6403,7 +7958,7 @@ direction = "Clockwise"  # or "CounterClockwise"
 <li>Parameter adjustment</li>
 </ul>
 <h2 id="advanced-triggers"><a class="header" href="#advanced-triggers">Advanced Triggers</a></h2>
-<h3 id="aftertouch"><a class="header" href="#aftertouch">Aftertouch</a></h3>
+<h3 id="aftertouch-1"><a class="header" href="#aftertouch-1">Aftertouch</a></h3>
 <p>Channel pressure sensitivity (pressure after initial press).</p>
 <pre><code class="language-toml">[trigger]
 type = "Aftertouch"
@@ -6599,7 +8154,7 @@ else_action = { type = "Shell", command = "personal-task" }
 <li><strong>Aftertouch</strong>: Continuous messages, use throttling</li>
 <li><strong>PitchBend</strong>: Continuous messages, 14-bit precision</li>
 </ul>
-<h2 id="troubleshooting-7"><a class="header" href="#troubleshooting-7">Troubleshooting</a></h2>
+<h2 id="troubleshooting-11"><a class="header" href="#troubleshooting-11">Troubleshooting</a></h2>
 <h3 id="trigger-not-firing"><a class="header" href="#trigger-not-firing">Trigger Not Firing</a></h3>
 <ul>
 <li>Use <code>midi_diagnostic</code> tool to verify MIDI messages:
@@ -6638,7 +8193,7 @@ else_action = { type = "Shell", command = "personal-task" }
 <li><a href="reference/../configuration/modes.html">Modes and Mappings</a></li>
 <li><a href="reference/../configuration/overview.html">Advanced Settings</a></li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="action-types"><a class="header" href="#action-types">Action Types</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="action-types-1"><a class="header" href="#action-types-1">Action Types</a></h1>
 <p>Actions are what MIDIMon executes when a trigger is detected. This page documents all available action types and their configuration.</p>
 <h2 id="core-actions"><a class="header" href="#core-actions">Core Actions</a></h2>
 <h3 id="keystroke-1"><a class="header" href="#keystroke-1">Keystroke</a></h3>
@@ -7384,7 +8939,7 @@ else_action = { type = "Keystroke", keys = "right" }
 <li><strong>Conditional</strong>: 10-50ms per condition evaluation</li>
 <li><strong>Sequence</strong>: Sum of individual action times + delays</li>
 </ul>
-<h2 id="troubleshooting-8"><a class="header" href="#troubleshooting-8">Troubleshooting</a></h2>
+<h2 id="troubleshooting-12"><a class="header" href="#troubleshooting-12">Troubleshooting</a></h2>
 <h3 id="keystroke-not-working"><a class="header" href="#keystroke-not-working">Keystroke Not Working</a></h3>
 <ul>
 <li>Verify key name spelling</li>
@@ -7417,7 +8972,7 @@ else_action = { type = "Keystroke", keys = "right" }
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="led-system-reference"><a class="header" href="#led-system-reference">LED System Reference</a></h1>
 <p>MIDIMon provides comprehensive LED feedback for supported MIDI controllers, with full RGB control for HID devices (Native Instruments Maschine Mikro MK3) and basic on/off control for standard MIDI devices.</p>
-<h2 id="overview-3"><a class="header" href="#overview-3">Overview</a></h2>
+<h2 id="overview-7"><a class="header" href="#overview-7">Overview</a></h2>
 <p>The LED system consists of four main features:</p>
 <ol>
 <li><strong>F23: LED Lighting Schemes</strong> - 10 pre-defined animation patterns</li>
@@ -7454,7 +9009,7 @@ cargo run --release 2 --led off
 # Static mode colors
 cargo run --release 2 --led static
 </code></pre>
-<h3 id="configuration"><a class="header" href="#configuration">Configuration</a></h3>
+<h3 id="configuration-1"><a class="header" href="#configuration-1">Configuration</a></h3>
 <pre><code class="language-toml">[led_settings]
 scheme = "reactive"  # Default scheme on startup
 </code></pre>
@@ -7499,7 +9054,7 @@ medium_color = { r = 255, g = 255, b = 0 }  # Yellow
 hard_color = { r = 255, g = 0, b = 0 }      # Red
 fade_duration_ms = 1000
 </code></pre>
-<h3 id="use-cases-1"><a class="header" href="#use-cases-1">Use Cases</a></h3>
+<h3 id="use-cases-3"><a class="header" href="#use-cases-3">Use Cases</a></h3>
 <ul>
 <li><strong>Performance</strong>: Immediate feedback on hit strength for drum pads</li>
 <li><strong>Practice</strong>: Visual metronome or timing reference</li>
@@ -7517,7 +9072,7 @@ fade_duration_ms = 1000
 <tr><td>Mode 2 (Media)</td><td>Purple</td><td>(200, 0, 255)</td><td>🟣</td></tr>
 </tbody></table>
 </div>
-<h3 id="configuration-1"><a class="header" href="#configuration-1">Configuration</a></h3>
+<h3 id="configuration-2"><a class="header" href="#configuration-2">Configuration</a></h3>
 <pre><code class="language-toml">[[modes]]
 name = "Default"
 color = "blue"
@@ -7536,7 +9091,7 @@ color = "purple"
 led_idle_brightness = 15
 led_active_brightness = 200
 </code></pre>
-<h3 id="mode-transition-effects-1"><a class="header" href="#mode-transition-effects-1">Mode Transition Effects</a></h3>
+<h3 id="mode-transition-effects-2"><a class="header" href="#mode-transition-effects-2">Mode Transition Effects</a></h3>
 <p>When switching modes, you can apply visual transition effects:</p>
 <pre><code class="language-toml">[[global_mappings]]
 description = "Next Mode with Flash"
@@ -7688,7 +9243,7 @@ led_idle_brightness = 30
 led_active_brightness = 255
 </code></pre>
 <hr />
-<h2 id="troubleshooting-9"><a class="header" href="#troubleshooting-9">Troubleshooting</a></h2>
+<h2 id="troubleshooting-13"><a class="header" href="#troubleshooting-13">Troubleshooting</a></h2>
 <h3 id="leds-not-working-mikro-mk3"><a class="header" href="#leds-not-working-mikro-mk3">LEDs Not Working (Mikro MK3)</a></h3>
 <ol>
 <li>
@@ -7713,13 +9268,13 @@ led_active_brightness = 255
 </ul>
 </li>
 </ol>
-<h3 id="wrong-colors-1"><a class="header" href="#wrong-colors-1">Wrong Colors</a></h3>
+<h3 id="wrong-colors-2"><a class="header" href="#wrong-colors-2">Wrong Colors</a></h3>
 <ul>
 <li><strong>Issue</strong>: Colors don't match expected values</li>
 <li><strong>Cause</strong>: LED manufacturing variance (±10% color accuracy)</li>
 <li><strong>Solution</strong>: This is normal, colors may vary slightly between units</li>
 </ul>
-<h3 id="flickering-leds"><a class="header" href="#flickering-leds">Flickering LEDs</a></h3>
+<h3 id="flickering-leds-1"><a class="header" href="#flickering-leds-1">Flickering LEDs</a></h3>
 <ul>
 <li><strong>Issue</strong>: LEDs flicker or strobe</li>
 <li><strong>Cause</strong>: Update rate too high or USB bandwidth saturation</li>
@@ -7795,7 +9350,7 @@ impl RGB {
 <li><a href="reference/../troubleshooting/common-issues.html">Troubleshooting → Common Issues</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cli-commands-reference"><a class="header" href="#cli-commands-reference">CLI Commands Reference</a></h1>
-<h2 id="overview-4"><a class="header" href="#overview-4">Overview</a></h2>
+<h2 id="overview-8"><a class="header" href="#overview-8">Overview</a></h2>
 <p>MIDIMon provides a daemon service, control utility, and several diagnostic tools, all accessible via the command line. This reference covers all available commands, their options, and usage examples.</p>
 <p><strong>v1.0.0+</strong> introduces daemon architecture with background service and hot-reload capabilities.</p>
 <h2 id="daemon-service-midimon"><a class="header" href="#daemon-service-midimon">Daemon Service: midimon</a></h2>
@@ -8614,7 +10169,7 @@ cargo run --release 2
 # 5. Test LEDs
 cargo run --release 2 --led rainbow
 </code></pre>
-<h3 id="troubleshooting-10"><a class="header" href="#troubleshooting-10">Troubleshooting</a></h3>
+<h3 id="troubleshooting-14"><a class="header" href="#troubleshooting-14">Troubleshooting</a></h3>
 <pre><code class="language-bash"># 1. Check MIDI events are received
 cargo run --bin midi_diagnostic 2
 
@@ -9837,7 +11392,7 @@ sim.set_debug(true);
 
 sim.note_on(60, 100);
 // Output: [SIM] Sending: [90, 3C, 64]</code></pre>
-<h2 id="best-practices-1"><a class="header" href="#best-practices-1">Best Practices</a></h2>
+<h2 id="best-practices-4"><a class="header" href="#best-practices-4">Best Practices</a></h2>
 <ol>
 <li><strong>Clear events between tests</strong>: Always clear the event queue between tests to avoid interference</li>
 <li><strong>Use gestures for complex interactions</strong>: Prefer high-level gestures over manual event sequences</li>
@@ -9862,7 +11417,7 @@ jobs:
       - name: Run tests
         run: cargo test --all-features
 </code></pre>
-<h2 id="troubleshooting-11"><a class="header" href="#troubleshooting-11">Troubleshooting</a></h2>
+<h2 id="troubleshooting-15"><a class="header" href="#troubleshooting-15">Troubleshooting</a></h2>
 <h3 id="tests-timeout"><a class="header" href="#tests-timeout">Tests Timeout</a></h3>
 <p>If timing-based tests timeout, increase tolerance:</p>
 <pre><code class="language-rust">assert!(duration &gt;= Duration::from_millis(2500));
@@ -10104,7 +11659,7 @@ fn test_feature_name() {
 <hr />
 <p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="development/../development/contributing.html">Contributing Guide</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="common-issues-and-solutions"><a class="header" href="#common-issues-and-solutions">Common Issues and Solutions</a></h1>
-<h2 id="overview-5"><a class="header" href="#overview-5">Overview</a></h2>
+<h2 id="overview-9"><a class="header" href="#overview-9">Overview</a></h2>
 <p>This guide covers the most frequently encountered issues when using MIDIMon, along with step-by-step solutions. For detailed diagnostic procedures, see <a href="troubleshooting/diagnostics.html">Diagnostics Guide</a>.</p>
 <h2 id="midi-device-not-found"><a class="header" href="#midi-device-not-found">MIDI Device Not Found</a></h2>
 <h3 id="symptoms"><a class="header" href="#symptoms">Symptoms</a></h3>
@@ -10764,7 +12319,7 @@ cargo run --bin test_midi
 <hr />
 <p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="troubleshooting/../development/contributing.html">Contributing Guide</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="diagnostic-tools-and-procedures"><a class="header" href="#diagnostic-tools-and-procedures">Diagnostic Tools and Procedures</a></h1>
-<h2 id="overview-6"><a class="header" href="#overview-6">Overview</a></h2>
+<h2 id="overview-10"><a class="header" href="#overview-10">Overview</a></h2>
 <p>MIDIMon includes a comprehensive suite of diagnostic tools for debugging connectivity, event processing, LED control, and configuration issues. This guide covers each tool in detail and provides systematic troubleshooting procedures.</p>
 <h2 id="quick-diagnostic-checklist"><a class="header" href="#quick-diagnostic-checklist">Quick Diagnostic Checklist</a></h2>
 <p>Before diving deep, run through this quick checklist:</p>
@@ -11566,7 +13121,7 @@ RUST_LOG=trace cargo run --release 2
 # 12. Test on different computer
 # (isolates hardware vs software issues)
 </code></pre>
-<h2 id="performance-profiling"><a class="header" href="#performance-profiling">Performance Profiling</a></h2>
+<h2 id="performance-profiling-1"><a class="header" href="#performance-profiling-1">Performance Profiling</a></h2>
 <h3 id="response-time-analysis"><a class="header" href="#response-time-analysis">Response Time Analysis</a></h3>
 <pre><code class="language-bash">DEBUG=1 cargo run --release 2 2&gt;&amp;1 | grep -E 'NoteOn|executed'
 </code></pre>

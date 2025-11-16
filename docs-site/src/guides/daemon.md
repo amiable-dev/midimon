@@ -263,6 +263,39 @@ Default: `/tmp/midimon.sock`
 - `stop` - Graceful shutdown
 - `ping` - Latency check
 
+### Security Limits
+
+The IPC protocol enforces security limits to prevent abuse:
+
+**Request Size Limit**: 1MB (1,048,576 bytes)
+
+Requests exceeding this limit will be rejected with error code `1004` (InvalidRequest):
+
+```json
+{
+  "status": "error",
+  "error": {
+    "code": 1004,
+    "message": "Request too large: 1500000 bytes exceeds maximum of 1048576 bytes (1MB)",
+    "details": {
+      "request_size": 1500000,
+      "max_size": 1048576,
+      "security": "Request rejected to prevent memory exhaustion"
+    }
+  }
+}
+```
+
+**Why this limit exists**: Prevents memory exhaustion denial-of-service attacks where an attacker sends arbitrarily large requests to consume daemon memory.
+
+**Is 1MB enough?**: Yes. Typical IPC requests are:
+- `status`: ~200 bytes
+- `reload`: ~100 bytes
+- `validate`: ~150 bytes
+- `ping`: ~50 bytes
+
+Even large configuration payloads are well under 100KB. The 1MB limit provides 10x safety margin.
+
 ## Performance Metrics
 
 The daemon tracks and reports performance metrics:

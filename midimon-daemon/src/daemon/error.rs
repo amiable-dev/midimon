@@ -66,6 +66,7 @@ pub enum IpcErrorCode {
     InvalidJson = 1001,
     MissingField = 1002,
     UnknownCommand = 1003,
+    InvalidRequest = 1004,
 
     // Config errors (2xxx)
     ConfigNotFound = 2001,
@@ -91,6 +92,7 @@ impl IpcErrorCode {
             Self::InvalidJson => "Invalid JSON in request",
             Self::MissingField => "Required field missing in request",
             Self::UnknownCommand => "Unknown command",
+            Self::InvalidRequest => "Invalid request (exceeds size limits or malformed)",
             Self::ConfigNotFound => "Configuration file not found",
             Self::ConfigValidationFailed => "Configuration validation failed",
             Self::ConfigParseFailed => "Failed to parse configuration",

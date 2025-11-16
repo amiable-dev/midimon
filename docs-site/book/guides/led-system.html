@@ -182,6 +182,338 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="led-system"><a class="header" href="#led-system">LED System</a></h1>
+<p>MIDIMon provides RGB LED feedback for controllers that support it, creating visual indicators for pad presses, modes, and system state.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>The LED system provides:</p>
+<ul>
+<li><strong>Real-time feedback</strong>: LEDs respond instantly to pad presses</li>
+<li><strong>Mode visualization</strong>: Different colors for different modes</li>
+<li><strong>Multiple schemes</strong>: Reactive, rainbow, breathing, and more</li>
+<li><strong>Velocity sensitivity</strong>: LED brightness/color reflects press intensity</li>
+<li><strong>HID support</strong>: Direct RGB control for Maschine Mikro MK3 and similar devices</li>
+<li><strong>MIDI fallback</strong>: Basic on/off for standard MIDI controllers</li>
+</ul>
+<h2 id="supported-devices"><a class="header" href="#supported-devices">Supported Devices</a></h2>
+<h3 id="full-rgb-support-hid"><a class="header" href="#full-rgb-support-hid">Full RGB Support (HID)</a></h3>
+<ul>
+<li><strong>Native Instruments Maschine Mikro MK3</strong>: 16 RGB pads</li>
+<li><strong>Maschine MK3</strong>: 16 RGB pads</li>
+<li><strong>Other HID RGB devices</strong>: Configurable via device profiles</li>
+</ul>
+<h3 id="midi-led-support"><a class="header" href="#midi-led-support">MIDI LED Support</a></h3>
+<ul>
+<li><strong>Launchpad series</strong>: Note-based LED control</li>
+<li><strong>APC series</strong>: CC-based LED control</li>
+<li><strong>Generic MIDI</strong>: Via Note On/Off messages</li>
+</ul>
+<h2 id="lighting-schemes"><a class="header" href="#lighting-schemes">Lighting Schemes</a></h2>
+<h3 id="reactive-default"><a class="header" href="#reactive-default">Reactive (Default)</a></h3>
+<p>LEDs respond to pad velocity and fade after release:</p>
+<ul>
+<li><strong>Soft</strong> (0-40): Green</li>
+<li><strong>Medium</strong> (41-80): Yellow</li>
+<li><strong>Hard</strong> (81-127): Red</li>
+<li><strong>Fade time</strong>: 1 second</li>
+</ul>
+<pre><code class="language-bash"># Enable reactive mode
+midimon --led reactive 2
+</code></pre>
+<h3 id="rainbow"><a class="header" href="#rainbow">Rainbow</a></h3>
+<p>Rotating rainbow pattern across all pads:</p>
+<pre><code class="language-bash">midimon --led rainbow 2
+</code></pre>
+<h3 id="breathing"><a class="header" href="#breathing">Breathing</a></h3>
+<p>Pulsing effect synced across all pads:</p>
+<pre><code class="language-bash">midimon --led breathing 2
+</code></pre>
+<h3 id="wave"><a class="header" href="#wave">Wave</a></h3>
+<p>Cascading wave pattern:</p>
+<pre><code class="language-bash">midimon --led wave 2
+</code></pre>
+<h3 id="sparkle"><a class="header" href="#sparkle">Sparkle</a></h3>
+<p>Random twinkling effect:</p>
+<pre><code class="language-bash">midimon --led sparkle 2
+</code></pre>
+<h3 id="vu-meter"><a class="header" href="#vu-meter">VU Meter</a></h3>
+<p>Bottom-to-top audio level visualization:</p>
+<pre><code class="language-bash">midimon --led vumeter 2
+</code></pre>
+<h3 id="static"><a class="header" href="#static">Static</a></h3>
+<p>Solid color based on current mode:</p>
+<pre><code class="language-bash">midimon --led static 2
+</code></pre>
+<h3 id="off"><a class="header" href="#off">Off</a></h3>
+<p>Disable LED feedback:</p>
+<pre><code class="language-bash">midimon --led off 2
+</code></pre>
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
+<h3 id="global-led-settings"><a class="header" href="#global-led-settings">Global LED Settings</a></h3>
+<p>In <code>config.toml</code>:</p>
+<pre><code class="language-toml">[led_settings]
+scheme = "reactive"
+brightness = 100  # 0-100
+fade_time_ms = 1000
+enable_mode_colors = true
+</code></pre>
+<h3 id="mode-specific-colors"><a class="header" href="#mode-specific-colors">Mode-Specific Colors</a></h3>
+<p>Each mode can have its own LED color theme:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Default"
+color = "blue"  # LEDs tint blue when in this mode
+
+[[modes]]
+name = "Development"
+color = "green"
+
+[[modes]]
+name = "Media"
+color = "purple"
+</code></pre>
+<p>Available colors:</p>
+<ul>
+<li><code>blue</code>, <code>green</code>, <code>purple</code>, <code>red</code>, <code>yellow</code>, <code>orange</code>, <code>pink</code>, <code>cyan</code>, <code>white</code></li>
+</ul>
+<h3 id="per-mapping-led-feedback"><a class="header" href="#per-mapping-led-feedback">Per-Mapping LED Feedback</a></h3>
+<p>Individual mappings can override LED behavior:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+[modes.mappings.trigger]
+type = "Note"
+note = 36
+
+[modes.mappings.action]
+type = "Keystroke"
+keys = "Space"
+
+[modes.mappings.led]
+color = "red"
+brightness = 80
+duration_ms = 500  # Override fade time
+</code></pre>
+<h2 id="hid-led-control-maschine-mikro-mk3"><a class="header" href="#hid-led-control-maschine-mikro-mk3">HID LED Control (Maschine Mikro MK3)</a></h2>
+<h3 id="direct-rgb-access"><a class="header" href="#direct-rgb-access">Direct RGB Access</a></h3>
+<p>MIDIMon uses HID for precise RGB control:</p>
+<ul>
+<li><strong>Latency</strong>: &lt;1ms response time</li>
+<li><strong>Color depth</strong>: 24-bit RGB (16.7M colors)</li>
+<li><strong>Refresh rate</strong>: 60Hz</li>
+<li><strong>Shared access</strong>: Works alongside Native Instruments software</li>
+</ul>
+<h3 id="led-mapping"><a class="header" href="#led-mapping">LED Mapping</a></h3>
+<p>Physical pad layout to LED indices:</p>
+<pre><code>Pad Page A-H (16 pads):
+┌────┬────┬────┬────┐
+│ 36 │ 37 │ 38 │ 39 │  LED indices 0-3
+├────┼────┼────┼────┤
+│ 40 │ 41 │ 42 │ 43 │  LED indices 4-7
+├────┼────┼────┼────┤
+│ 44 │ 45 │ 46 │ 47 │  LED indices 8-11
+├────┼────┼────┼────┤
+│ 48 │ 49 │ 50 │ 51 │  LED indices 12-15
+└────┴────┴────┴────┘
+</code></pre>
+<h3 id="custom-hid-patterns"><a class="header" href="#custom-hid-patterns">Custom HID Patterns</a></h3>
+<p>Advanced users can create custom LED patterns:</p>
+<pre><code class="language-rust">// Example: Custom chase pattern
+pub fn led_chase_pattern(leds: &amp;mut MikroMK3LEDs, frame: u32) {
+    let pos = (frame / 10) % 16;
+    for i in 0..16 {
+        if i == pos {
+            leds.set_pad_rgb(i, 255, 0, 0); // Red
+        } else if i == (pos + 1) % 16 {
+            leds.set_pad_rgb(i, 128, 0, 0); // Dim red
+        } else {
+            leds.set_pad_rgb(i, 0, 0, 0); // Off
+        }
+    }
+    leds.update();
+}</code></pre>
+<h2 id="midi-led-control"><a class="header" href="#midi-led-control">MIDI LED Control</a></h2>
+<h3 id="standard-midi-devices"><a class="header" href="#standard-midi-devices">Standard MIDI Devices</a></h3>
+<p>For devices without HID RGB support, MIDIMon uses MIDI:</p>
+<pre><code class="language-toml">[led_settings]
+use_midi_leds = true
+midi_channel = 1
+note_on_velocity = 127  # LED on brightness
+note_off_velocity = 0   # LED off
+</code></pre>
+<h3 id="launchpad-style-control"><a class="header" href="#launchpad-style-control">Launchpad-Style Control</a></h3>
+<p>Map LED colors to velocity values:</p>
+<pre><code class="language-toml">[led_settings.midi_colors]
+red = 5
+green = 21
+yellow = 13
+amber = 9
+off = 12
+</code></pre>
+<h3 id="custom-midi-led-mapping"><a class="header" href="#custom-midi-led-mapping">Custom MIDI LED Mapping</a></h3>
+<p>Define custom LED control messages:</p>
+<pre><code class="language-toml">[[led_settings.custom_mappings]]
+pad = 36  # MIDI note
+led_on = { type = "NoteOn", channel = 1, note = 36, velocity = 127 }
+led_off = { type = "NoteOff", channel = 1, note = 36, velocity = 0 }
+color_map = { red = 5, green = 21, yellow = 13 }
+</code></pre>
+<h2 id="gui-configuration"><a class="header" href="#gui-configuration">GUI Configuration</a></h2>
+<h3 id="via-settings-panel"><a class="header" href="#via-settings-panel">Via Settings Panel</a></h3>
+<ol>
+<li>Open MIDIMon GUI</li>
+<li>Navigate to <strong>Settings</strong> tab</li>
+<li>Scroll to <strong>LED Configuration</strong></li>
+<li>Select scheme from dropdown</li>
+<li>Adjust brightness slider</li>
+<li>Configure fade time</li>
+<li>Enable/disable mode colors</li>
+<li>Click <strong>Save</strong></li>
+</ol>
+<h2 id="performance-optimization"><a class="header" href="#performance-optimization">Performance Optimization</a></h2>
+<h3 id="reduce-led-updates"><a class="header" href="#reduce-led-updates">Reduce LED Updates</a></h3>
+<p>For battery-powered devices or performance optimization:</p>
+<pre><code class="language-toml">[led_settings]
+update_rate_hz = 30  # Default: 60Hz
+skip_intermediate_frames = true  # Only update on significant changes
+</code></pre>
+<h3 id="disable-leds-selectively"><a class="header" href="#disable-leds-selectively">Disable LEDs Selectively</a></h3>
+<p>Turn off LEDs for specific modes:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Silent Mode"
+color = "off"  # No LED feedback in this mode
+</code></pre>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="leds-not-responding"><a class="header" href="#leds-not-responding">LEDs Not Responding</a></h3>
+<ol>
+<li>
+<p><strong>Check device support</strong>:</p>
+<pre><code class="language-bash"># List HID devices
+ls /dev/hidraw*  # Linux
+system_profiler SPUSBDataType  # macOS
+</code></pre>
+</li>
+<li>
+<p><strong>Verify permissions</strong> (macOS):</p>
+<ul>
+<li>System Settings → Privacy &amp; Security → Input Monitoring</li>
+<li>Grant access to MIDIMon</li>
+</ul>
+</li>
+<li>
+<p><strong>Test with diagnostic tool</strong>:</p>
+<pre><code class="language-bash">cargo run --bin led_diagnostic
+</code></pre>
+</li>
+<li>
+<p><strong>Check HID access</strong>:</p>
+<pre><code class="language-bash"># macOS: Ensure shared device access
+DEBUG=1 midimon 2 --led reactive
+</code></pre>
+</li>
+</ol>
+<h3 id="wrong-colors"><a class="header" href="#wrong-colors">Wrong Colors</a></h3>
+<ol>
+<li>Verify color mapping in config</li>
+<li>Check if device uses non-standard RGB order (some use GRB or BGR)</li>
+<li>Try different lighting scheme</li>
+<li>Calibrate brightness</li>
+</ol>
+<h3 id="flickering-leds"><a class="header" href="#flickering-leds">Flickering LEDs</a></h3>
+<ol>
+<li>Reduce update rate: <code>update_rate_hz = 30</code></li>
+<li>Enable frame skipping: <code>skip_intermediate_frames = true</code></li>
+<li>Check USB power supply</li>
+<li>Disable other LED-controlling software</li>
+</ol>
+<h3 id="leds-stuck-onoff"><a class="header" href="#leds-stuck-onoff">LEDs Stuck On/Off</a></h3>
+<ol>
+<li>Restart MIDIMon</li>
+<li>Power cycle MIDI device</li>
+<li>Check for conflicting LED control (e.g., Native Instruments software)</li>
+<li>Reset LEDs: <code>midimon --led off 2</code> then restart</li>
+</ol>
+<h2 id="advanced-customization"><a class="header" href="#advanced-customization">Advanced Customization</a></h2>
+<h3 id="create-custom-schemes"><a class="header" href="#create-custom-schemes">Create Custom Schemes</a></h3>
+<p>Write custom lighting patterns in <code>~/.config/midimon/led_schemes/</code>:</p>
+<pre><code class="language-rust">// custom_pulse.rs
+pub struct CustomPulse {
+    frame: u32,
+}
+
+impl LedScheme for CustomPulse {
+    fn update(&amp;mut self, leds: &amp;mut dyn PadFeedback) {
+        self.frame += 1;
+        let brightness = ((self.frame as f32 / 30.0).sin() * 127.0 + 128.0) as u8;
+
+        for i in 0..16 {
+            leds.set_pad_color(i, brightness, brightness, 255);
+        }
+    }
+}</code></pre>
+<p>Load custom scheme:</p>
+<pre><code class="language-toml">[led_settings]
+scheme = "custom:custom_pulse"
+</code></pre>
+<h3 id="mode-transition-effects"><a class="header" href="#mode-transition-effects">Mode Transition Effects</a></h3>
+<p>Animate LED transitions when switching modes:</p>
+<pre><code class="language-toml">[led_settings.transitions]
+enabled = true
+duration_ms = 300
+effect = "fade"  # fade, sweep, flash
+</code></pre>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<ol>
+<li>
+<p><strong>Start with reactive</strong>: Most intuitive for new users</p>
+</li>
+<li>
+<p><strong>Match mode colors to usage</strong>: Visual cues help remember mode purpose</p>
+</li>
+<li>
+<p><strong>Test visibility</strong>: Ensure LEDs visible in your lighting conditions</p>
+</li>
+<li>
+<p><strong>Don't overdo it</strong>: Complex animations can be distracting</p>
+</li>
+<li>
+<p><strong>Battery consideration</strong>: Disable LEDs for battery-powered setups</p>
+</li>
+<li>
+<p><strong>Accessibility</strong>: Use high-contrast colors for visibility</p>
+</li>
+</ol>
+<h2 id="integration-examples"><a class="header" href="#integration-examples">Integration Examples</a></h2>
+<h3 id="led-feedback-for-successfailure"><a class="header" href="#led-feedback-for-successfailure">LED Feedback for Success/Failure</a></h3>
+<p>Flash green on success, red on failure:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+[modes.mappings.trigger]
+type = "Note"
+note = 36
+
+[modes.mappings.action]
+type = "Shell"
+command = "./run_tests.sh"
+
+[modes.mappings.led]
+success_color = "green"
+failure_color = "red"
+flash_duration_ms = 500
+</code></pre>
+<h3 id="vu-meter-for-audio-input"><a class="header" href="#vu-meter-for-audio-input">VU Meter for Audio Input</a></h3>
+<p>Display audio levels:</p>
+<pre><code class="language-bash">midimon --led vumeter --audio-input "System Audio" 2
+</code></pre>
+<h3 id="custom-mode-indicators"><a class="header" href="#custom-mode-indicators">Custom Mode Indicators</a></h3>
+<p>Reserve specific pads for mode indication:</p>
+<pre><code class="language-toml">[led_settings.mode_indicators]
+pad_36 = "mode_0"  # Blue when in mode 0
+pad_37 = "mode_1"  # Green when in mode 1
+pad_38 = "mode_2"  # Purple when in mode 2
+always_on = true
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li>Explore <a href="./gui.html">GUI configuration</a> for visual LED setup</li>
+<li>Use <a href="../getting-started/midi-learn.html">MIDI Learn</a> with LED feedback</li>
+<li>Set up <a href="./per-app-profiles.html">per-app profiles</a> with different LED schemes</li>
+<li>Try the <a href="./event-console.html">event console</a> to debug LED behavior</li>
+</ul>
 
                     </main>
 

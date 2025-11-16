@@ -182,6 +182,361 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="event-console"><a class="header" href="#event-console">Event Console</a></h1>
+<p>The Live Event Console provides real-time visualization of MIDI events, helping you debug mappings, discover note numbers, and understand your controller's behavior.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>The Event Console displays:</p>
+<ul>
+<li><strong>MIDI events</strong>: Note on/off, CC, aftertouch, pitch bend</li>
+<li><strong>Timing information</strong>: Timestamps and event duration</li>
+<li><strong>Velocity data</strong>: Press intensity values</li>
+<li><strong>Processed events</strong>: Long press, double-tap, chord detection</li>
+<li><strong>Action execution</strong>: What actions were triggered</li>
+<li><strong>Error messages</strong>: Failed actions or validation issues</li>
+</ul>
+<h2 id="access-the-console"><a class="header" href="#access-the-console">Access the Console</a></h2>
+<h3 id="gui-method"><a class="header" href="#gui-method">GUI Method</a></h3>
+<ol>
+<li>Open MIDIMon GUI</li>
+<li>Navigate to <strong>Settings</strong> tab</li>
+<li>Click <strong>📊 Show Event Console</strong></li>
+<li>View live events in real-time</li>
+</ol>
+<h3 id="cli-method"><a class="header" href="#cli-method">CLI Method</a></h3>
+<pre><code class="language-bash"># Monitor all events
+midimonctl events
+
+# Filter by event type
+midimonctl events --type note
+
+# Follow mode (live tail)
+midimonctl events --follow
+</code></pre>
+<h2 id="event-types"><a class="header" href="#event-types">Event Types</a></h2>
+<h3 id="midi-events"><a class="header" href="#midi-events">MIDI Events</a></h3>
+<h4 id="note-onoff"><a class="header" href="#note-onoff">Note On/Off</a></h4>
+<pre><code>[12:34:56.789] NOTE_ON  | Note: 36 | Vel: 87 | Ch: 1
+[12:34:57.120] NOTE_OFF | Note: 36 | Vel: 0  | Ch: 1
+Duration: 331ms
+</code></pre>
+<h4 id="control-change"><a class="header" href="#control-change">Control Change</a></h4>
+<pre><code>[12:34:58.456] CC | CC: 7 | Value: 64 | Ch: 1
+</code></pre>
+<h4 id="aftertouch"><a class="header" href="#aftertouch">Aftertouch</a></h4>
+<pre><code>[12:35:00.123] AFTERTOUCH | Pressure: 95 | Ch: 1
+</code></pre>
+<h4 id="pitch-bend"><a class="header" href="#pitch-bend">Pitch Bend</a></h4>
+<pre><code>[12:35:01.789] PITCH_BEND | Value: 8192 | Ch: 1
+</code></pre>
+<h3 id="processed-events"><a class="header" href="#processed-events">Processed Events</a></h3>
+<h4 id="long-press-detected"><a class="header" href="#long-press-detected">Long Press Detected</a></h4>
+<pre><code>[12:35:05.000] LONG_PRESS | Note: 36 | Duration: 2150ms
+Trigger matched: "Emergency Stop" (mapping #5)
+</code></pre>
+<h4 id="double-tap-detected"><a class="header" href="#double-tap-detected">Double Tap Detected</a></h4>
+<pre><code>[12:35:10.100] DOUBLE_TAP | Note: 37 | Interval: 245ms
+Trigger matched: "Quick Launch" (mapping #8)
+</code></pre>
+<h4 id="chord-detected"><a class="header" href="#chord-detected">Chord Detected</a></h4>
+<pre><code>[12:35:15.500] CHORD | Notes: [36, 40, 43] | Window: 87ms
+Trigger matched: "Save All" (mapping #12)
+</code></pre>
+<h4 id="encoder-turn"><a class="header" href="#encoder-turn">Encoder Turn</a></h4>
+<pre><code>[12:35:20.750] ENCODER_TURN | CC: 1 | Direction: Clockwise | Steps: 3
+Trigger matched: "Volume Up" (mapping #2)
+</code></pre>
+<h3 id="action-execution"><a class="header" href="#action-execution">Action Execution</a></h3>
+<pre><code>[12:35:25.100] ACTION_START | Type: Keystroke
+  Modifiers: [Cmd, Shift]
+  Keys: "S"
+[12:35:25.105] ACTION_COMPLETE | Duration: 5ms | Status: Success
+</code></pre>
+<h3 id="errors"><a class="header" href="#errors">Errors</a></h3>
+<pre><code>[12:35:30.000] ERROR | Failed to execute shell command
+  Command: "/usr/bin/notexist"
+  Error: "No such file or directory"
+  Mapping: #15 ("Custom Script")
+</code></pre>
+<h2 id="filtering-events"><a class="header" href="#filtering-events">Filtering Events</a></h2>
+<h3 id="by-event-type"><a class="header" href="#by-event-type">By Event Type</a></h3>
+<pre><code class="language-bash"># Only note events
+midimonctl events --type note
+
+# Only CC events
+midimonctl events --type cc
+
+# Only processed events
+midimonctl events --type processed
+
+# Only actions
+midimonctl events --type action
+
+# Only errors
+midimonctl events --type error
+</code></pre>
+<h3 id="by-midi-channel"><a class="header" href="#by-midi-channel">By MIDI Channel</a></h3>
+<pre><code class="language-bash">midimonctl events --channel 1
+</code></pre>
+<h3 id="by-note-range"><a class="header" href="#by-note-range">By Note Range</a></h3>
+<pre><code class="language-bash"># Only pads (notes 36-51)
+midimonctl events --note-min 36 --note-max 51
+</code></pre>
+<h3 id="by-time-range"><a class="header" href="#by-time-range">By Time Range</a></h3>
+<pre><code class="language-bash"># Last 5 minutes
+midimonctl events --since 5m
+
+# Last hour
+midimonctl events --since 1h
+
+# Specific time
+midimonctl events --since "2025-01-15 12:00"
+</code></pre>
+<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
+<h3 id="discover-note-numbers"><a class="header" href="#discover-note-numbers">Discover Note Numbers</a></h3>
+<p><strong>Problem</strong>: Don't know which MIDI note a pad sends</p>
+<p><strong>Solution</strong>:</p>
+<ol>
+<li>Open Event Console</li>
+<li>Press the pad</li>
+<li>See <code>NOTE_ON | Note: 36</code> in console</li>
+<li>Use note 36 in your mapping</li>
+</ol>
+<pre><code>[12:40:00.000] NOTE_ON | Note: 36 | Vel: 92 | Ch: 1
+                       ↑
+                   This is the note number
+</code></pre>
+<h3 id="debug-long-press-not-triggering"><a class="header" href="#debug-long-press-not-triggering">Debug Long Press Not Triggering</a></h3>
+<p><strong>Problem</strong>: Long press mapping not activating</p>
+<p><strong>Solution</strong>:</p>
+<ol>
+<li>Open Event Console</li>
+<li>Hold the pad</li>
+<li>Check if <code>LONG_PRESS</code> event appears</li>
+<li>Compare duration with your config:</li>
+</ol>
+<pre><code>[12:45:00.000] NOTE_ON    | Note: 36 | Vel: 87
+[12:45:01.500] NOTE_OFF   | Note: 36 | Duration: 1500ms
+                                      ↑
+                        Too short! Config requires 2000ms
+</code></pre>
+<p>Fix by reducing <code>duration_ms</code> in config or holding longer.</p>
+<h3 id="verify-velocity-ranges"><a class="header" href="#verify-velocity-ranges">Verify Velocity Ranges</a></h3>
+<p><strong>Problem</strong>: Soft/medium/hard velocity ranges not working as expected</p>
+<p><strong>Solution</strong>:</p>
+<ol>
+<li>Press pad softly: Check velocity value</li>
+<li>Press pad medium: Check velocity value</li>
+<li>Press pad hard: Check velocity value</li>
+<li>Adjust ranges in config</li>
+</ol>
+<pre><code>Soft press:   [12:50:00.000] NOTE_ON | Vel: 25  ← Within 0-40
+Medium press: [12:50:05.000] NOTE_ON | Vel: 65  ← Within 41-80
+Hard press:   [12:50:10.000] NOTE_ON | Vel: 110 ← Within 81-127
+</code></pre>
+<h3 id="debug-chord-detection"><a class="header" href="#debug-chord-detection">Debug Chord Detection</a></h3>
+<p><strong>Problem</strong>: Chord mapping not triggering</p>
+<p><strong>Solution</strong>:</p>
+<ol>
+<li>Press chord notes</li>
+<li>Check timing window in console:</li>
+</ol>
+<pre><code>[13:00:00.000] NOTE_ON | Note: 36
+[13:00:00.150] NOTE_ON | Note: 40  ← 150ms gap, too slow!
+[13:00:00.300] NOTE_ON | Note: 43
+
+Config requires all notes within 100ms
+</code></pre>
+<p>Fix: Press notes faster OR increase <code>chord_timeout_ms</code> in config.</p>
+<h3 id="test-action-execution"><a class="header" href="#test-action-execution">Test Action Execution</a></h3>
+<p><strong>Problem</strong>: Action not executing as expected</p>
+<p><strong>Solution</strong>:</p>
+<ol>
+<li>Trigger the mapping</li>
+<li>Watch action execution in console</li>
+<li>Check for errors</li>
+</ol>
+<pre><code>[13:05:00.000] ACTION_START | Type: Shell
+  Command: "open -a 'Visual Studio Code'"
+[13:05:00.250] ACTION_COMPLETE | Duration: 250ms | Status: Success
+
+vs.
+
+[13:05:05.000] ACTION_START | Type: Shell
+  Command: "open -a 'NotExist'"
+[13:05:05.100] ERROR | Application not found
+                ↑
+            This tells you what went wrong
+</code></pre>
+<h3 id="monitor-system-performance"><a class="header" href="#monitor-system-performance">Monitor System Performance</a></h3>
+<p>Watch event processing latency:</p>
+<pre><code>[13:10:00.000] NOTE_ON      | Note: 36
+[13:10:00.001] PROCESSED    | Duration: 1ms  ← Very fast!
+[13:10:00.002] ACTION_START
+[13:10:00.007] ACTION_COMPLETE | Duration: 5ms
+
+Total: 7ms from button press to action complete
+</code></pre>
+<p>If latency &gt;50ms, investigate performance issues.</p>
+<h2 id="gui-console-features"><a class="header" href="#gui-console-features">GUI Console Features</a></h2>
+<h3 id="visual-event-timeline"><a class="header" href="#visual-event-timeline">Visual Event Timeline</a></h3>
+<p>The GUI console includes a visual timeline showing:</p>
+<ul>
+<li>Event type (color-coded)</li>
+<li>Timestamp</li>
+<li>Event details</li>
+<li>Expandable for full info</li>
+</ul>
+<h3 id="event-highlighting"><a class="header" href="#event-highlighting">Event Highlighting</a></h3>
+<ul>
+<li><strong>Green</strong>: Successful events</li>
+<li><strong>Yellow</strong>: Warnings (e.g., near timeout)</li>
+<li><strong>Red</strong>: Errors</li>
+<li><strong>Blue</strong>: Info (e.g., mode changes)</li>
+</ul>
+<h3 id="auto-scroll"><a class="header" href="#auto-scroll">Auto-Scroll</a></h3>
+<p>Console auto-scrolls to latest events. Click <strong>Pause</strong> to freeze for inspection.</p>
+<h3 id="event-export"><a class="header" href="#event-export">Event Export</a></h3>
+<ol>
+<li>Select events</li>
+<li>Click <strong>Export</strong></li>
+<li>Save as JSON/CSV for analysis</li>
+</ol>
+<h3 id="event-statistics"><a class="header" href="#event-statistics">Event Statistics</a></h3>
+<p>View live statistics:</p>
+<ul>
+<li>Events per second</li>
+<li>Average velocity</li>
+<li>Most-pressed pad</li>
+<li>Error rate</li>
+</ul>
+<h2 id="advanced-features"><a class="header" href="#advanced-features">Advanced Features</a></h2>
+<h3 id="pattern-recording"><a class="header" href="#pattern-recording">Pattern Recording</a></h3>
+<p>Record event sequences for analysis:</p>
+<pre><code class="language-bash">midimonctl record-events --duration 30s --output session.json
+</code></pre>
+<p>Playback recorded events:</p>
+<pre><code class="language-bash">midimonctl playback-events session.json
+</code></pre>
+<h3 id="event-filtering-rules"><a class="header" href="#event-filtering-rules">Event Filtering Rules</a></h3>
+<p>Create custom filters in config:</p>
+<pre><code class="language-toml">[event_console]
+[[event_console.filters]]
+name = "Only My Pads"
+include_notes = [36, 37, 38, 39]
+include_types = ["note", "processed"]
+
+[[event_console.filters]]
+name = "Errors Only"
+include_types = ["error"]
+min_severity = "warning"
+</code></pre>
+<p>Activate filter in GUI or CLI:</p>
+<pre><code class="language-bash">midimonctl events --filter "Only My Pads"
+</code></pre>
+<h3 id="event-triggers"><a class="header" href="#event-triggers">Event Triggers</a></h3>
+<p>Trigger actions based on events:</p>
+<pre><code class="language-toml">[event_console.triggers]
+[[event_console.triggers.rules]]
+condition = "error_rate &gt; 5 per_minute"
+action = { type = "Notification", message = "High error rate detected!" }
+
+[[event_console.triggers.rules]]
+condition = "note_36 pressed &gt; 10 times in 5s"
+action = { type = "Notification", message = "Stop mashing that button!" }
+</code></pre>
+<h3 id="performance-profiling"><a class="header" href="#performance-profiling">Performance Profiling</a></h3>
+<p>Enable detailed performance metrics:</p>
+<pre><code class="language-toml">[event_console]
+enable_profiling = true
+track_latency = true
+track_memory = true
+</code></pre>
+<p>View profiling data:</p>
+<pre><code class="language-bash">midimonctl events --profiling
+</code></pre>
+<p>Output includes:</p>
+<ul>
+<li>Event processing time</li>
+<li>Memory allocation</li>
+<li>CPU usage per event</li>
+<li>Bottleneck identification</li>
+</ul>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="console-not-updating"><a class="header" href="#console-not-updating">Console Not Updating</a></h3>
+<ol>
+<li>Check daemon is running: <code>midimonctl status</code></li>
+<li>Verify events are being generated (press pads)</li>
+<li>Restart daemon: <code>midimonctl restart</code></li>
+<li>Check event monitoring is active: <code>midimonctl is-event-monitoring-active</code></li>
+</ol>
+<h3 id="too-many-events"><a class="header" href="#too-many-events">Too Many Events</a></h3>
+<p>Filter aggressively:</p>
+<pre><code class="language-bash"># Only errors and warnings
+midimonctl events --type error --type warning
+
+# Debounce rapid events
+midimonctl events --debounce 100ms
+</code></pre>
+<p>Or reduce update rate in config:</p>
+<pre><code class="language-toml">[event_console]
+max_events_per_second = 30
+</code></pre>
+<h3 id="missing-events"><a class="header" href="#missing-events">Missing Events</a></h3>
+<ol>
+<li>
+<p>Check buffer size isn't full:</p>
+<pre><code class="language-toml">[event_console]
+buffer_size = 10000  # Increase if needed
+</code></pre>
+</li>
+<li>
+<p>Verify event types are enabled:</p>
+<pre><code class="language-toml">[event_console]
+capture_midi = true
+capture_processed = true
+capture_actions = true
+</code></pre>
+</li>
+<li>
+<p>Check log level:</p>
+<pre><code class="language-bash">DEBUG=1 midimonctl events
+</code></pre>
+</li>
+</ol>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<ol>
+<li><strong>Start with full view</strong>: See all event types initially</li>
+<li><strong>Filter progressively</strong>: Add filters as you narrow down issues</li>
+<li><strong>Use follow mode</strong>: <code>-f</code> flag for live monitoring</li>
+<li><strong>Export for analysis</strong>: Save interesting sessions</li>
+<li><strong>Watch timing</strong>: Event timing reveals latency issues</li>
+<li><strong>Compare configs</strong>: Record events, change config, compare results</li>
+<li><strong>Document discoveries</strong>: Note note numbers and velocities for future reference</li>
+</ol>
+<h2 id="integration-with-other-tools"><a class="header" href="#integration-with-other-tools">Integration with Other Tools</a></h2>
+<h3 id="export-to-csv-for-analysis"><a class="header" href="#export-to-csv-for-analysis">Export to CSV for Analysis</a></h3>
+<pre><code class="language-bash">midimonctl events --output events.csv --duration 60s
+</code></pre>
+<p>Analyze in Excel/Google Sheets:</p>
+<ul>
+<li>Event frequency</li>
+<li>Velocity distribution</li>
+<li>Timing patterns</li>
+</ul>
+<h3 id="send-to-external-monitoring"><a class="header" href="#send-to-external-monitoring">Send to External Monitoring</a></h3>
+<pre><code class="language-bash"># Stream events to external tool
+midimonctl events --format json | jq '.' | your-monitoring-tool
+</code></pre>
+<h3 id="log-to-file"><a class="header" href="#log-to-file">Log to File</a></h3>
+<pre><code class="language-bash"># Continuous logging
+midimonctl events -f &gt;&gt; midimon-events.log
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li>Use console to build mappings with <a href="../getting-started/midi-learn.html">MIDI Learn</a></li>
+<li>Debug complex triggers in <a href="./gui.html#mapping-configuration">mapping configuration</a></li>
+<li>Monitor <a href="./led-system.html">LED feedback</a> in real-time</li>
+<li>Analyze <a href="./per-app-profiles.html">per-app profile</a> switching behavior</li>
+</ul>
 
                     </main>
 

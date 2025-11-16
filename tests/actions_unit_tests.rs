@@ -6,7 +6,7 @@
 //! Comprehensive unit tests covering action parsing, construction,
 //! and execution logic to achieve 80%+ code coverage.
 
-use midimon::actions::Action;
+use midimon::actions::{Action, KeyCode, ModifierKey, MouseButton};
 use midimon::config::ActionConfig;
 use midimon_daemon::ActionExecutor;
 
@@ -485,7 +485,7 @@ fn test_action_from_mouse_click_config_left() {
 
     match action {
         Action::MouseClick { button, x, y } => {
-            assert!(matches!(button, enigo::Button::Left));
+            assert!(matches!(button, MouseButton::Left));
             assert_eq!(x, None);
             assert_eq!(y, None);
         }
@@ -505,7 +505,7 @@ fn test_action_from_mouse_click_config_right() {
 
     match action {
         Action::MouseClick { button, .. } => {
-            assert!(matches!(button, enigo::Button::Right));
+            assert!(matches!(button, MouseButton::Right));
         }
         _ => panic!("Expected MouseClick action"),
     }
@@ -523,7 +523,7 @@ fn test_action_from_mouse_click_config_middle() {
 
     match action {
         Action::MouseClick { button, .. } => {
-            assert!(matches!(button, enigo::Button::Middle));
+            assert!(matches!(button, MouseButton::Middle));
         }
         _ => panic!("Expected MouseClick action"),
     }
@@ -561,7 +561,7 @@ fn test_action_from_mouse_click_config_invalid_button() {
     match action {
         Action::MouseClick { button, .. } => {
             // Invalid button should default to Left
-            assert!(matches!(button, enigo::Button::Left));
+            assert!(matches!(button, MouseButton::Left));
         }
         _ => panic!("Expected MouseClick action"),
     }
@@ -593,8 +593,8 @@ fn test_action_from_mouse_click_config_negative_coords() {
 #[test]
 fn test_action_clone_keystroke() {
     let action = Action::Keystroke {
-        keys: vec![enigo::Key::Unicode('a')],
-        modifiers: vec![enigo::Key::Meta],
+        keys: vec![KeyCode::Unicode('a')],
+        modifiers: vec![ModifierKey::Command],
     };
 
     let cloned = action.clone();
@@ -651,7 +651,7 @@ fn test_action_clone_sequence() {
 #[test]
 fn test_action_debug_format_keystroke() {
     let action = Action::Keystroke {
-        keys: vec![enigo::Key::Unicode('a')],
+        keys: vec![KeyCode::Unicode('a')],
         modifiers: vec![],
     };
 
@@ -700,7 +700,7 @@ fn test_action_debug_format_delay() {
 #[test]
 fn test_action_debug_format_mouse_click() {
     let action = Action::MouseClick {
-        button: enigo::Button::Left,
+        button: MouseButton::Left,
         x: Some(100),
         y: Some(200),
     };
@@ -882,10 +882,10 @@ fn test_parse_modifiers_mixed_valid_invalid() {
 #[test]
 fn test_parse_mouse_button_case_insensitive() {
     let buttons = vec![
-        ("LEFT", enigo::Button::Left),
-        ("Right", enigo::Button::Right),
-        ("MIDDLE", enigo::Button::Middle),
-        ("MiDdLe", enigo::Button::Middle),
+        ("LEFT", MouseButton::Left),
+        ("Right", MouseButton::Right),
+        ("MIDDLE", MouseButton::Middle),
+        ("MiDdLe", MouseButton::Middle),
     ];
 
     for (button_str, expected) in buttons {
@@ -902,9 +902,9 @@ fn test_parse_mouse_button_case_insensitive() {
                 assert!(
                     matches!(
                         (button, expected),
-                        (enigo::Button::Left, enigo::Button::Left)
-                            | (enigo::Button::Right, enigo::Button::Right)
-                            | (enigo::Button::Middle, enigo::Button::Middle)
+                        (MouseButton::Left, MouseButton::Left)
+                            | (MouseButton::Right, MouseButton::Right)
+                            | (MouseButton::Middle, MouseButton::Middle)
                     ),
                     "Failed for button: {}",
                     button_str
@@ -928,7 +928,7 @@ fn test_parse_mouse_button_empty_string() {
     match action {
         Action::MouseClick { button, .. } => {
             // Should default to Left
-            assert!(matches!(button, enigo::Button::Left));
+            assert!(matches!(button, MouseButton::Left));
         }
         _ => panic!("Expected MouseClick action"),
     }
@@ -1033,7 +1033,8 @@ fn test_all_function_keys() {
 }
 
 #[test]
-fn test_invalid_function_key() {
+fn test_extended_function_keys() {
+    // Our domain model now supports F1-F20 (extended range)
     let config = ActionConfig::Keystroke {
         keys: "f13".to_string(),
         modifiers: vec![],
@@ -1043,7 +1044,26 @@ fn test_invalid_function_key() {
 
     match action {
         Action::Keystroke { keys, .. } => {
-            // f13 should not parse as a valid key
+            // f13 is now valid in our domain model
+            assert_eq!(keys.len(), 1);
+            assert!(matches!(keys[0], KeyCode::F13));
+        }
+        _ => panic!("Expected Keystroke action"),
+    }
+}
+
+#[test]
+fn test_invalid_function_key() {
+    let config = ActionConfig::Keystroke {
+        keys: "f99".to_string(), // Truly invalid
+        modifiers: vec![],
+    };
+
+    let action: Action = config.into();
+
+    match action {
+        Action::Keystroke { keys, .. } => {
+            // f99 should not parse as a valid key
             assert_eq!(keys.len(), 0);
         }
         _ => panic!("Expected Keystroke action"),
@@ -1170,7 +1190,7 @@ fn test_execute_keystroke_action_safe() {
     let mut executor = ActionExecutor::new();
     // Escape key is safe - it just dismisses dialogs/menus if any are open
     let action = Action::Keystroke {
-        keys: vec![enigo::Key::Escape],
+        keys: vec![KeyCode::Escape],
         modifiers: vec![],
     };
 
@@ -1185,7 +1205,7 @@ fn test_execute_keystroke_with_modifiers_safe() {
     let mut executor = ActionExecutor::new();
     // Tab with no modifiers is relatively safe
     let action = Action::Keystroke {
-        keys: vec![enigo::Key::Tab],
+        keys: vec![KeyCode::Tab],
         modifiers: vec![],
     };
 
@@ -1200,7 +1220,7 @@ fn test_execute_mouse_click_without_position() {
     let mut executor = ActionExecutor::new();
     // Click at current position (no move) - minimal side effect
     let action = Action::MouseClick {
-        button: enigo::Button::Left,
+        button: MouseButton::Left,
         x: None,
         y: None,
     };
@@ -1218,7 +1238,7 @@ fn test_execute_mouse_click_with_position() {
     let mut executor = ActionExecutor::new();
     // Click at screen corner (least likely to hit something)
     let action = Action::MouseClick {
-        button: enigo::Button::Left,
+        button: MouseButton::Left,
         x: Some(0),
         y: Some(0),
     };

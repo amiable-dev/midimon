@@ -3,17 +3,120 @@
 
 //! Action types and parsing for MIDIMon core engine.
 //!
-//! This module defines the Action enum and parsing logic for converting ActionConfig
-//! to Action. Action execution has been moved to midimon-daemon (Phase 2 refactor).
+//! This module defines domain-specific types (KeyCode, ModifierKey, MouseButton) that are
+//! platform-independent and UI-library-agnostic. This enables midimon-core to be truly
+//! UI-independent and suitable for WASM/embedded targets.
+//!
+//! The daemon layer (midimon-daemon/action_executor.rs) is responsible for converting
+//! these domain types to platform-specific types (e.g., enigo::Key) for execution.
 
 use crate::config::ActionConfig;
-use enigo::{Button, Key};
+use serde::{Deserialize, Serialize};
 
+/// Platform-independent keyboard key codes
+///
+/// This enum represents keyboard keys without depending on any UI library.
+/// The daemon layer converts these to platform-specific key codes for execution.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum KeyCode {
+    // Alphanumeric keys (handled via Unicode for flexibility)
+    Unicode(char),
+
+    // Special keys
+    Space,
+    Return,
+    Tab,
+    Escape,
+    Backspace,
+    Delete,
+
+    // Arrow keys
+    UpArrow,
+    DownArrow,
+    LeftArrow,
+    RightArrow,
+
+    // Navigation keys
+    Home,
+    End,
+    PageUp,
+    PageDown,
+
+    // Function keys
+    F1,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
+    F13,
+    F14,
+    F15,
+    F16,
+    F17,
+    F18,
+    F19,
+    F20,
+
+    // Media keys
+    VolumeUp,
+    VolumeDown,
+    Mute,
+    PlayPause,
+    Stop,
+    NextTrack,
+    PreviousTrack,
+
+    // Editing keys
+    Insert,
+    PrintScreen,
+    ScrollLock,
+    Pause,
+    CapsLock,
+    NumLock,
+}
+
+/// Platform-independent modifier keys
+///
+/// Represents keyboard modifiers (Command, Control, Option/Alt, Shift).
+/// These are kept separate from KeyCode for clarity and type safety.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ModifierKey {
+    /// Command key (macOS) / Windows key (Windows) / Meta key (Linux)
+    Command,
+    /// Control key (all platforms)
+    Control,
+    /// Option key (macOS) / Alt key (Windows/Linux)
+    Option,
+    /// Shift key (all platforms)
+    Shift,
+}
+
+/// Platform-independent mouse button identifiers
+///
+/// Represents mouse buttons without depending on any UI library.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum MouseButton {
+    Left,
+    Right,
+    Middle,
+}
+
+/// Action to be executed when a trigger is matched
+///
+/// This enum uses domain-specific types (KeyCode, ModifierKey, MouseButton) instead
+/// of UI library types, making the core engine truly platform-independent.
 #[derive(Debug, Clone)]
 pub enum Action {
     Keystroke {
-        keys: Vec<Key>,
-        modifiers: Vec<Key>,
+        keys: Vec<KeyCode>,
+        modifiers: Vec<ModifierKey>,
     },
     Text(String),
     Launch(String),
@@ -21,7 +124,7 @@ pub enum Action {
     Sequence(Vec<Action>),
     Delay(u64),
     MouseClick {
-        button: Button,
+        button: MouseButton,
         x: Option<i32>,
         y: Option<i32>,
     },
@@ -94,63 +197,120 @@ impl From<ActionConfig> for Action {
     }
 }
 
-fn parse_keys(keys: &str) -> Vec<Key> {
+/// Parse a key string into a list of KeyCodes
+///
+/// Keys are separated by '+' (e.g., "Cmd+Shift+A")
+/// This function is used to convert config strings into domain KeyCode types.
+fn parse_keys(keys: &str) -> Vec<KeyCode> {
     keys.split('+')
         .filter_map(|k| parse_key(k.trim()))
         .collect()
 }
 
-fn parse_key(key: &str) -> Option<Key> {
+/// Parse a single key string into a KeyCode
+///
+/// Supports common key names (case-insensitive):
+/// - Special keys: "space", "return", "enter", "tab", "escape", etc.
+/// - Arrow keys: "up", "down", "left", "right"
+/// - Function keys: "f1" through "f20"
+/// - Media keys: "volumeup", "volumedown", "mute", "playpause", etc.
+/// - Single characters: Any single character (a-z, 0-9, punctuation)
+fn parse_key(key: &str) -> Option<KeyCode> {
     match key.to_lowercase().as_str() {
-        "space" => Some(Key::Space),
-        "return" | "enter" => Some(Key::Return),
-        "tab" => Some(Key::Tab),
-        "escape" | "esc" => Some(Key::Escape),
-        "backspace" => Some(Key::Backspace),
-        "delete" | "del" => Some(Key::Delete),
-        "up" => Some(Key::UpArrow),
-        "down" => Some(Key::DownArrow),
-        "left" => Some(Key::LeftArrow),
-        "right" => Some(Key::RightArrow),
-        "home" => Some(Key::Home),
-        "end" => Some(Key::End),
-        "pageup" => Some(Key::PageUp),
-        "pagedown" => Some(Key::PageDown),
-        "f1" => Some(Key::F1),
-        "f2" => Some(Key::F2),
-        "f3" => Some(Key::F3),
-        "f4" => Some(Key::F4),
-        "f5" => Some(Key::F5),
-        "f6" => Some(Key::F6),
-        "f7" => Some(Key::F7),
-        "f8" => Some(Key::F8),
-        "f9" => Some(Key::F9),
-        "f10" => Some(Key::F10),
-        "f11" => Some(Key::F11),
-        "f12" => Some(Key::F12),
+        // Special keys
+        "space" => Some(KeyCode::Space),
+        "return" | "enter" => Some(KeyCode::Return),
+        "tab" => Some(KeyCode::Tab),
+        "escape" | "esc" => Some(KeyCode::Escape),
+        "backspace" => Some(KeyCode::Backspace),
+        "delete" | "del" => Some(KeyCode::Delete),
+
+        // Arrow keys
+        "up" | "uparrow" => Some(KeyCode::UpArrow),
+        "down" | "downarrow" => Some(KeyCode::DownArrow),
+        "left" | "leftarrow" => Some(KeyCode::LeftArrow),
+        "right" | "rightarrow" => Some(KeyCode::RightArrow),
+
+        // Navigation keys
+        "home" => Some(KeyCode::Home),
+        "end" => Some(KeyCode::End),
+        "pageup" | "pgup" => Some(KeyCode::PageUp),
+        "pagedown" | "pgdn" => Some(KeyCode::PageDown),
+
+        // Function keys
+        "f1" => Some(KeyCode::F1),
+        "f2" => Some(KeyCode::F2),
+        "f3" => Some(KeyCode::F3),
+        "f4" => Some(KeyCode::F4),
+        "f5" => Some(KeyCode::F5),
+        "f6" => Some(KeyCode::F6),
+        "f7" => Some(KeyCode::F7),
+        "f8" => Some(KeyCode::F8),
+        "f9" => Some(KeyCode::F9),
+        "f10" => Some(KeyCode::F10),
+        "f11" => Some(KeyCode::F11),
+        "f12" => Some(KeyCode::F12),
+        "f13" => Some(KeyCode::F13),
+        "f14" => Some(KeyCode::F14),
+        "f15" => Some(KeyCode::F15),
+        "f16" => Some(KeyCode::F16),
+        "f17" => Some(KeyCode::F17),
+        "f18" => Some(KeyCode::F18),
+        "f19" => Some(KeyCode::F19),
+        "f20" => Some(KeyCode::F20),
+
+        // Media keys
+        "volumeup" | "volup" => Some(KeyCode::VolumeUp),
+        "volumedown" | "voldown" => Some(KeyCode::VolumeDown),
+        "mute" => Some(KeyCode::Mute),
+        "playpause" | "play" => Some(KeyCode::PlayPause),
+        "stop" => Some(KeyCode::Stop),
+        "nexttrack" | "next" => Some(KeyCode::NextTrack),
+        "previoustrack" | "previous" | "prev" => Some(KeyCode::PreviousTrack),
+
+        // Editing keys
+        "insert" | "ins" => Some(KeyCode::Insert),
+        "printscreen" | "prtsc" => Some(KeyCode::PrintScreen),
+        "scrolllock" | "scrlk" => Some(KeyCode::ScrollLock),
+        "pause" => Some(KeyCode::Pause),
+        "capslock" | "caps" => Some(KeyCode::CapsLock),
+        "numlock" | "numlk" => Some(KeyCode::NumLock),
+
+        // Single character keys (alphanumeric and punctuation)
         s if s.len() == 1 => {
             let c = s.chars().next().unwrap();
-            Some(Key::Unicode(c))
+            Some(KeyCode::Unicode(c))
         }
+
         _ => None,
     }
 }
 
-fn parse_modifier(modifier: &str) -> Option<Key> {
+/// Parse a modifier key string into a ModifierKey
+///
+/// Supports common modifier aliases (case-insensitive):
+/// - Command: "cmd", "command", "meta"
+/// - Control: "ctrl", "control"
+/// - Option: "alt", "option"
+/// - Shift: "shift"
+fn parse_modifier(modifier: &str) -> Option<ModifierKey> {
     match modifier.to_lowercase().as_str() {
-        "cmd" | "command" | "meta" => Some(Key::Meta),
-        "ctrl" | "control" => Some(Key::Control),
-        "alt" | "option" => Some(Key::Option),
-        "shift" => Some(Key::Shift),
+        "cmd" | "command" | "meta" => Some(ModifierKey::Command),
+        "ctrl" | "control" => Some(ModifierKey::Control),
+        "alt" | "option" => Some(ModifierKey::Option),
+        "shift" => Some(ModifierKey::Shift),
         _ => None,
     }
 }
 
-fn parse_mouse_button(button: &str) -> Button {
+/// Parse a mouse button string into a MouseButton
+///
+/// Supports: "left" (default), "right", "middle"
+fn parse_mouse_button(button: &str) -> MouseButton {
     match button.to_lowercase().as_str() {
-        "right" => Button::Right,
-        "middle" => Button::Middle,
-        _ => Button::Left,
+        "right" => MouseButton::Right,
+        "middle" => MouseButton::Middle,
+        _ => MouseButton::Left,
     }
 }
 

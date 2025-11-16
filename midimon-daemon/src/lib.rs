@@ -176,5 +176,5 @@ pub use daemon::{
     create_success_response, get_socket_path, get_state_dir, run_daemon, run_daemon_with_config,
 };
 
-// Re-export ActionExecutor for daemon use
-pub use action_executor::ActionExecutor;
+// Re-export ActionExecutor and helpers for daemon use
+pub use action_executor::{ActionExecutor, parse_command_line};

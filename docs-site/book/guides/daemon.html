@@ -382,6 +382,32 @@ midimonctl reload
 <li><code>stop</code> - Graceful shutdown</li>
 <li><code>ping</code> - Latency check</li>
 </ul>
+<h3 id="security-limits"><a class="header" href="#security-limits">Security Limits</a></h3>
+<p>The IPC protocol enforces security limits to prevent abuse:</p>
+<p><strong>Request Size Limit</strong>: 1MB (1,048,576 bytes)</p>
+<p>Requests exceeding this limit will be rejected with error code <code>1004</code> (InvalidRequest):</p>
+<pre><code class="language-json">{
+  "status": "error",
+  "error": {
+    "code": 1004,
+    "message": "Request too large: 1500000 bytes exceeds maximum of 1048576 bytes (1MB)",
+    "details": {
+      "request_size": 1500000,
+      "max_size": 1048576,
+      "security": "Request rejected to prevent memory exhaustion"
+    }
+  }
+}
+</code></pre>
+<p><strong>Why this limit exists</strong>: Prevents memory exhaustion denial-of-service attacks where an attacker sends arbitrarily large requests to consume daemon memory.</p>
+<p><strong>Is 1MB enough?</strong>: Yes. Typical IPC requests are:</p>
+<ul>
+<li><code>status</code>: ~200 bytes</li>
+<li><code>reload</code>: ~100 bytes</li>
+<li><code>validate</code>: ~150 bytes</li>
+<li><code>ping</code>: ~50 bytes</li>
+</ul>
+<p>Even large configuration payloads are well under 100KB. The 1MB limit provides 10x safety margin.</p>
 <h2 id="performance-metrics"><a class="header" href="#performance-metrics">Performance Metrics</a></h2>
 <p>The daemon tracks and reports performance metrics:</p>
 <h3 id="config-reload-latency"><a class="header" href="#config-reload-latency">Config Reload Latency</a></h3>

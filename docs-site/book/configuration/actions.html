@@ -376,23 +376,42 @@ actions = [
 <li>Ensure scripts have execute permissions: <code>chmod +x script.sh</code></li>
 </ul>
 <h3 id="shell"><a class="header" href="#shell">Shell</a></h3>
-<p>Execute arbitrary shell commands. Provides full system access.</p>
+<p>Execute system commands directly without shell interpreter (secure execution).</p>
 <pre><code class="language-toml">[modes.mappings.action]
 type = "Shell"
 command = "git status"
 </code></pre>
-<p><strong>Common Examples</strong>:</p>
-<pre><code class="language-toml"># Git operations
-command = "git add . &amp;&amp; git commit -m 'quick save'"
-
-# System info
-command = "system_profiler SPUSBDataType | grep -i mikro"
+<p><strong>Security Design</strong>: Commands are executed directly via <code>Command::new(program).args(args)</code> without using shell interpreters (<code>sh</code>, <code>bash</code>, <code>cmd</code>). This prevents command injection attacks while supporting common use cases.</p>
+<p><strong>Supported Examples</strong>:</p>
+<pre><code class="language-toml"># Simple commands
+command = "git status"
+command = "ls -la /tmp"
 
 # File operations
 command = "open ~/Downloads"
 
+# System info
+command = "system_profiler SPUSBDataType"
+
 # AppleScript (macOS)
+command = "osascript -e 'set volume 50'"
 command = "osascript -e 'display notification \"MIDI triggered!\"'"
+</code></pre>
+<p><strong>Shell Features NOT Supported</strong> (for security):</p>
+<ul>
+<li>Command chaining: <code>&amp;&amp;</code>, <code>||</code>, <code>;</code></li>
+<li>Piping: <code>|</code></li>
+<li>Redirection: <code>&gt;</code>, <code>&lt;</code>, <code>&gt;&gt;</code></li>
+<li>Command substitution: <code>$(...)</code>, <code>`...`</code></li>
+<li>Variable expansion: <code>$HOME</code>, <code>${VAR}</code></li>
+</ul>
+<p><strong>Alternative</strong>: Use <code>Sequence</code> action to chain multiple commands:</p>
+<pre><code class="language-toml"># Instead of: "git add . &amp;&amp; git commit -m 'save'"
+type = "Sequence"
+actions = [
+    { type = "Shell", command = "git add ." },
+    { type = "Shell", command = "git commit -m 'save'" }
+]
 </code></pre>
 <h2 id="timing--flow-control"><a class="header" href="#timing--flow-control">Timing &amp; Flow Control</a></h2>
 <h3 id="delay"><a class="header" href="#delay">Delay</a></h3>

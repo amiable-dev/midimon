@@ -10,11 +10,118 @@
 //! - Core: Pure data structures and logic (UI-independent)
 //! - Daemon: System interaction (keyboard, mouse, shell, etc.)
 
-use midimon_core::{Action, VolumeOperation};
+use midimon_core::{Action, KeyCode, ModifierKey, MouseButton, VolumeOperation};
 use enigo::{Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
+
+/// Convert domain KeyCode to enigo Key for execution
+///
+/// This conversion layer enables midimon-core to remain UI-independent while
+/// the daemon can execute actions using platform-specific libraries.
+fn to_enigo_key(key_code: KeyCode) -> Key {
+    match key_code {
+        // Unicode characters (alphanumeric and punctuation)
+        KeyCode::Unicode(c) => Key::Unicode(c),
+
+        // Special keys
+        KeyCode::Space => Key::Unicode(' '),
+        KeyCode::Return => Key::Return,
+        KeyCode::Tab => Key::Tab,
+        KeyCode::Escape => Key::Escape,
+        KeyCode::Backspace => Key::Backspace,
+        KeyCode::Delete => Key::Delete,
+
+        // Arrow keys
+        KeyCode::UpArrow => Key::UpArrow,
+        KeyCode::DownArrow => Key::DownArrow,
+        KeyCode::LeftArrow => Key::LeftArrow,
+        KeyCode::RightArrow => Key::RightArrow,
+
+        // Navigation keys
+        KeyCode::Home => Key::Home,
+        KeyCode::End => Key::End,
+        KeyCode::PageUp => Key::PageUp,
+        KeyCode::PageDown => Key::PageDown,
+
+        // Function keys
+        KeyCode::F1 => Key::F1,
+        KeyCode::F2 => Key::F2,
+        KeyCode::F3 => Key::F3,
+        KeyCode::F4 => Key::F4,
+        KeyCode::F5 => Key::F5,
+        KeyCode::F6 => Key::F6,
+        KeyCode::F7 => Key::F7,
+        KeyCode::F8 => Key::F8,
+        KeyCode::F9 => Key::F9,
+        KeyCode::F10 => Key::F10,
+        KeyCode::F11 => Key::F11,
+        KeyCode::F12 => Key::F12,
+        KeyCode::F13 => Key::F13,
+        KeyCode::F14 => Key::F14,
+        KeyCode::F15 => Key::F15,
+        KeyCode::F16 => Key::F16,
+        KeyCode::F17 => Key::F17,
+        KeyCode::F18 => Key::F18,
+        KeyCode::F19 => Key::F19,
+        KeyCode::F20 => Key::F20,
+
+        // Media keys
+        KeyCode::VolumeUp => Key::VolumeUp,
+        KeyCode::VolumeDown => Key::VolumeDown,
+        KeyCode::Mute => Key::VolumeMute,
+        KeyCode::PlayPause => Key::MediaPlayPause,
+        #[cfg(any(target_os = "windows", all(unix, not(target_os = "macos"))))]
+        KeyCode::Stop => Key::MediaStop,
+        #[cfg(target_os = "macos")]
+        KeyCode::Stop => Key::Unicode('\0'), // MediaStop not available on macOS
+        KeyCode::NextTrack => Key::MediaNextTrack,
+        KeyCode::PreviousTrack => Key::MediaPrevTrack,
+
+        // Editing keys
+        #[cfg(any(target_os = "windows", all(unix, not(target_os = "macos"))))]
+        KeyCode::Insert => Key::Insert,
+        #[cfg(target_os = "macos")]
+        KeyCode::Insert => Key::Unicode('\0'), // Insert not available on macOS
+        #[cfg(any(target_os = "windows", all(unix, not(target_os = "macos"))))]
+        KeyCode::PrintScreen => Key::PrintScr,
+        #[cfg(target_os = "macos")]
+        KeyCode::PrintScreen => Key::Unicode('\0'), // PrintScreen not available on macOS
+        #[cfg(all(unix, not(target_os = "macos")))]
+        KeyCode::ScrollLock => Key::ScrollLock,
+        #[cfg(not(all(unix, not(target_os = "macos"))))]
+        KeyCode::ScrollLock => Key::Unicode('\0'), // ScrollLock not available on macOS/Windows
+        #[cfg(any(target_os = "windows", all(unix, not(target_os = "macos"))))]
+        KeyCode::Pause => Key::Pause,
+        #[cfg(target_os = "macos")]
+        KeyCode::Pause => Key::Unicode('\0'), // Pause not available on macOS
+        KeyCode::CapsLock => Key::CapsLock,
+        #[cfg(any(target_os = "windows", all(unix, not(target_os = "macos"))))]
+        KeyCode::NumLock => Key::Numlock,
+        #[cfg(target_os = "macos")]
+        KeyCode::NumLock => Key::Unicode('\0'), // NumLock not available on macOS
+    }
+}
+
+/// Convert domain ModifierKey to enigo Key for execution
+fn to_enigo_modifier(modifier: ModifierKey) -> Key {
+    match modifier {
+        ModifierKey::Command => Key::Meta,
+        ModifierKey::Control => Key::Control,
+        ModifierKey::Option => Key::Alt,
+        ModifierKey::Shift => Key::Shift,
+    }
+}
+
+/// Convert domain MouseButton to enigo Button for execution
+fn to_enigo_button(mouse_button: MouseButton) -> Button {
+    match mouse_button {
+        MouseButton::Left => Button::Left,
+        MouseButton::Right => Button::Right,
+        MouseButton::Middle => Button::Middle,
+    }
+}
 
 /// ActionExecutor handles the execution of actions on the host system.
 ///
@@ -86,7 +193,8 @@ impl ActionExecutor {
                 if let (Some(x), Some(y)) = (x, y) {
                     self.enigo.move_mouse(x, y, Coordinate::Abs).unwrap();
                 }
-                self.enigo.button(button, Direction::Click).unwrap();
+                let enigo_button = to_enigo_button(button);
+                self.enigo.button(enigo_button, Direction::Click).unwrap();
             }
             Action::Repeat { action, count, delay_ms } => {
                 for i in 0..count {
@@ -119,19 +227,23 @@ impl ActionExecutor {
     }
 
     /// Execute a keystroke with modifiers
-    fn execute_keystroke(&mut self, keys: Vec<Key>, modifiers: Vec<Key>) {
-        // Press modifiers
-        for modifier in &modifiers {
+    ///
+    /// Converts domain types (KeyCode, ModifierKey) to platform-specific enigo types.
+    fn execute_keystroke(&mut self, keys: Vec<KeyCode>, modifiers: Vec<ModifierKey>) {
+        // Convert and press modifiers
+        let enigo_modifiers: Vec<Key> = modifiers.iter().map(|&m| to_enigo_modifier(m)).collect();
+        for modifier in &enigo_modifiers {
             self.enigo.key(*modifier, Direction::Press).unwrap();
         }
 
-        // Press keys
-        for key in &keys {
-            self.enigo.key(*key, Direction::Click).unwrap();
+        // Convert and press keys
+        for key_code in &keys {
+            let enigo_key = to_enigo_key(*key_code);
+            self.enigo.key(enigo_key, Direction::Click).unwrap();
         }
 
         // Release modifiers
-        for modifier in modifiers.iter().rev() {
+        for modifier in enigo_modifiers.iter().rev() {
             self.enigo.key(*modifier, Direction::Release).unwrap();
         }
     }
@@ -154,22 +266,145 @@ impl ActionExecutor {
         }
     }
 
-    /// Execute a shell command
+    /// Execute a shell command WITHOUT using a shell interpreter
     ///
-    /// # Security Note
-    /// Shell commands should be validated before reaching this point
-    /// (see `validate_shell_command()` in config loader).
+    /// # Security Design
+    /// This function intentionally avoids shell interpreters (sh, bash, cmd, powershell)
+    /// to prevent command injection attacks. Commands are parsed directly into
+    /// program + arguments and executed with `Command::new(program).args(args)`.
+    ///
+    /// This provides defense-in-depth security alongside the validation in
+    /// `validate_shell_command()` (config loader), which blocks shell metacharacters.
+    ///
+    /// # Command Parsing
+    /// Commands are split on whitespace into program + arguments:
+    /// - "git status" → Command::new("git").args(&["status"])
+    /// - "ls -la /tmp" → Command::new("ls").args(&["-la", "/tmp"])
+    /// - "osascript -e 'display notification \"MIDI\"'" → Parsed with proper quote handling
+    ///
+    /// # Limitations
+    /// The following shell features are NOT supported (by design):
+    /// - Piping (|), redirection (>, <), command substitution ($(), ``)
+    /// - Environment variable expansion ($VAR, ${VAR})
+    /// - Globbing (*.txt, [a-z].sh)
+    /// - Command chaining (;, &&, ||)
+    ///
+    /// Users must use the Launch action for apps or break complex operations
+    /// into separate mappings.
+    ///
+    /// # Examples
+    /// Supported:
+    /// - "git status" → Direct execution
+    /// - "open ~/Downloads" → Direct execution
+    /// - "osascript -e 'set volume 50'" → Direct execution
+    ///
+    /// Blocked (by validation layer):
+    /// - "git add . && git commit" → Contains &&
+    /// - "ls | grep txt" → Contains |
+    /// - "cat file.txt > output.txt" → Contains >
     fn execute_shell(&self, cmd: &str) {
-        #[cfg(unix)]
-        {
-            Command::new("sh").arg("-c").arg(cmd).spawn().ok();
+        let cmd = cmd.trim();
+
+        // Handle empty command
+        if cmd.is_empty() {
+            eprintln!("Warning: Attempted to execute empty shell command");
+            return;
         }
 
-        #[cfg(windows)]
-        {
-            Command::new("cmd").args(&["/C", cmd]).spawn().ok();
+        // Parse command into program + arguments
+        // This is a simple whitespace-based parser that respects quoted strings
+        let parts = parse_command_line(cmd);
+
+        if parts.is_empty() {
+            eprintln!("Warning: Failed to parse shell command: {}", cmd);
+            return;
+        }
+
+        let program = &parts[0];
+        let args = &parts[1..];
+
+        // Execute command WITHOUT shell interpreter
+        // This is the critical security improvement: no sh -c, no cmd /C
+        match Command::new(program).args(args).spawn() {
+            Ok(_) => {
+                // Command spawned successfully (runs in background)
+            }
+            Err(e) => {
+                eprintln!("Failed to execute command '{}': {}", cmd, e);
+            }
         }
     }
+}
+
+/// Parse a command line into program + arguments, respecting quoted strings
+///
+/// This is a simple whitespace-based parser that handles:
+/// - Single quotes: 'text with spaces'
+/// - Double quotes: "text with spaces"
+/// - Escaped quotes: \"text\" within quotes
+/// - Unquoted arguments: split on whitespace
+///
+/// # Examples
+/// ```
+/// # use midimon_daemon::parse_command_line;
+/// assert_eq!(parse_command_line("git status"), vec!["git", "status"]);
+/// assert_eq!(parse_command_line("ls -la /tmp"), vec!["ls", "-la", "/tmp"]);
+/// assert_eq!(parse_command_line("echo 'hello world'"), vec!["echo", "hello world"]);
+/// assert_eq!(parse_command_line("osascript -e 'code'"), vec!["osascript", "-e", "code"]);
+/// ```
+///
+/// # Security Note
+/// This parser does NOT perform shell expansion (variables, globs, etc.).
+/// This is intentional for security - we want literal arguments only.
+pub fn parse_command_line(cmd: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut chars = cmd.chars().peekable();
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+
+    while let Some(ch) = chars.next() {
+        match ch {
+            '\'' if !in_double_quote => {
+                // Toggle single quote mode (unless inside double quotes)
+                in_single_quote = !in_single_quote;
+            }
+            '"' if !in_single_quote => {
+                // Toggle double quote mode (unless inside single quotes)
+                in_double_quote = !in_double_quote;
+            }
+            '\\' if in_double_quote => {
+                // Handle escape sequences in double quotes
+                if let Some(&next_ch) = chars.peek() {
+                    if next_ch == '"' || next_ch == '\\' {
+                        current.push(chars.next().unwrap());
+                    } else {
+                        current.push(ch);
+                    }
+                } else {
+                    current.push(ch);
+                }
+            }
+            ' ' | '\t' | '\n' | '\r' if !in_single_quote && !in_double_quote => {
+                // Whitespace outside quotes: end of argument
+                if !current.is_empty() {
+                    parts.push(current.clone());
+                    current.clear();
+                }
+            }
+            _ => {
+                // Regular character: add to current argument
+                current.push(ch);
+            }
+        }
+    }
+
+    // Add final argument if any
+    if !current.is_empty() {
+        parts.push(current);
+    }
+
+    parts
 }
 
 /// Evaluates a condition string and returns true/false
@@ -299,6 +534,141 @@ fn execute_volume_control(operation: &VolumeOperation, value: &Option<u8>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ========== Command Line Parser Tests ==========
+
+    #[test]
+    fn test_parse_simple_command() {
+        assert_eq!(parse_command_line("git status"), vec!["git", "status"]);
+    }
+
+    #[test]
+    fn test_parse_command_with_args() {
+        assert_eq!(
+            parse_command_line("ls -la /tmp"),
+            vec!["ls", "-la", "/tmp"]
+        );
+    }
+
+    #[test]
+    fn test_parse_single_quoted_string() {
+        assert_eq!(
+            parse_command_line("echo 'hello world'"),
+            vec!["echo", "hello world"]
+        );
+    }
+
+    #[test]
+    fn test_parse_double_quoted_string() {
+        assert_eq!(
+            parse_command_line("echo \"hello world\""),
+            vec!["echo", "hello world"]
+        );
+    }
+
+    #[test]
+    fn test_parse_osascript_command() {
+        assert_eq!(
+            parse_command_line("osascript -e 'set volume 50'"),
+            vec!["osascript", "-e", "set volume 50"]
+        );
+    }
+
+    #[test]
+    fn test_parse_escaped_quotes_in_double_quotes() {
+        assert_eq!(
+            parse_command_line("echo \"hello \\\"world\\\"\""),
+            vec!["echo", "hello \"world\""]
+        );
+    }
+
+    #[test]
+    fn test_parse_mixed_quotes() {
+        assert_eq!(
+            parse_command_line("cmd 'single quoted' \"double quoted\" unquoted"),
+            vec!["cmd", "single quoted", "double quoted", "unquoted"]
+        );
+    }
+
+    #[test]
+    fn test_parse_empty_command() {
+        assert_eq!(parse_command_line(""), Vec::<String>::new());
+    }
+
+    #[test]
+    fn test_parse_whitespace_only() {
+        assert_eq!(parse_command_line("   \t\n  "), Vec::<String>::new());
+    }
+
+    #[test]
+    fn test_parse_multiple_spaces() {
+        assert_eq!(
+            parse_command_line("git    status    --short"),
+            vec!["git", "status", "--short"]
+        );
+    }
+
+    #[test]
+    fn test_parse_trailing_spaces() {
+        assert_eq!(
+            parse_command_line("git status  "),
+            vec!["git", "status"]
+        );
+    }
+
+    #[test]
+    fn test_parse_leading_spaces() {
+        assert_eq!(
+            parse_command_line("  git status"),
+            vec!["git", "status"]
+        );
+    }
+
+    #[test]
+    fn test_parse_notification_command() {
+        assert_eq!(
+            parse_command_line("osascript -e 'display notification \"MIDI triggered!\"'"),
+            vec!["osascript", "-e", "display notification \"MIDI triggered!\""]
+        );
+    }
+
+    #[test]
+    fn test_parse_file_path_with_tilde() {
+        assert_eq!(
+            parse_command_line("open ~/Downloads"),
+            vec!["open", "~/Downloads"]
+        );
+    }
+
+    #[test]
+    fn test_parse_complex_apfs_command() {
+        assert_eq!(
+            parse_command_line("system_profiler SPUSBDataType"),
+            vec!["system_profiler", "SPUSBDataType"]
+        );
+    }
+
+    // ========== Security: No Shell Expansion ==========
+
+    #[test]
+    fn test_parse_does_not_expand_variables() {
+        // Variables should be passed as literals, not expanded
+        assert_eq!(
+            parse_command_line("echo $HOME"),
+            vec!["echo", "$HOME"]
+        );
+    }
+
+    #[test]
+    fn test_parse_does_not_expand_globs() {
+        // Globs should be passed as literals, not expanded
+        assert_eq!(
+            parse_command_line("ls *.txt"),
+            vec!["ls", "*.txt"]
+        );
+    }
+
+    // ========== Condition Evaluation Tests ==========
 
     #[test]
     fn test_evaluate_condition_always() {

@@ -135,14 +135,23 @@ impl StateManager {
         // 2. Write to temporary file
         tokio::fs::write(&temp_file, json.as_bytes()).await?;
 
-        // 3. Fsync to ensure data is on disk
+        // 3. Set secure permissions (owner-only read/write) on Unix
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = tokio::fs::metadata(&temp_file).await?.permissions();
+            perms.set_mode(0o600); // rw-------
+            tokio::fs::set_permissions(&temp_file, perms).await?;
+        }
+
+        // 4. Fsync to ensure data is on disk
         let file = tokio::fs::OpenOptions::new()
             .write(true)
             .open(&temp_file)
             .await?;
         file.sync_all().await?;
 
-        // 4. Atomic rename (POSIX guarantees atomicity)
+        // 5. Atomic rename (POSIX guarantees atomicity)
         tokio::fs::rename(&temp_file, &self.state_file).await?;
 
         debug!("Saved daemon state to {:?}", self.state_file);
@@ -173,6 +182,15 @@ impl StateManager {
         // Write to temp file
         std::fs::write(&temp_file, json.as_bytes())?;
 
+        // Set secure permissions (owner-only read/write) on Unix
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = std::fs::metadata(&temp_file)?.permissions();
+            perms.set_mode(0o600); // rw-------
+            std::fs::set_permissions(&temp_file, perms)?;
+        }
+
         // Atomic rename
         std::fs::rename(&temp_file, &self.state_file)?;
 
@@ -198,19 +216,208 @@ pub fn get_state_dir() -> Result<PathBuf> {
         ));
     };
 
-    // Ensure directory exists
-    std::fs::create_dir_all(&dir)?;
+    // Check if directory exists and validate ownership/permissions
+    if dir.exists() {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+
+            let metadata = std::fs::metadata(&dir)?;
+
+            // Validate directory ownership matches current user
+            let current_uid = unsafe { libc::getuid() };
+            let dir_uid = metadata.uid();
+
+            if dir_uid != current_uid {
+                return Err(DaemonError::StatePersistence(format!(
+                    "State directory {:?} is owned by UID {} but current user is UID {}. \
+                     This is a security risk. Please remove the directory or fix ownership.",
+                    dir, dir_uid, current_uid
+                )));
+            }
+
+            // Validate directory permissions are secure (at most rwx------)
+            let mode = metadata.mode();
+            let world_perms = mode & 0o007;
+            let group_perms = mode & 0o070;
+
+            if world_perms != 0 || group_perms != 0 {
+                warn!(
+                    "State directory {:?} has insecure permissions {:o}. Fixing to 0700...",
+                    dir,
+                    mode & 0o777
+                );
+
+                use std::os::unix::fs::PermissionsExt;
+                let mut perms = metadata.permissions();
+                perms.set_mode(0o700); // rwx------
+                std::fs::set_permissions(&dir, perms)?;
+            }
+        }
+    } else {
+        // Create directory with secure permissions
+        std::fs::create_dir_all(&dir)?;
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = std::fs::metadata(&dir)?.permissions();
+            perms.set_mode(0o700); // rwx------
+            std::fs::set_permissions(&dir, perms)?;
+        }
+    }
 
     Ok(dir)
 }
 
-/// Get platform-specific IPC socket path
+/// Get platform-specific IPC socket path with secure user isolation
+///
+/// # Security Implementation
+///
+/// This function prevents multiple security vulnerabilities:
+///
+/// 1. **Multi-user isolation**: Uses user-specific directories, not shared /tmp
+/// 2. **Symlink attacks**: Validates directory ownership before use
+/// 3. **Race conditions**: Creates directories atomically with secure permissions
+/// 4. **Privilege escalation**: Verifies directory ownership matches current user
+///
+/// # Path Selection Strategy
+///
+/// - **Linux**: Prefers XDG_RUNTIME_DIR (standard for user sockets), falls back to ~/.midimon/run
+/// - **macOS**: Uses ~/Library/Application Support/midimon/run (platform convention)
+/// - **Windows**: Uses named pipe (isolated per-user by OS)
+///
+/// # Directory Permissions
+///
+/// - Unix: 0700 (rwx------) - owner read/write/execute only
+/// - Windows: Per-user named pipe (inherent OS-level isolation)
+///
+/// # Security Considerations
+///
+/// - XDG_RUNTIME_DIR (Linux) is tmpfs, auto-cleaned on logout, mode 0700 by systemd
+/// - Fallback directories created with restricted permissions
+/// - Ownership validation prevents takeover attacks
+/// - Named pipes (Windows) are user-namespaced by OS
+///
+/// # Returns
+///
+/// User-specific socket/pipe path with parent directories created
+///
+/// # Errors
+///
+/// - Returns error if home directory cannot be determined
+/// - Returns error if directory creation fails
+/// - Returns error if permission setting fails
+/// - Returns error if directory is owned by different user
 pub fn get_socket_path() -> Result<PathBuf> {
     if cfg!(target_os = "windows") {
+        // Named pipes on Windows are inherently user-isolated
         Ok(PathBuf::from(r"\\.\pipe\midimon"))
     } else {
-        // Unix domain socket on macOS/Linux
-        Ok(PathBuf::from("/tmp/midimon.sock"))
+        // Unix domain sockets (Linux/macOS)
+        let socket_dir = get_runtime_dir()?;
+
+        // Create directory with secure permissions if it doesn't exist
+        if !socket_dir.exists() {
+            std::fs::create_dir_all(&socket_dir)?;
+
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let perms = std::fs::Permissions::from_mode(0o700);
+                std::fs::set_permissions(&socket_dir, perms)?;
+            }
+
+            debug!("Created secure runtime directory: {:?}", socket_dir);
+        } else {
+            // Directory exists - validate ownership and permissions for security
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::MetadataExt;
+                use std::os::unix::fs::PermissionsExt;
+
+                let metadata = std::fs::metadata(&socket_dir)?;
+
+                // Security check: Verify directory is owned by current user
+                // This prevents attacks where another user creates the directory first
+                let current_uid = unsafe { libc::getuid() };
+                let dir_uid = metadata.uid();
+
+                if dir_uid != current_uid {
+                    return Err(DaemonError::StatePersistence(format!(
+                        "Socket directory {:?} is owned by UID {} but current user is UID {}. \
+                         This is a security risk. Please remove the directory or fix ownership.",
+                        socket_dir, dir_uid, current_uid
+                    )));
+                }
+
+                // Validate and fix insecure permissions
+                let mode = metadata.mode();
+                let world_perms = mode & 0o007;
+                let group_perms = mode & 0o070;
+
+                if world_perms != 0 || group_perms != 0 {
+                    warn!(
+                        "Socket directory {:?} has insecure permissions {:o}. Fixing to 0700...",
+                        socket_dir,
+                        mode & 0o777
+                    );
+
+                    let mut perms = metadata.permissions();
+                    perms.set_mode(0o700);
+                    std::fs::set_permissions(&socket_dir, perms)?;
+                }
+            }
+        }
+
+        Ok(socket_dir.join("midimon.sock"))
+    }
+}
+
+/// Get platform-specific runtime directory for IPC sockets
+///
+/// Implements XDG Base Directory Specification for Linux and platform
+/// conventions for macOS.
+///
+/// # Linux Path Priority
+///
+/// 1. **XDG_RUNTIME_DIR/midimon** - Standard per-user tmpfs (mode 0700, systemd-managed)
+/// 2. **~/.midimon/run** - Fallback if XDG_RUNTIME_DIR not set
+///
+/// # macOS Path
+///
+/// **~/Library/Application Support/midimon/run** - Platform convention for app data
+///
+/// # Returns
+///
+/// Path to runtime directory (parent of socket file)
+fn get_runtime_dir() -> Result<PathBuf> {
+    if cfg!(target_os = "linux") {
+        // Prefer XDG_RUNTIME_DIR (standard location for user sockets on Linux)
+        // This is a per-user tmpfs managed by systemd with mode 0700
+        if let Ok(xdg_runtime) = std::env::var("XDG_RUNTIME_DIR") {
+            let dir = PathBuf::from(xdg_runtime).join("midimon");
+            return Ok(dir);
+        }
+
+        // Fall back to ~/.midimon/run if XDG_RUNTIME_DIR not available
+        let home = dirs::home_dir().ok_or_else(|| {
+            DaemonError::StatePersistence("No home directory found".to_string())
+        })?;
+        Ok(home.join(".midimon").join("run"))
+    } else if cfg!(target_os = "macos") {
+        // Use Application Support directory (macOS convention)
+        // This is typically ~/Library/Application Support
+        let support_dir = dirs::data_dir().ok_or_else(|| {
+            DaemonError::StatePersistence("No Application Support directory found".to_string())
+        })?;
+        Ok(support_dir.join("midimon").join("run"))
+    } else {
+        // Other Unix systems - use home directory fallback
+        let home = dirs::home_dir().ok_or_else(|| {
+            DaemonError::StatePersistence("No home directory found".to_string())
+        })?;
+        Ok(home.join(".midimon").join("run"))
     }
 }
 
@@ -296,9 +503,78 @@ mod tests {
         let path = get_socket_path().unwrap();
 
         if cfg!(target_os = "windows") {
+            // Windows uses named pipes
             assert_eq!(path, PathBuf::from(r"\\.\pipe\midimon"));
         } else {
-            assert_eq!(path, PathBuf::from("/tmp/midimon.sock"));
+            // Unix platforms use user-specific directories
+            assert!(path.ends_with("midimon.sock"));
+
+            // Verify the path is NOT in /tmp (security requirement)
+            assert!(
+                !path.starts_with("/tmp"),
+                "Socket path should not be in shared /tmp directory: {:?}",
+                path
+            );
+
+            // Verify path includes user-specific component
+            if cfg!(target_os = "linux") {
+                // Should be XDG_RUNTIME_DIR/midimon or ~/.midimon/run
+                let path_str = path.to_string_lossy();
+                let is_xdg = path_str.contains("/run/user/") || path_str.contains("XDG_RUNTIME_DIR");
+                let is_home_fallback = path_str.contains(".midimon/run");
+                assert!(
+                    is_xdg || is_home_fallback,
+                    "Linux socket path should use XDG_RUNTIME_DIR or ~/.midimon/run: {:?}",
+                    path
+                );
+            } else if cfg!(target_os = "macos") {
+                // Should be in Application Support
+                assert!(
+                    path.to_string_lossy().contains("Application Support") ||
+                    path.to_string_lossy().contains(".midimon/run"),
+                    "macOS socket path should be in Application Support or ~/.midimon/run: {:?}",
+                    path
+                );
+            }
+
+            // Verify directory was created with secure permissions
+            let socket_dir = path.parent().expect("Socket should have parent directory");
+            assert!(socket_dir.exists(), "Socket directory should be created");
+
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let metadata = std::fs::metadata(socket_dir).expect("Should get metadata");
+                let mode = metadata.permissions().mode();
+                let perms = mode & 0o777;
+
+                assert_eq!(
+                    perms, 0o700,
+                    "Socket directory should have 0700 permissions, got {:o}",
+                    perms
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_get_runtime_dir() {
+        let dir = get_runtime_dir().unwrap();
+
+        if cfg!(target_os = "linux") {
+            // Should be XDG_RUNTIME_DIR or ~/.midimon/run
+            let dir_str = dir.to_string_lossy();
+            let is_xdg = dir_str.contains("/run/user/");
+            let is_home = dir_str.contains(".midimon/run");
+            assert!(is_xdg || is_home, "Linux runtime dir invalid: {:?}", dir);
+        } else if cfg!(target_os = "macos") {
+            // Should be in Application Support
+            assert!(
+                dir.to_string_lossy().contains("Application Support") ||
+                dir.to_string_lossy().contains(".midimon/run"),
+                "macOS runtime dir should be in Application Support: {:?}",
+                dir
+            );
         }
     }
 }

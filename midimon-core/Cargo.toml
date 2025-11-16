@@ -22,7 +22,6 @@ thiserror.workspace = true
 rand.workspace = true
 regex.workspace = true  # Security validation
 dirs.workspace = true  # Path handling
-enigo.workspace = true  # Still needed for Key and Button types in Action enum
 
 # Structured logging
 tracing = "0.1"

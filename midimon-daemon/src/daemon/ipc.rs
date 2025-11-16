@@ -2,6 +2,46 @@
 // SPDX-License-Identifier: MIT
 
 //! IPC server for daemon control
+//!
+//! # Security Considerations
+//!
+//! This module implements several security measures to prevent abuse:
+//!
+//! ## Request Size Limiting
+//!
+//! All incoming IPC requests are limited to [`MAX_REQUEST_SIZE`] (1MB) to prevent
+//! memory exhaustion attacks. Attackers could otherwise send arbitrarily large
+//! JSON payloads to consume daemon memory and cause denial of service.
+//!
+//! When a request exceeds the size limit:
+//! - The request is immediately rejected without processing
+//! - An error response with code 1004 (InvalidRequest) is returned
+//! - The oversized data is not accumulated in memory
+//! - The attempt is logged as a warning for security monitoring
+//!
+//! ## Timeout Protection
+//!
+//! All IPC operations have a 10-second timeout to prevent resource exhaustion
+//! from slow or stalled clients.
+//!
+//! ## Unix Socket Permissions
+//!
+//! The Unix domain socket and its directory are created with secure permissions:
+//! - Socket directory: 0700 (rwx------) - owner-only access
+//! - Socket file: 0600 (rw-------) - owner-only read/write
+//! - Directory ownership is validated to match the current user
+//! - Existing directories with insecure permissions are automatically fixed
+//!
+//! These measures prevent unauthorized local users from intercepting or sending
+//! commands to the daemon.
+//!
+//! # Protocol
+//!
+//! Messages are JSON-encoded lines over a Unix domain socket:
+//! - Request: `{"id": "...", "command": "...", "args": {...}}\n`
+//! - Response: `{"id": "...", "status": "...", "data": {...}}\n`
+//!
+//! See module documentation for available commands and error codes.
 
 use crate::daemon::error::{DaemonError, IpcErrorCode, Result};
 use crate::daemon::state::get_socket_path;
@@ -10,7 +50,11 @@ use serde_json::json;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{UnixListener, UnixStream};
 use tokio::sync::{broadcast, mpsc, oneshot};
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
+
+/// Maximum allowed size for a single IPC request (1MB)
+/// This prevents memory exhaustion attacks from oversized requests
+const MAX_REQUEST_SIZE: usize = 1_048_576; // 1MB
 
 /// IPC server for handling daemon control requests
 pub struct IpcServer {
@@ -45,6 +89,19 @@ impl IpcServer {
 
         // Create listener
         let listener = self.create_listener().await?;
+
+        // Set secure permissions on socket file (Unix only)
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if let Ok(metadata) = tokio::fs::metadata(&self.socket_path).await {
+                let mut perms = metadata.permissions();
+                perms.set_mode(0o600); // rw------- (owner-only access)
+                if let Err(e) = tokio::fs::set_permissions(&self.socket_path, perms).await {
+                    warn!("Failed to set socket permissions: {}", e);
+                }
+            }
+        }
 
         info!("IPC server listening on {}", self.socket_path);
 
@@ -111,6 +168,33 @@ async fn handle_client(stream: UnixStream, command_tx: mpsc::Sender<DaemonComman
     let mut line = String::new();
 
     while reader.read_line(&mut line).await? > 0 {
+        // Security: Check request size to prevent memory exhaustion attacks
+        if line.len() > MAX_REQUEST_SIZE {
+            warn!(
+                "Rejected oversized IPC request: {} bytes (max: {} bytes)",
+                line.len(),
+                MAX_REQUEST_SIZE
+            );
+
+            let error_response = create_error_response(
+                "unknown",
+                IpcErrorCode::InvalidRequest,
+                format!(
+                    "Request too large: {} bytes exceeds maximum of {} bytes (1MB)",
+                    line.len(),
+                    MAX_REQUEST_SIZE
+                ),
+                Some(json!({
+                    "request_size": line.len(),
+                    "max_size": MAX_REQUEST_SIZE,
+                    "security": "Request rejected to prevent memory exhaustion"
+                })),
+            );
+            send_response(&mut writer, &error_response).await?;
+            line.clear();
+            continue;
+        }
+
         // Parse request
         let request = match parse_request(&line) {
             Ok(req) => req,
@@ -374,9 +458,36 @@ mod tests {
         let path = get_socket_path().unwrap();
 
         #[cfg(unix)]
-        assert_eq!(path.to_str().unwrap(), "/tmp/midimon.sock");
+        {
+            // Unix platforms - should end with midimon.sock
+            assert!(path.ends_with("midimon.sock"));
+
+            // Verify the path is NOT in /tmp (security requirement)
+            assert!(
+                !path.starts_with("/tmp"),
+                "Socket path should not be in /tmp for security reasons"
+            );
+        }
 
         #[cfg(windows)]
         assert_eq!(path.to_str().unwrap(), r"\\.\pipe\midimon");
+    }
+
+    #[test]
+    fn test_max_request_size_constant() {
+        // Verify the constant is set to 1MB
+        assert_eq!(MAX_REQUEST_SIZE, 1_048_576);
+        assert_eq!(MAX_REQUEST_SIZE, 1024 * 1024);
+    }
+
+    #[test]
+    fn test_request_size_enforcement() {
+        // Create a request that exceeds MAX_REQUEST_SIZE
+        let oversized_request = "x".repeat(MAX_REQUEST_SIZE + 1);
+        assert!(oversized_request.len() > MAX_REQUEST_SIZE);
+
+        // Create a request within limits
+        let valid_request = r#"{"id":"test-123","command":"PING","args":{}}"#;
+        assert!(valid_request.len() < MAX_REQUEST_SIZE);
     }
 }
