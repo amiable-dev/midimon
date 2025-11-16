@@ -4,21 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-✅ **v1.0.0 Phase 3: Daemon & Config Hot-Reload - Complete**
+✅ **v2.0.1 Phase 2: Security Remediation - Complete**
 
-MIDIMon now includes a production-ready daemon architecture with hot config reloading.
+MIDIMon has completed Phase 2 security remediation, achieving true architectural purity with a UI-independent core library.
 
-### Current Architecture (v1.0.0)
+### Current Architecture (v2.0.1)
 
-MIDIMon uses a **3-crate workspace structure** with daemon infrastructure:
+MIDIMon uses a **3-crate workspace structure** with clear separation of concerns:
 
-1. **midimon-core**: Pure Rust engine library (zero UI dependencies)
-   - Event processing, mapping engine, action execution
-   - Config loading, device profiles, error types
+1. **midimon-core**: Pure Rust engine library (truly UI-independent)
+   - Event processing, mapping engine, configuration
+   - **Action definitions only** (execution moved to daemon in Phase 2)
+   - Config loading with security validation
+   - Device profiles, error types
    - Public API for external integrations
-   - 20/20 tests passing
+   - **45 tests passing** (100% pass rate)
 
-2. **midimon-daemon**: Background service with hot-reload
+2. **midimon-daemon**: Background service with system interaction
+   - **Action Executor** (Phase 2: moved from core)
+     - Keyboard/mouse simulation via enigo
+     - Shell command execution
+     - Application launching
+     - Volume control
    - **Daemon infrastructure** (7 modules, ~2,000 lines)
      - IPC server (Unix domain sockets, JSON protocol)
      - Config hot-reload with file watching (500ms debounce)
@@ -29,21 +36,28 @@ MIDIMon uses a **3-crate workspace structure** with daemon infrastructure:
      - `midimonctl` - Daemon control (status, reload, stop, validate, ping)
      - `midimon` - Main daemon binary
    - **Diagnostic tools** (6 binaries)
-   - **Benchmarks**: Reload latency testing
-   - 25/26 tests passing (1 ignored for CI)
+   - **32 tests passing** + 1 ignored (file watching)
 
-3. **midimon** (root): Backward compatibility layer
+3. **midimon-gui**: Tauri v2 configuration interface
+   - Full CRUD operations for modes, mappings, devices, settings
+   - Real-time daemon synchronization
+   - MIDI Learn mode integration
+   - LED scheme configuration
+   - **26 tests passing** + 1 ignored
+
+4. **midimon** (root): Backward compatibility layer
    - Re-exports midimon-core types for existing tests
    - Maintains v0.1.0 import paths
-   - Zero breaking changes
+   - Zero breaking changes for end users
 
-**Phase 3 Status**: ✅ COMPLETE
-- Config reload: 0-8ms (target was <50ms, **5-6x faster**)
-- IPC latency: <1ms round-trip
-- Test coverage: 98% (45/45 tests passing, 1 ignored)
-- CLI tool: Full-featured with JSON/human output modes
+**Phase 2 Status**: ✅ COMPLETE (2025-01-16)
+- **Architecture**: Core is now truly UI-independent
+- **Security**: Path validation, input sanitization
+- **Features**: Repeat action with delay, conditional actions
+- **Tests**: 449 total workspace tests passing (103 library + integration)
+- **Documentation**: Comprehensive guides and verification reports
 
-**Next Phase**: Phase 4 - Documentation & Release Preparation
+**Next Phase**: Phase 3 - GUI Polish & User Testing
 
 ### Architecture Overview
 
@@ -84,10 +98,18 @@ MIDIMon uses a **3-crate workspace structure** with daemon infrastructure:
              │
              ▼
 ┌──────────────────────────────────────────────────┐
-│  midimon-core Engine                             │
+│  midimon-core Engine (UI-Independent)            │
 │  - Event processing                              │
 │  - Mapping execution                             │
-│  - Action dispatch                               │
+│  - Action dispatch (data only)                   │
+└──────────────────────────────────────────────────┘
+             │
+             ▼
+┌──────────────────────────────────────────────────┐
+│  Action Executor (in daemon)                     │
+│  - Keyboard/mouse simulation                     │
+│  - Shell command execution                       │
+│  - System volume control                         │
 └──────────────────────────────────────────────────┘
 ```
 
