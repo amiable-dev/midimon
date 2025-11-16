@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-✅ **v2.0.1 Phase 2: Security Remediation - Complete**
+✅ **v2.0.1: Phases 2-4 Complete + Security Hardening**
 
-MIDIMon has completed Phase 2 security remediation, achieving true architectural purity with a UI-independent core library.
+MIDIMon has completed Phases 2-4 of development, plus an additional Phase 2.5 for comprehensive security hardening and architectural purity.
 
 ### Current Architecture (v2.0.1)
 
@@ -50,14 +50,27 @@ MIDIMon uses a **3-crate workspace structure** with clear separation of concerns
    - Maintains v0.1.0 import paths
    - Zero breaking changes for end users
 
-**Phase 2 Status**: ✅ COMPLETE (2025-01-16)
-- **Architecture**: Core is now truly UI-independent
-- **Security**: Path validation, input sanitization
-- **Features**: Repeat action with delay, conditional actions
-- **Tests**: 449 total workspace tests passing (103 library + integration)
-- **Documentation**: Comprehensive guides and verification reports
+**Completed Phases**:
+- ✅ **Phase 2** (v0.2.0): ActionExecutor extraction to daemon layer
+- ✅ **Phase 2.5** (v2.0.1): Security hardening & architectural purity
+  - Architecture score: 9.5/10 (was 8.5)
+  - Security score: 9.0/10 (was 7.5)
+  - 6 critical/medium vulnerabilities fixed
+  - Zero UI dependencies in core achieved
+  - 485+ tests passing (100% pass rate)
+- ✅ **Phase 3** (v1.0.0): Daemon infrastructure & config hot-reload
+  - IPC server (<1ms latency)
+  - Config hot-reload (0-10ms)
+  - CLI tool (midimonctl)
+  - State persistence
+- ✅ **Phase 4** (v2.0.0): Tauri v2 GUI & visual configuration
+  - MIDI Learn mode
+  - Visual config editor
+  - Per-app profiles
+  - Device templates
+  - Live event console
 
-**Next Phase**: Phase 3 - GUI Polish & User Testing
+**Next Phase**: Phase 5 - Advanced Features & Polish
 
 ### Architecture Overview
 
