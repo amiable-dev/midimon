@@ -300,6 +300,64 @@ impl EngineManager {
                     },
                 }
             }
+
+            IpcCommand::ListDevices => match Self::enumerate_midi_devices() {
+                Ok(devices) => create_success_response(
+                    &id,
+                    Some(json!({
+                        "devices": devices
+                    })),
+                ),
+                Err(e) => IpcResponse {
+                    id,
+                    status: ResponseStatus::Error,
+                    data: None,
+                    error: Some(ErrorDetails {
+                        code: IpcErrorCode::InternalError.as_u16(),
+                        message: format!("Failed to enumerate MIDI devices: {}", e),
+                        details: None,
+                    }),
+                },
+            },
+
+            IpcCommand::SetDevice => {
+                // Extract port index from args
+                match request.args.get("port").and_then(|v| v.as_u64()) {
+                    Some(port_index) => {
+                        let port_index = port_index as usize;
+                        // TODO: Implement device switching
+                        // For now, just update device status
+                        info!("Device switch requested to port {}", port_index);
+                        create_success_response(
+                            &id,
+                            Some(json!({
+                                "message": format!("Device switch to port {} queued (not yet implemented)", port_index),
+                                "port": port_index
+                            })),
+                        )
+                    }
+                    None => IpcResponse {
+                        id,
+                        status: ResponseStatus::Error,
+                        data: None,
+                        error: Some(ErrorDetails {
+                            code: IpcErrorCode::InvalidRequest.as_u16(),
+                            message: "Missing 'port' parameter".to_string(),
+                            details: Some(json!({"example": {"port": 0}})),
+                        }),
+                    },
+                }
+            }
+
+            IpcCommand::GetDevice => {
+                let device_status = self.device_status.read().await.clone();
+                create_success_response(
+                    &id,
+                    Some(json!({
+                        "device": device_status
+                    })),
+                )
+            }
         }
     }
 
@@ -481,6 +539,35 @@ impl EngineManager {
     /// Get current lifecycle state
     pub async fn get_state(&self) -> LifecycleState {
         *self.state.read().await
+    }
+
+    /// Enumerate available MIDI devices
+    fn enumerate_midi_devices() -> Result<Vec<crate::daemon::types::MidiDeviceInfo>> {
+        use midir::MidiInput;
+
+        let midi_in = MidiInput::new("MIDIMon Device Scanner")
+            .map_err(|e| DaemonError::Ipc(format!("Failed to create MIDI input: {}", e)))?;
+
+        let ports = midi_in.ports();
+        let mut devices = Vec::new();
+
+        for (i, port) in ports.iter().enumerate() {
+            let port_name = midi_in
+                .port_name(port)
+                .unwrap_or_else(|_| format!("Unknown Device {}", i));
+
+            // Parse manufacturer from port name (common format: "Manufacturer Device Name")
+            let manufacturer = port_name.split_whitespace().next().map(|s| s.to_string());
+
+            devices.push(crate::daemon::types::MidiDeviceInfo {
+                port_index: i,
+                port_name,
+                manufacturer,
+                connected: false, // Will be true if this is the current device
+            });
+        }
+
+        Ok(devices)
     }
 }
 

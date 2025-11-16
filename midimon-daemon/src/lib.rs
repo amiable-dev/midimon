@@ -172,8 +172,9 @@ pub use daemon::{
     ConfigWatcher, DaemonCommand, DaemonError, DaemonInfo, DaemonService, DaemonStatistics,
     DeviceStatus, EngineInfo, EngineManager, ErrorDetails, ErrorEntry, IpcClient, IpcCommand,
     IpcErrorCode, IpcRequest, IpcResponse, IpcServer, LifecycleState, MenuBarAction,
-    PersistedState, ReloadMetrics, ResponseStatus, Result, StateManager, calculate_checksum,
-    create_success_response, get_socket_path, get_state_dir, run_daemon, run_daemon_with_config,
+    MidiDeviceInfo, PersistedState, ReloadMetrics, ResponseStatus, Result, StateManager,
+    calculate_checksum, create_success_response, get_socket_path, get_state_dir, run_daemon,
+    run_daemon_with_config,
 };
 
 // Re-export ActionExecutor and helpers for daemon use

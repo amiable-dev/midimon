@@ -121,6 +121,11 @@ pub enum IpcCommand {
     Reload,
     Stop,
     ValidateConfig,
+
+    // Device management
+    ListDevices,
+    SetDevice,
+    GetDevice,
 }
 
 /// IPC response to client
@@ -165,6 +170,15 @@ pub struct DeviceStatus {
     pub name: Option<String>,
     pub port: Option<usize>,
     pub last_event_at: Option<u64>, // Unix timestamp in seconds
+}
+
+/// MIDI device information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MidiDeviceInfo {
+    pub port_index: usize,
+    pub port_name: String,
+    pub manufacturer: Option<String>,
+    pub connected: bool,
 }
 
 /// Daemon statistics

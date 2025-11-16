@@ -24,5 +24,6 @@ pub use state::{
 };
 pub use types::{
     DaemonCommand, DaemonStatistics, DeviceStatus, ErrorDetails, ErrorEntry, IpcCommand,
-    IpcRequest, IpcResponse, LifecycleState, MenuBarAction, ReloadMetrics, ResponseStatus,
+    IpcRequest, IpcResponse, LifecycleState, MenuBarAction, MidiDeviceInfo, ReloadMetrics,
+    ResponseStatus,
 };
