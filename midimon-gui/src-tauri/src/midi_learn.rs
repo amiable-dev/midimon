@@ -81,6 +81,7 @@ pub enum LearnSessionState {
 
 /// Event tracking for pattern detection
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // Used in event history tracking
 struct EventRecord {
     event: MidiEvent,
     timestamp: Instant,
@@ -100,12 +101,16 @@ pub struct MidiLearnSession {
     /// Timeout duration
     timeout: Duration,
     /// Event history for pattern detection
+    #[allow(dead_code)] // Used for pattern analysis in capture_event
     event_history: Arc<RwLock<Vec<EventRecord>>>,
     /// Note press times for long press detection (note -> press time)
+    #[allow(dead_code)] // Used for long press detection
     note_press_times: Arc<RwLock<HashMap<u8, Instant>>>,
     /// Last note press times for double-tap detection (note -> last press time)
+    #[allow(dead_code)] // Used for double-tap detection
     last_note_times: Arc<RwLock<HashMap<u8, Instant>>>,
     /// Currently held notes for chord detection
+    #[allow(dead_code)] // Used for chord detection
     held_notes: Arc<RwLock<Vec<u8>>>,
 }
 
@@ -173,6 +178,7 @@ impl MidiLearnSession {
     }
 
     /// Capture a MIDI event and convert to trigger suggestion
+    #[allow(dead_code)] // Part of MIDI Learn API, used for event capture
     pub async fn capture_event(&self, event: MidiEvent) {
         let state = self.state.read().await;
         if *state != LearnSessionState::Waiting {
@@ -314,6 +320,7 @@ impl MidiLearnSession {
     }
 
     /// Complete the learning session with a trigger suggestion
+    #[allow(dead_code)] // Called by capture_event for pattern completion
     async fn complete_learning(&self, trigger: TriggerSuggestion) {
         let mut state = self.state.write().await;
         if *state != LearnSessionState::Waiting {
@@ -356,6 +363,7 @@ impl MidiLearnSession {
     }
 
     /// Analyze a simple MIDI event and suggest a trigger (no pattern detection)
+    #[allow(dead_code)] // Used for simple event analysis in capture_event
     fn analyze_simple_event(&self, event: &MidiEvent) -> TriggerSuggestion {
         match event {
             MidiEvent::NoteOn { note, velocity } => {
@@ -414,6 +422,7 @@ pub enum MidiEvent {
 
 impl MidiEvent {
     /// Parse from raw MIDI bytes
+    #[allow(dead_code)] // Part of MIDI event parsing API
     pub fn from_bytes(status: u8, data1: u8, data2: u8) -> Option<Self> {
         let message_type = status & 0xF0;
 

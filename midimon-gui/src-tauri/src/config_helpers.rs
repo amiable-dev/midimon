@@ -61,7 +61,7 @@ pub fn suggestion_to_config(suggestion: &TriggerSuggestion) -> TriggerConfig {
         },
         TriggerSuggestion::VelocityRange {
             note,
-            velocity_min,
+            velocity_min: _,
             velocity_max,
             level,
         } => {
@@ -100,7 +100,7 @@ pub fn suggestion_to_config(suggestion: &TriggerSuggestion) -> TriggerConfig {
             value_min: value_range.map(|(min, _)| min),
         },
         TriggerSuggestion::Aftertouch {
-            note,
+            note: _,
             pressure_range,
         } => {
             // Note: current midimon-core Aftertouch doesn't have note field,

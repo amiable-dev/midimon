@@ -13,10 +13,13 @@
 //! - Linux: Uses libayatana-appindicator
 //! - Windows: System tray integration
 
+// objc macro generates cfg warnings for cargo-clippy
+#![allow(unexpected_cfgs)]
+
 use crossbeam_channel::Receiver;
 use tray_icon::{
     Icon, TrayIcon, TrayIconBuilder, TrayIconEvent,
-    menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu},
+    menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
 };
 
 #[cfg(target_os = "macos")]
@@ -53,9 +56,11 @@ pub struct MenuBar {
     current_state: IconState,
     menu_event_receiver: Receiver<MenuEvent>,
     tray_event_receiver: Receiver<TrayIconEvent>,
-    // Menu item IDs
+    // Menu item IDs (stored for potential future use in dynamic menu updates)
     status_item: MenuItem,
+    #[allow(dead_code)]
     reload_item: MenuItem,
+    #[allow(dead_code)]
     quit_item: MenuItem,
 }
 

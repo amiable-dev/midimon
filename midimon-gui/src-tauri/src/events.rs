@@ -5,12 +5,13 @@
 
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tauri::{Emitter, Manager};
+use tauri::Emitter;
 use tokio::sync::RwLock;
 
 /// Events emitted from backend to frontend
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "payload")]
+#[allow(dead_code)] // Part of event API, used for frontend communication
 pub enum AppEvent {
     /// Daemon status changed
     DaemonStatusChanged { running: bool, connected: bool },
@@ -30,6 +31,7 @@ pub enum AppEvent {
 
 /// MIDI event information for the live console
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)] // Part of live console API, used for MIDI event display
 pub struct MidiEventInfo {
     pub timestamp: u64,
     pub event_type: String,
@@ -46,6 +48,7 @@ pub struct MidiEventInfo {
 
 impl MidiEventInfo {
     /// Create from raw MIDI bytes
+    #[allow(dead_code)] // Part of MIDI parsing API, used by live console
     pub fn from_bytes(bytes: &[u8]) -> Self {
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -247,6 +250,7 @@ impl MidiEventInfo {
     }
 
     /// Format as human-readable note name
+    #[allow(dead_code)] // Part of MIDI event API, used for note display
     pub fn note_name(&self) -> Option<String> {
         self.note.map(|n| {
             let note_names = [
@@ -261,6 +265,7 @@ impl MidiEventInfo {
 
 /// Event stream manager for MIDI event monitoring
 pub struct EventStreamManager {
+    #[allow(dead_code)] // Stored for future use in event emission
     app_handle: Option<tauri::AppHandle>,
     active: Arc<RwLock<bool>>,
     #[allow(dead_code)]
@@ -276,6 +281,7 @@ impl EventStreamManager {
         }
     }
 
+    #[allow(dead_code)] // Part of event stream API, used for setting up event emission
     pub fn set_app_handle(&mut self, handle: tauri::AppHandle) {
         self.app_handle = Some(handle);
     }
@@ -293,6 +299,7 @@ impl EventStreamManager {
     }
 
     /// Emit a MIDI event to the frontend
+    #[allow(dead_code)] // Part of live console API for emitting events
     pub async fn emit_event(&self, event: MidiEventInfo) {
         if let Some(handle) = &self.app_handle {
             if *self.active.read().await {
@@ -305,6 +312,7 @@ impl EventStreamManager {
     }
 
     /// Emit multiple events (batch)
+    #[allow(dead_code)] // Part of live console API for batch event emission
     pub async fn emit_events(&self, events: Vec<MidiEventInfo>) {
         if let Some(handle) = &self.app_handle {
             if *self.active.read().await {

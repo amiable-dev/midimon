@@ -6,17 +6,19 @@
 //! Provides cross-platform app detection with macOS-specific implementation.
 //! Tracks the currently active application and notifies on changes.
 
+// TODO Phase 5: Migrate to objc2-foundation crate to eliminate deprecation warnings
+#![allow(deprecated)]
+#![allow(unexpected_cfgs)]
+
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 
 #[cfg(target_os = "macos")]
-use cocoa::appkit::NSRunningApplication;
-#[cfg(target_os = "macos")]
 use cocoa::base::{id, nil};
 #[cfg(target_os = "macos")]
-use cocoa::foundation::{NSAutoreleasePool, NSString};
+use cocoa::foundation::NSAutoreleasePool;
 #[cfg(target_os = "macos")]
 use objc::{class, msg_send, sel, sel_impl};
 
@@ -59,6 +61,7 @@ impl AppDetector {
     }
 
     /// Create with custom polling interval
+    #[allow(dead_code)] // Part of public API, may be used by future features
     pub fn with_interval(poll_interval_ms: u64) -> Self {
         Self {
             current_app: Arc::new(RwLock::new(None)),
@@ -215,6 +218,7 @@ impl AppDetector {
     }
 
     /// Check if detection is currently active
+    #[allow(dead_code)] // Part of public API, used in tests
     pub async fn is_active(&self) -> bool {
         *self.is_active.read().await
     }

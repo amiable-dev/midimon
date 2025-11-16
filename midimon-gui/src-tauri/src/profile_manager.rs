@@ -30,6 +30,7 @@ pub struct AppProfile {
 
     /// Last modified timestamp
     #[serde(skip)]
+    #[allow(dead_code)] // Stored for cache invalidation and file watching
     pub last_modified: Option<std::time::SystemTime>,
 
     /// Whether this is the default/fallback profile
@@ -38,6 +39,7 @@ pub struct AppProfile {
 
 /// Profile cache entry
 struct CachedProfile {
+    #[allow(dead_code)] // Stored for future metadata access
     profile: AppProfile,
     config_content: String,
     cached_at: Instant,
@@ -108,6 +110,7 @@ impl ProfileManager {
     }
 
     /// Create with custom profiles directory
+    #[allow(dead_code)] // Part of public API, used in tests
     pub fn with_directory(path: PathBuf) -> std::io::Result<Self> {
         if !path.exists() {
             std::fs::create_dir_all(&path)?;
@@ -208,7 +211,7 @@ impl ProfileManager {
     /// Switch to a profile
     pub async fn switch_to_profile(&self, profile_id: &str) -> Result<SwitchResult, String> {
         // Check if profile exists
-        let profile = self
+        let _profile = self
             .get_profile(profile_id)
             .await
             .ok_or_else(|| format!("Profile not found: {}", profile_id))?;
@@ -272,6 +275,7 @@ impl ProfileManager {
     }
 
     /// Invalidate specific profile in cache
+    #[allow(dead_code)] // Part of cache management API
     pub async fn invalidate_cache(&self, profile_id: &str) {
         self.cache.write().await.remove(profile_id);
     }
@@ -329,6 +333,7 @@ impl ProfileManager {
     }
 
     /// Get profiles directory path
+    #[allow(dead_code)] // Part of public API for directory access
     pub fn get_profiles_directory(&self) -> &Path {
         &self.profiles_dir
     }
@@ -367,7 +372,7 @@ impl ProfileManager {
         profile_id: &str,
         output_path: &Path,
     ) -> Result<(), String> {
-        let profile = self
+        let _profile = self
             .get_profile(profile_id)
             .await
             .ok_or_else(|| format!("Profile not found: {}", profile_id))?;

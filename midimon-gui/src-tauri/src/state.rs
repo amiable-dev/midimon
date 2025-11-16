@@ -46,6 +46,7 @@ impl AppState {
     }
 
     /// Check if the daemon is connected
+    #[allow(dead_code)] // Part of state API for daemon status checks
     pub async fn is_daemon_connected(&self) -> bool {
         self.inner.read().await.daemon_connected
     }
@@ -66,6 +67,7 @@ impl AppState {
     }
 
     /// Clear the MIDI Learn session
+    #[allow(dead_code)] // Part of MIDI Learn API for session cleanup
     pub async fn clear_learn_session(&self) {
         self.inner.write().await.learn_session = None;
     }
@@ -121,6 +123,7 @@ impl AppState {
     }
 
     /// Get event stream manager
+    #[allow(dead_code)] // Part of event monitoring API
     pub async fn get_event_stream_manager(&self) -> Arc<EventStreamManager> {
         let inner = self.inner.read().await;
         Arc::clone(&inner.event_stream_manager)

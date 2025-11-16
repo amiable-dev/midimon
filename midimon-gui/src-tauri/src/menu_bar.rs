@@ -29,6 +29,7 @@ const MENU_SHOW: &str = "show";
 
 /// Icon states for visual feedback
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)] // Part of menu bar API for icon state management
 pub enum TrayIconState {
     Running,
     Stopped,
@@ -233,6 +234,7 @@ fn switch_mode(app: &AppHandle, mode: usize) {
 }
 
 /// Update status display in menu bar
+#[allow(dead_code)] // Part of menu bar API, used for status updates
 pub fn update_status(app: &AppHandle, status_text: &str) {
     if let Some(menu) = app.menu() {
         if let Some(status_item) = menu.get(MENU_STATUS) {
@@ -244,6 +246,7 @@ pub fn update_status(app: &AppHandle, status_text: &str) {
 }
 
 /// Update icon based on daemon state
+#[allow(dead_code)] // Part of menu bar API, used for icon updates
 pub fn update_icon(_app: &AppHandle, state: TrayIconState) {
     // Icon updates would use different icon files based on state
     // For now, this is a placeholder for the icon switching logic
