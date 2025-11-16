@@ -1,26 +1,145 @@
+<!-- Copyright 2025 Amiable -->
+<!-- SPDX-License-Identifier: MIT -->
+
 <script>
-  import { statusStore } from '../stores.js';
-  import DeviceList from '../components/DeviceList.svelte';
+  import { onMount } from 'svelte';
+  import DeviceList from '$lib/components/DeviceList.svelte';
+  import TemplateSelector from '$lib/components/TemplateSelector.svelte';
+  import ProfileManager from '$lib/components/ProfileManager.svelte';
+  import { statusStore, devicesStore, appStore } from '$lib/stores.js';
+  import api from '$lib/api.js';
+
+  /**
+   * Local state
+   */
+  let templates = [];
+  let selectedTemplate = null;
+  let showTemplateSelector = false;
+  let showProfileManager = false;
+  let loading = false;
+  let error = null;
+
+  /**
+   * Load templates on mount
+   */
+  onMount(async () => {
+    await loadTemplates();
+    statusStore.startAutoRefresh();
+    devicesStore.startAutoRefresh();
+
+    return () => {
+      statusStore.stopAutoRefresh();
+      devicesStore.stopAutoRefresh();
+    };
+  });
+
+  /**
+   * Load device templates
+   */
+  async function loadTemplates() {
+    try {
+      templates = await api.templates.list();
+    } catch (err) {
+      console.warn('Failed to load templates:', err);
+    }
+  }
+
+  /**
+   * Open template selector
+   */
+  function openTemplateSelector() {
+    showTemplateSelector = true;
+  }
+
+  /**
+   * Open profile manager
+   */
+  function openProfileManager() {
+    showProfileManager = true;
+  }
+
+  /**
+   * Handle template selection
+   */
+  async function handleTemplateSelected(event) {
+    selectedTemplate = event.detail.template;
+    showTemplateSelector = false;
+
+    // Create config from template
+    try {
+      loading = true;
+      error = null;
+      await api.templates.createConfig(selectedTemplate.id);
+      appStore.setError(null);
+      alert('Configuration created from template! Please reload the daemon.');
+    } catch (err) {
+      error = err.message || String(err);
+      appStore.setError(error);
+    } finally {
+      loading = false;
+    }
+  }
+
+  /**
+   * Handle profile switch
+   */
+  function handleProfileSwitch(event) {
+    const profileId = event.detail.profileId;
+    // Profile switching is automatic via app detection
+    // This is just for manual override if needed
+  }
 </script>
 
 <div class="view">
   <header class="view-header">
-    <h2>Devices</h2>
-    <p class="subtitle">Manage MIDI device connections</p>
+    <div class="header-content">
+      <div>
+        <h2>Devices & Profiles</h2>
+        <p class="subtitle">Manage MIDI device connections, templates, and per-app profiles</p>
+      </div>
+      <div class="header-actions">
+        {#if loading}
+          <div class="loading-indicator">
+            <span class="spinner"></span>
+            Loading...
+          </div>
+        {/if}
+        <button class="btn-secondary" on:click={openTemplateSelector}>
+          📋 Device Templates
+        </button>
+        <button class="btn-secondary" on:click={openProfileManager}>
+          🔄 Profiles
+        </button>
+      </div>
+    </div>
   </header>
 
   <div class="content">
+    {#if error}
+      <div class="error-banner">
+        <span class="error-icon">⚠️</span>
+        <span>{error}</span>
+        <button class="dismiss-btn" on:click={() => { error = null; appStore.clearError(); }}>
+          ✕
+        </button>
+      </div>
+    {/if}
+
     <section class="status-section">
       <h3>Daemon Status</h3>
       {#if $statusStore.status}
         <div class="status-card">
           <div class="status-row">
             <span class="label">Running:</span>
-            <span class="value">{$statusStore.status.running ? '✅ Yes' : '❌ No'}</span>
+            <span class="value {$statusStore.status.running ? 'success' : 'error'}">
+              {$statusStore.status.running ? '✅ Yes' : '❌ No'}
+            </span>
           </div>
           <div class="status-row">
             <span class="label">Connected:</span>
-            <span class="value">{$statusStore.status.connected ? '✅ Yes' : '❌ No'}</span>
+            <span class="value {$statusStore.status.connected ? 'success' : 'error'}">
+              {$statusStore.status.connected ? '✅ Yes' : '❌ No'}
+            </span>
           </div>
           {#if $statusStore.status.lifecycle_state}
             <div class="status-row">
@@ -31,28 +150,52 @@
           {#if $statusStore.status.uptime_secs !== null && $statusStore.status.uptime_secs !== undefined}
             <div class="status-row">
               <span class="label">Uptime:</span>
-              <span class="value">{Math.floor($statusStore.status.uptime_secs / 60)}m {$statusStore.status.uptime_secs % 60}s</span>
+              <span class="value">
+                {Math.floor($statusStore.status.uptime_secs / 60)}m {$statusStore.status.uptime_secs % 60}s
+              </span>
+            </div>
+          {/if}
+          {#if $statusStore.status.events_processed !== null && $statusStore.status.events_processed !== undefined}
+            <div class="status-row">
+              <span class="label">Events Processed:</span>
+              <span class="value">{$statusStore.status.events_processed.toLocaleString()}</span>
             </div>
           {/if}
           {#if $statusStore.status.error}
-            <div class="status-row error">
+            <div class="status-row">
               <span class="label">Error:</span>
-              <span class="value">{$statusStore.status.error}</span>
+              <span class="value error">{$statusStore.status.error}</span>
             </div>
           {/if}
         </div>
       {:else if $statusStore.error}
-        <p class="error">{$statusStore.error}</p>
+        <p class="error-msg">{$statusStore.error}</p>
       {:else}
-        <p class="loading">Loading...</p>
+        <p class="loading-msg">Loading status...</p>
       {/if}
     </section>
 
     <section class="devices-section">
+      <h3>MIDI Devices</h3>
       <DeviceList />
     </section>
   </div>
 </div>
+
+{#if showTemplateSelector}
+  <TemplateSelector
+    {templates}
+    on:selected={handleTemplateSelected}
+    on:close={() => showTemplateSelector = false}
+  />
+{/if}
+
+{#if showProfileManager}
+  <ProfileManager
+    on:profileSwitch={handleProfileSwitch}
+    on:close={() => showProfileManager = false}
+  />
+{/if}
 
 <style>
   .view {
@@ -66,6 +209,18 @@
     padding: 2rem 2.5rem 1.5rem;
     border-bottom: 1px solid #333;
     background: #1e1e1e;
+  }
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
   }
 
   .view-header h2 {
@@ -88,13 +243,14 @@
 
   .status-section,
   .devices-section {
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
   }
 
   h3 {
-    margin: 0 0 1rem;
+    margin: 0 0 1.5rem;
     font-size: 1.25rem;
     color: #e0e0e0;
+    font-weight: 600;
   }
 
   .status-card {
@@ -116,25 +272,120 @@
     border-bottom: none;
   }
 
-  .status-row.error {
-    color: #ff6b6b;
-  }
-
   .label {
     font-weight: 500;
     color: #999;
+    font-size: 0.95rem;
   }
 
   .value {
     color: #e0e0e0;
     font-weight: 500;
+    font-size: 0.95rem;
   }
 
-  .error {
-    color: #ff6b6b;
+  .value.success {
+    color: #4ade80;
   }
 
-  .loading {
+  .value.error {
+    color: #ef4444;
+  }
+
+  .error-msg {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 1rem;
+    border-radius: 6px;
+  }
+
+  .loading-msg {
     color: #999;
+    font-style: italic;
+  }
+
+  .loading-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #4a9eff;
+    font-size: 0.9rem;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #4a9eff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .error-banner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    color: #ef4444;
+  }
+
+  .error-icon {
+    font-size: 1.25rem;
+  }
+
+  .dismiss-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 1.25rem;
+    padding: 0.25rem 0.5rem;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+
+  .dismiss-btn:hover {
+    opacity: 1;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 0.6rem 1.25rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: #4a9eff;
+    border: none;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: #3a8eef;
+  }
+
+  .btn-secondary {
+    background: #333;
+    border: 1px solid #444;
+    color: #e0e0e0;
+  }
+
+  .btn-secondary:hover {
+    background: #3a3a3a;
   }
 </style>

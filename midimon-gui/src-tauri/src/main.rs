@@ -13,6 +13,7 @@ mod commands;
 mod config_helpers;
 mod device_templates;
 mod events;
+mod menu_bar;
 mod midi_learn;
 mod profile_manager;
 mod state;
@@ -28,9 +29,14 @@ fn main() {
         )
         .init();
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .manage(AppState::new())
         .plugin(tauri_plugin_shell::init())
+        .setup(|app| {
+            // Setup tray after app is initialized
+            menu_bar::setup_tray(app.handle())?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::get_daemon_status,
             commands::reload_config,
@@ -72,6 +78,16 @@ fn main() {
             commands::stop_event_monitoring,
             commands::is_event_monitoring_active,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    // Start background status polling
+    menu_bar::start_status_polling(app.handle().clone());
+
+    app.run(|_app_handle, event| {
+        if let tauri::RunEvent::ExitRequested { api, .. } = event {
+            // Prevent default exit to allow graceful shutdown
+            api.prevent_exit();
+        }
+    });
 }
