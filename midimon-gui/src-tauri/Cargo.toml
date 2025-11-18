@@ -27,7 +27,7 @@ toml = "0.8"
 tokio = { version = "1", features = ["full"] }
 
 # MIDIMon core integration
-midimon-core = { path = "../../midimon-core" }
+midimon-core = { path = "../../midimon-core", features = ["plugin", "plugin-registry"] }
 midimon-daemon = { path = "../../midimon-daemon" }
 
 # MIDI I/O
@@ -55,5 +55,6 @@ objc = "0.2"
 tempfile = "3.0"
 
 [features]
-default = ["custom-protocol"]
+default = ["custom-protocol", "plugin-registry"]
 custom-protocol = ["tauri/custom-protocol"]
+plugin-registry = ["midimon-core/plugin-registry"]

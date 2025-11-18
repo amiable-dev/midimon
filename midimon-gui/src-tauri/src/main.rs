@@ -92,6 +92,12 @@ fn main() {
             plugin_commands::plugin_grant_capability,
             plugin_commands::plugin_revoke_capability,
             plugin_commands::plugin_get_stats,
+            plugin_commands::list_installed_plugins,
+            plugin_commands::uninstall_plugin,
+            #[cfg(feature = "plugin-registry")]
+            plugin_commands::fetch_plugin_registry,
+            #[cfg(feature = "plugin-registry")]
+            plugin_commands::install_plugin_from_registry,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

@@ -148,13 +148,13 @@ impl PluginRegistryClient {
     }
 
     /// Get download URL for current platform
-    pub fn get_download_url(&self, plugin: &PluginRegistryEntry) -> Option<&String> {
+    pub fn get_download_url<'a>(&self, plugin: &'a PluginRegistryEntry) -> Option<&'a String> {
         let platform = self.current_platform();
         plugin.downloads.get(&platform)
     }
 
     /// Get checksum for current platform
-    pub fn get_checksum(&self, plugin: &PluginRegistryEntry) -> Option<&String> {
+    pub fn get_checksum<'a>(&self, plugin: &'a PluginRegistryEntry) -> Option<&'a String> {
         let platform = self.current_platform();
         plugin.checksums.get(&platform)
     }
@@ -197,7 +197,8 @@ impl PluginRegistryClient {
 
         // Verify checksum
         if let Some(expected_checksum) = self.get_checksum(plugin) {
-            let actual_checksum = format!("sha256:{}", sha2::Sha256::digest(&bytes));
+            let digest = sha2::Sha256::digest(&bytes);
+            let actual_checksum = format!("sha256:{:x}", digest);
             if actual_checksum != *expected_checksum {
                 return Err(format!(
                     "Checksum mismatch: expected {}, got {}",

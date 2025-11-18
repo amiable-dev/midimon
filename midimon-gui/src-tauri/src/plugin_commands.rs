@@ -235,3 +235,162 @@ pub async fn plugin_get_stats(
 
     Ok(stats)
 }
+
+// ============================================================================
+// Plugin Marketplace Commands
+// ============================================================================
+
+#[cfg(feature = "plugin-registry")]
+use midimon_core::plugin_registry::{PluginRegistry, PluginRegistryClient};
+
+/// Fetch the plugin registry from GitHub
+#[cfg(feature = "plugin-registry")]
+#[tauri::command]
+pub async fn fetch_plugin_registry() -> Result<PluginRegistry, String> {
+    let cache_dir = dirs::cache_dir()
+        .ok_or("Failed to get cache directory")?
+        .join("midimon")
+        .join("plugin-registry");
+
+    let client = PluginRegistryClient::new(
+        "https://raw.githubusercontent.com/amiable-dev/midimon/main/plugins/registry/registry.json",
+        cache_dir,
+    );
+
+    client
+        .fetch_registry()
+        .await
+        .map_err(|e| format!("Failed to fetch plugin registry: {}", e))
+}
+
+/// Install a plugin from the registry
+#[cfg(feature = "plugin-registry")]
+#[tauri::command]
+pub async fn install_plugin_from_registry(
+    plugin_id: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let cache_dir = dirs::cache_dir()
+        .ok_or("Failed to get cache directory")?
+        .join("midimon")
+        .join("plugin-registry");
+
+    let client = PluginRegistryClient::new(
+        "https://raw.githubusercontent.com/amiable-dev/midimon/main/plugins/registry/registry.json",
+        cache_dir,
+    );
+
+    // Get plugins directory
+    let plugins_dir = dirs::config_dir()
+        .ok_or("Failed to get config directory")?
+        .join("midimon")
+        .join("plugins");
+
+    // Create plugins directory if it doesn't exist
+    std::fs::create_dir_all(&plugins_dir)
+        .map_err(|e| format!("Failed to create plugins directory: {}", e))?;
+
+    // Install the plugin
+    let plugin_path = client
+        .install_plugin(&plugin_id, &plugins_dir)
+        .await
+        .map_err(|e| format!("Failed to install plugin {}: {}", plugin_id, e))?;
+
+    // Auto-discover plugins after installation
+    let plugin_manager = state.get_plugin_manager().await;
+    let mut pm = plugin_manager.write().await;
+    let _ = pm.discover_plugins();
+
+    Ok(plugin_path
+        .to_str()
+        .unwrap_or("unknown")
+        .to_string())
+}
+
+/// Uninstall a plugin (delete from filesystem)
+#[tauri::command]
+pub async fn uninstall_plugin(
+    plugin_name: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    // Unload first if loaded
+    let plugin_manager = state.get_plugin_manager().await;
+    {
+        let mut pm = plugin_manager.write().await;
+        let _ = pm.unload_plugin(&plugin_name);
+    }
+
+    // Get plugins directory
+    let plugins_dir = dirs::config_dir()
+        .ok_or("Failed to get config directory")?
+        .join("midimon")
+        .join("plugins");
+
+    // Find and delete the plugin file
+    let plugin_file = plugins_dir.join(format!("libmidimon_{}_plugin.dylib", plugin_name));
+
+    if plugin_file.exists() {
+        std::fs::remove_file(&plugin_file)
+            .map_err(|e| format!("Failed to delete plugin file: {}", e))?;
+    } else {
+        // Try other extensions
+        let extensions = vec!["so", "dll"];
+        for ext in extensions {
+            let plugin_file = plugins_dir.join(format!("libmidimon_{}_plugin.{}", plugin_name, ext));
+            if plugin_file.exists() {
+                std::fs::remove_file(&plugin_file)
+                    .map_err(|e| format!("Failed to delete plugin file: {}", e))?;
+                break;
+            }
+        }
+    }
+
+    // Rediscover plugins
+    {
+        let mut pm = plugin_manager.write().await;
+        let _ = pm.discover_plugins();
+    }
+
+    Ok(())
+}
+
+/// List installed plugins (from filesystem)
+#[tauri::command]
+pub async fn list_installed_plugins() -> Result<Vec<String>, String> {
+    let plugins_dir = dirs::config_dir()
+        .ok_or("Failed to get config directory")?
+        .join("midimon")
+        .join("plugins");
+
+    if !plugins_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut plugins = Vec::new();
+    let entries = std::fs::read_dir(&plugins_dir)
+        .map_err(|e| format!("Failed to read plugins directory: {}", e))?;
+
+    for entry in entries {
+        if let Ok(entry) = entry {
+            let path = entry.path();
+            if let Some(filename) = path.file_name() {
+                if let Some(name) = filename.to_str() {
+                    // Extract plugin name from libmidimon_<name>_plugin.{dylib,so,dll}
+                    if name.starts_with("libmidimon_") && name.contains("_plugin.") {
+                        let plugin_name = name
+                            .trim_start_matches("libmidimon_")
+                            .split("_plugin.")
+                            .next()
+                            .unwrap_or("")
+                            .to_string();
+                        if !plugin_name.is_empty() {
+                            plugins.push(plugin_name);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(plugins)
+}
