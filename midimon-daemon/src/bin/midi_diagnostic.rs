@@ -3,11 +3,17 @@
 
 use colored::Colorize;
 use midir::MidiInput;
+use midi_msg::{MidiMsg, ChannelVoiceMsg};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-// This diagnostic tool only uses external crates (midir, colored)
-// and standard library - no midimon_core imports needed
+// Convert MIDI note number (0-127) to musical note name (e.g., "C4", "A#3")
+fn note_to_name(note: u8) -> String {
+    const NOTE_NAMES: [&str; 12] = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    let octave = (note / 12) as i32 - 1; // MIDI note 60 = C4
+    let note_name = NOTE_NAMES[(note % 12) as usize];
+    format!("{}{}", note_name, octave)
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
@@ -62,156 +68,187 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let start_time = Instant::now();
     let event_count = Arc::new(Mutex::new(0u32));
     let held_notes = Arc::new(Mutex::new(std::collections::HashMap::new()));
+    let status_line_active = Arc::new(Mutex::new(false));
 
     let event_count_clone = Arc::clone(&event_count);
     let held_notes_clone = Arc::clone(&held_notes);
+    let status_line_active_clone = Arc::clone(&status_line_active);
 
     let _conn = midi_in.connect(
         port,
         "diagnostic",
-        move |_stamp, msg, _| {
+        move |midi_timestamp, msg, _| {
             let now = Instant::now();
             let elapsed = now.duration_since(start_time);
-            let timestamp = format!("{:6.3}s", elapsed.as_secs_f32());
+
+            // Show both MIDI timestamp (microseconds from device) and elapsed time
+            let timestamp = format!(
+                "{:6.3}s (MIDI: {:10}μs)",
+                elapsed.as_secs_f32(),
+                midi_timestamp
+            );
+
+            // Clear status line if it's active
+            let mut status_active = status_line_active_clone.lock().unwrap();
+            if *status_active {
+                print!("\r{:80}\r", ""); // Clear the line
+                *status_active = false;
+            }
+            drop(status_active);
 
             let mut count = event_count_clone.lock().unwrap();
             *count += 1;
             print!("{} #{:4} | ", timestamp.dimmed(), count);
 
-            match msg[0] & 0xF0 {
-                0x90 => {
-                    // Note On
-                    let note = msg[1];
-                    let velocity = msg[2];
-                    let channel = (msg[0] & 0x0F) + 1;
+            // Parse MIDI message using midi-msg library
+            match MidiMsg::from_midi(msg) {
+                Ok((MidiMsg::ChannelVoice { channel, msg: voice_msg }, _)) |
+                Ok((MidiMsg::RunningChannelVoice { channel, msg: voice_msg }, _)) => {
+                    let ch = channel as u8 + 1; // Display as 1-based
 
-                    if velocity > 0 {
-                        // Real note on
-                        held_notes_clone.lock().unwrap().insert(note, now);
+                    match voice_msg {
+                        ChannelVoiceMsg::NoteOn { note, velocity } => {
+                            let note_name = note_to_name(note);
 
-                        let vel_bar = "█".repeat((velocity as usize * 20) / 127);
-                        println!(
-                            "{} note={:3} vel={:3} ch={:2} {}",
-                            "Note ON ".green().bold(),
-                            note,
-                            velocity,
-                            channel,
-                            vel_bar.green()
-                        );
-                    } else {
-                        // Note on with velocity 0 (acts as note off)
-                        if let Some(press_time) = held_notes_clone.lock().unwrap().remove(&note) {
-                            let duration = now.duration_since(press_time);
+                            if velocity > 0 {
+                                // Real note on
+                                held_notes_clone.lock().unwrap().insert(note, now);
+
+                                let vel_bar = "█".repeat((velocity as usize * 20) / 127);
+                                println!(
+                                    "{} {:>3} ({:3}) vel={:3} ch={:2} {}",
+                                    "Note ON ".green().bold(),
+                                    note_name.cyan(),
+                                    note,
+                                    velocity,
+                                    ch,
+                                    vel_bar.green()
+                                );
+                            } else {
+                                // Note on with velocity 0 (acts as note off)
+                                if let Some(press_time) = held_notes_clone.lock().unwrap().remove(&note) {
+                                    let duration = now.duration_since(press_time);
+                                    println!(
+                                        "{} {:>3} ({:3}) vel=  0 ch={:2} (held {:.3}s)",
+                                        "Note OFF".yellow().bold(),
+                                        note_name.cyan(),
+                                        note,
+                                        ch,
+                                        duration.as_secs_f32()
+                                    );
+                                }
+                            }
+                        }
+
+                        ChannelVoiceMsg::NoteOff { note, velocity: _ } => {
+                            let note_name = note_to_name(note);
+
+                            if let Some(press_time) = held_notes_clone.lock().unwrap().remove(&note) {
+                                let duration = now.duration_since(press_time);
+                                println!(
+                                    "{} {:>3} ({:3})         ch={:2} (held {:.3}s)",
+                                    "Note OFF".yellow().bold(),
+                                    note_name.cyan(),
+                                    note,
+                                    ch,
+                                    duration.as_secs_f32()
+                                );
+                            } else {
+                                println!(
+                                    "{} {:>3} ({:3})         ch={:2}",
+                                    "Note OFF".yellow().bold(),
+                                    note_name.cyan(),
+                                    note,
+                                    ch
+                                );
+                            }
+                        }
+
+                        ChannelVoiceMsg::ControlChange { control } => {
+                            // Extract control and value from ControlChange enum
+                            use midi_msg::ControlChange;
+                            if let ControlChange::CC { control: cc, value } = control {
+                                let val_bar = "▬".repeat((value as usize * 20) / 127);
+                                println!(
+                                    "{}   cc={:3} val={:3} ch={:2} {}",
+                                    "CC      ".blue().bold(),
+                                    cc,
+                                    value,
+                                    ch,
+                                    val_bar.blue()
+                                );
+                            } else {
+                                // For other ControlChange variants, just show raw bytes
+                                println!("{} {:02X?}", "CC      ".blue().bold(), msg);
+                            }
+                        }
+
+                        ChannelVoiceMsg::PolyPressure { note, pressure } => {
+                            let note_name = note_to_name(note);
+                            let pressure_bar = "▓".repeat((pressure as usize * 20) / 127);
                             println!(
-                                "{} note={:3} vel=  0 ch={:2} (held {:.3}s)",
-                                "Note OFF".yellow().bold(),
+                                "{} {:>3} ({:3}) pres={:3} ch={:2} {}",
+                                "PolyAT  ".purple().bold(),
+                                note_name.cyan(),
                                 note,
-                                channel,
-                                duration.as_secs_f32()
+                                pressure,
+                                ch,
+                                pressure_bar.purple()
                             );
+                        }
+
+                        ChannelVoiceMsg::ChannelPressure { pressure } => {
+                            let pressure_bar = "▓".repeat((pressure as usize * 20) / 127);
+                            println!(
+                                "{} pres={:3}         ch={:2} {}",
+                                "ChanAT  ".purple().bold(),
+                                pressure,
+                                ch,
+                                pressure_bar.purple()
+                            );
+                        }
+
+                        ChannelVoiceMsg::PitchBend { bend } => {
+                            let centered = bend as i32 - 8192; // Center is 8192
+
+                            let direction = if centered > 0 {
+                                "↑"
+                            } else if centered < 0 {
+                                "↓"
+                            } else {
+                                "◯"
+                            };
+                            println!(
+                                "{} value={:5} ({:+6}) ch={:2} {}",
+                                "PitchBend".magenta().bold(),
+                                bend,
+                                centered,
+                                ch,
+                                direction
+                            );
+                        }
+
+                        ChannelVoiceMsg::ProgramChange { program } => {
+                            println!(
+                                "{} prog={:3}         ch={:2}",
+                                "ProgChg ".cyan().bold(),
+                                program,
+                                ch
+                            );
+                        }
+
+                        _ => {
+                            // Other voice messages (HighResNoteOn, HighResNoteOff, etc.)
+                            println!("{} {:02X?}", "Voice   ".cyan().bold(), msg);
                         }
                     }
                 }
 
-                0x80 => {
-                    // Note Off
-                    let note = msg[1];
-                    let channel = (msg[0] & 0x0F) + 1;
-
-                    if let Some(press_time) = held_notes_clone.lock().unwrap().remove(&note) {
-                        let duration = now.duration_since(press_time);
-                        println!(
-                            "{} note={:3}         ch={:2} (held {:.3}s)",
-                            "Note OFF".yellow().bold(),
-                            note,
-                            channel,
-                            duration.as_secs_f32()
-                        );
-                    } else {
-                        println!(
-                            "{} note={:3}         ch={:2}",
-                            "Note OFF".yellow().bold(),
-                            note,
-                            channel
-                        );
-                    }
-                }
-
-                0xB0 => {
-                    // Control Change
-                    let controller = msg[1];
-                    let value = msg[2];
-                    let channel = (msg[0] & 0x0F) + 1;
-
-                    let val_bar = "▬".repeat((value as usize * 20) / 127);
-                    println!(
-                        "{}   cc={:3} val={:3} ch={:2} {}",
-                        "CC      ".blue().bold(),
-                        controller,
-                        value,
-                        channel,
-                        val_bar.blue()
-                    );
-                }
-
-                0xD0 => {
-                    // Channel Aftertouch
-                    let pressure = msg[1];
-                    let channel = (msg[0] & 0x0F) + 1;
-
-                    let pressure_bar = "▓".repeat((pressure as usize * 20) / 127);
-                    println!(
-                        "{} pressure={:3}     ch={:2} {}",
-                        "Aftertouch".purple().bold(),
-                        pressure,
-                        channel,
-                        pressure_bar.purple()
-                    );
-                }
-
-                0xE0 => {
-                    // Pitch Bend
-                    let value = ((msg[2] as u16) << 7) | (msg[1] as u16);
-                    let channel = (msg[0] & 0x0F) + 1;
-                    let centered = value as i32 - 8192; // Center is 8192
-
-                    let direction = if centered > 0 {
-                        "↑"
-                    } else if centered < 0 {
-                        "↓"
-                    } else {
-                        "◯"
-                    };
-                    println!(
-                        "{} value={:5} ({:+6}) ch={:2} {}",
-                        "PitchBend".magenta().bold(),
-                        value,
-                        centered,
-                        channel,
-                        direction
-                    );
-                }
-
-                0xC0 => {
-                    // Program Change
-                    let program = msg[1];
-                    let channel = (msg[0] & 0x0F) + 1;
-
-                    println!(
-                        "{} prog={:3}         ch={:2}",
-                        "ProgChg ".cyan().bold(),
-                        program,
-                        channel
-                    );
-                }
-
-                0xF0 => {
-                    // System messages
+                Ok((MidiMsg::SystemCommon { .. }, _)) | Ok((MidiMsg::SystemRealTime { .. }, _)) => {
                     println!("{} {:02X?}", "System  ".white().bold(), msg);
                 }
 
                 _ => {
-                    // Unknown message
                     println!("{} {:02X?}", "Unknown ".red().bold(), msg);
                 }
             }
@@ -247,7 +284,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .iter()
                 .map(|(note, press_time)| {
                     let duration = Instant::now().duration_since(*press_time);
-                    format!("{}({:.1}s)", note, duration.as_secs_f32())
+                    format!("{}({:.1}s)", note_to_name(*note), duration.as_secs_f32())
                 })
                 .collect();
 
@@ -258,11 +295,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
             use std::io::{self, Write};
             io::stdout().flush().unwrap();
+
+            // Mark that status line is active
+            *status_line_active.lock().unwrap() = true;
         } else {
             // Clear the line if no notes are held
-            print!("\r{:60}", " ");
-            use std::io::{self, Write};
-            io::stdout().flush().unwrap();
+            let mut status_active = status_line_active.lock().unwrap();
+            if *status_active {
+                print!("\r{:80}\r", " ");
+                use std::io::{self, Write};
+                io::stdout().flush().unwrap();
+                *status_active = false;
+            }
         }
     }
 }

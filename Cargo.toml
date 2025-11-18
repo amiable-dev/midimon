@@ -52,6 +52,13 @@ rand = "0.8"
 regex = "1.10"  # Security validation
 dirs = "5.0"  # Path handling
 
+# Platform-specific MIDI output (optional, for virtual port creation)
+coremidi = "0.8"  # macOS virtual MIDI ports (0.9 not available on crates.io)
+alsa = "0.9"  # Linux ALSA virtual ports
+
+# MIDI message parsing
+midi-msg = "0.8"  # Modern MIDI message parser (actively maintained)
+
 # CLI/display dependencies (NOT in midimon-core, only midimon-daemon)
 enigo = "0.6"
 colored = "3.0"

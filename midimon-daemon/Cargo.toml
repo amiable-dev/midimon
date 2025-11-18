@@ -64,6 +64,7 @@ enigo.workspace = true
 
 # MIDI I/O and threading
 midir.workspace = true
+midi-msg.workspace = true
 crossbeam-channel.workspace = true
 
 # HID device access (for LED diagnostic tools)
