@@ -667,26 +667,43 @@ fn execute_volume_control(operation: &VolumeOperation, value: &Option<u8>) {
     #[cfg(target_os = "linux")]
     {
         // Try PulseAudio first, fall back to ALSA
-        let cmd = match operation {
-            VolumeOperation::Up => vec!["pactl", "set-sink-volume", "@DEFAULT_SINK@", "+10%"],
-            VolumeOperation::Down => vec!["pactl", "set-sink-volume", "@DEFAULT_SINK@", "-10%"],
-            VolumeOperation::Mute => vec!["pactl", "set-sink-mute", "@DEFAULT_SINK@", "1"],
-            VolumeOperation::Unmute => vec!["pactl", "set-sink-mute", "@DEFAULT_SINK@", "0"],
-            VolumeOperation::Set => {
-                if let Some(vol) = value {
-                    vec![
-                        "pactl",
-                        "set-sink-volume",
-                        "@DEFAULT_SINK@",
-                        &format!("{}%", vol),
-                    ]
-                } else {
-                    vec!["pactl", "set-sink-volume", "@DEFAULT_SINK@", "50%"]
-                }
+        match operation {
+            VolumeOperation::Up => {
+                Command::new("pactl")
+                    .args(["set-sink-volume", "@DEFAULT_SINK@", "+10%"])
+                    .spawn()
+                    .ok();
             }
-        };
-
-        Command::new(cmd[0]).args(&cmd[1..]).spawn().ok();
+            VolumeOperation::Down => {
+                Command::new("pactl")
+                    .args(["set-sink-volume", "@DEFAULT_SINK@", "-10%"])
+                    .spawn()
+                    .ok();
+            }
+            VolumeOperation::Mute => {
+                Command::new("pactl")
+                    .args(["set-sink-mute", "@DEFAULT_SINK@", "1"])
+                    .spawn()
+                    .ok();
+            }
+            VolumeOperation::Unmute => {
+                Command::new("pactl")
+                    .args(["set-sink-mute", "@DEFAULT_SINK@", "0"])
+                    .spawn()
+                    .ok();
+            }
+            VolumeOperation::Set => {
+                let volume_str = if let Some(vol) = value {
+                    format!("{}%", vol)
+                } else {
+                    "50%".to_string()
+                };
+                Command::new("pactl")
+                    .args(["set-sink-volume", "@DEFAULT_SINK@", &volume_str])
+                    .spawn()
+                    .ok();
+            }
+        }
     }
 
     #[cfg(target_os = "windows")]

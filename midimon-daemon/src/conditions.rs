@@ -9,7 +9,7 @@
 use chrono::{Datelike, Local, Timelike, Weekday};
 use midimon_core::Condition;
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 use std::process::Command;
 
 /// Context for condition evaluation

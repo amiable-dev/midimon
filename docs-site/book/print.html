@@ -15193,6 +15193,325 @@ v1.0.0 config → v0.1.0 engine ⚠️  (new features ignored with warnings)
 <li><a href="development/contributing.html">Contributing Guide</a></li>
 <li><a href="development/testing.html">Testing Strategy</a></li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="plugin-development"><a class="header" href="#plugin-development">Plugin Development</a></h1>
+<p>MIDIMon v2.3 introduces a powerful plugin architecture that allows third-party developers to create custom actions through dynamically loaded shared libraries.</p>
+<h2 id="overview-15"><a class="header" href="#overview-15">Overview</a></h2>
+<p>Plugins extend MIDIMon's functionality by implementing the <code>ActionPlugin</code> trait. They can:</p>
+<ul>
+<li>Execute custom logic when MIDI events occur</li>
+<li>Access event metadata (velocity, mode, timestamp)</li>
+<li>Request specific capabilities (network, filesystem, etc.)</li>
+<li>Be loaded/unloaded dynamically without restart</li>
+<li>Be managed through the GUI Plugin Manager</li>
+</ul>
+<h2 id="quick-start-3"><a class="header" href="#quick-start-3">Quick Start</a></h2>
+<h3 id="1-create-a-new-plugin-project"><a class="header" href="#1-create-a-new-plugin-project">1. Create a New Plugin Project</a></h3>
+<pre><code class="language-bash">cargo new --lib my_plugin
+cd my_plugin
+</code></pre>
+<h3 id="2-configure-cargotoml"><a class="header" href="#2-configure-cargotoml">2. Configure Cargo.toml</a></h3>
+<pre><code class="language-toml">[package]
+name = "midimon-my-plugin"
+version = "1.0.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]  # Required for dynamic loading
+
+[dependencies]
+midimon-core = { path = "../midimon-core", features = ["plugin"] }
+serde_json = "1.0"
+</code></pre>
+<h3 id="3-implement-the-actionplugin-trait"><a class="header" href="#3-implement-the-actionplugin-trait">3. Implement the ActionPlugin Trait</a></h3>
+<pre><code class="language-rust">use midimon_core::plugin::{ActionPlugin, Capability, TriggerContext};
+use serde_json::Value;
+use std::error::Error;
+
+pub struct MyPlugin;
+
+impl ActionPlugin for MyPlugin {
+    fn name(&amp;self) -&gt; &amp;str {
+        "my_plugin"
+    }
+
+    fn version(&amp;self) -&gt; &amp;str {
+        "1.0.0"
+    }
+
+    fn description(&amp;self) -&gt; &amp;str {
+        "My custom MIDIMon plugin"
+    }
+
+    fn author(&amp;self) -&gt; &amp;str {
+        "Your Name"
+    }
+
+    fn license(&amp;self) -&gt; &amp;str {
+        "MIT"
+    }
+
+    fn capabilities(&amp;self) -&gt; Vec&lt;Capability&gt; {
+        vec![Capability::Network]  // Request network access
+    }
+
+    fn execute(&amp;mut self, params: Value, context: TriggerContext) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+        // Your plugin logic here
+        let velocity = context.velocity.unwrap_or(0);
+        eprintln!("Plugin executed with velocity: {}", velocity);
+        Ok(())
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn _create_plugin() -&gt; *mut dyn ActionPlugin {
+    Box::into_raw(Box::new(MyPlugin))
+}</code></pre>
+<h3 id="4-create-plugin-manifest"><a class="header" href="#4-create-plugin-manifest">4. Create Plugin Manifest</a></h3>
+<p>Create <code>plugin.toml</code> in your plugin directory:</p>
+<pre><code class="language-toml">[plugin]
+name = "my_plugin"
+version = "1.0.0"
+description = "My custom MIDIMon plugin"
+author = "Your Name"
+homepage = "https://github.com/yourname/midimon-my-plugin"
+license = "MIT"
+type = "action"
+binary = "libmidimon_my_plugin.dylib"  # .so on Linux, .dll on Windows
+checksum = ""  # Optional SHA256 checksum
+
+[plugin.capabilities]
+network = true
+</code></pre>
+<h3 id="5-build-and-install"><a class="header" href="#5-build-and-install">5. Build and Install</a></h3>
+<pre><code class="language-bash"># Build the plugin
+cargo build --release
+
+# Install to MIDIMon plugins directory
+mkdir -p ~/.midimon/plugins/my_plugin
+cp target/release/libmidimon_my_plugin.dylib ~/.midimon/plugins/my_plugin/
+cp plugin.toml ~/.midimon/plugins/my_plugin/
+</code></pre>
+<h3 id="6-use-in-configuration"><a class="header" href="#6-use-in-configuration">6. Use in Configuration</a></h3>
+<pre><code class="language-toml">[[modes.mappings]]
+trigger = { Note = { note = 60 } }
+action = { Plugin = {
+    plugin = "my_plugin",
+    params = {
+        "custom_param": "value"
+    }
+}}
+</code></pre>
+<h2 id="capability-system"><a class="header" href="#capability-system">Capability System</a></h2>
+<p>Plugins request capabilities to access system resources. MIDIMon uses a risk-level based security model:</p>
+<h3 id="capability-types"><a class="header" href="#capability-types">Capability Types</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Capability</th><th>Risk Level</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>Network</code></td><td>Low</td><td>HTTP requests, websockets</td></tr>
+<tr><td><code>Audio</code></td><td>Low</td><td>Audio device access</td></tr>
+<tr><td><code>Midi</code></td><td>Low</td><td>MIDI device access</td></tr>
+<tr><td><code>Filesystem</code></td><td>Medium</td><td>File read/write</td></tr>
+<tr><td><code>Subprocess</code></td><td>High</td><td>Execute shell commands</td></tr>
+<tr><td><code>SystemControl</code></td><td>High</td><td>System-level control</td></tr>
+</tbody></table>
+</div>
+<h3 id="risk-levels"><a class="header" href="#risk-levels">Risk Levels</a></h3>
+<ul>
+<li><strong>Low</strong> (🟢): Auto-granted by default, considered safe</li>
+<li><strong>Medium</strong> (🟡): Requires user approval</li>
+<li><strong>High</strong> (🔴): Requires explicit user approval with warning</li>
+</ul>
+<h3 id="requesting-capabilities"><a class="header" href="#requesting-capabilities">Requesting Capabilities</a></h3>
+<pre><code class="language-rust">fn capabilities(&amp;self) -&gt; Vec&lt;Capability&gt; {
+    vec![
+        Capability::Network,      // Auto-granted
+        Capability::Filesystem,   // Requires approval
+    ]
+}</code></pre>
+<h2 id="plugin-lifecycle"><a class="header" href="#plugin-lifecycle">Plugin Lifecycle</a></h2>
+<ol>
+<li><strong>Discovery</strong>: MIDIMon scans <code>~/.midimon/plugins/</code> for <code>plugin.toml</code> files</li>
+<li><strong>Load</strong>: Binary is loaded via <code>libloading</code>, plugin instance created</li>
+<li><strong>Initialize</strong>: <code>initialize()</code> method called (if implemented)</li>
+<li><strong>Execute</strong>: <code>execute()</code> called for each MIDI event</li>
+<li><strong>Shutdown</strong>: <code>shutdown()</code> method called before unload (if implemented)</li>
+<li><strong>Unload</strong>: Plugin removed from memory</li>
+</ol>
+<h2 id="advanced-features-2"><a class="header" href="#advanced-features-2">Advanced Features</a></h2>
+<h3 id="initialization-and-shutdown"><a class="header" href="#initialization-and-shutdown">Initialization and Shutdown</a></h3>
+<pre><code class="language-rust">impl ActionPlugin for MyPlugin {
+    fn initialize(&amp;mut self) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+        eprintln!("Plugin initializing...");
+        // Setup code here
+        Ok(())
+    }
+
+    fn shutdown(&amp;mut self) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+        eprintln!("Plugin shutting down...");
+        // Cleanup code here
+        Ok(())
+    }
+}</code></pre>
+<h3 id="accessing-context"><a class="header" href="#accessing-context">Accessing Context</a></h3>
+<pre><code class="language-rust">fn execute(&amp;mut self, params: Value, context: TriggerContext) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+    let velocity = context.velocity.unwrap_or(0);
+    let mode = context.current_mode.unwrap_or(0);
+    let timestamp = context.timestamp;
+
+    eprintln!("Velocity: {}, Mode: {}", velocity, mode);
+    Ok(())
+}</code></pre>
+<h3 id="parameter-parsing"><a class="header" href="#parameter-parsing">Parameter Parsing</a></h3>
+<pre><code class="language-rust">fn execute(&amp;mut self, params: Value, _context: TriggerContext) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+    let url = params["url"]
+        .as_str()
+        .ok_or("Missing 'url' parameter")?;
+
+    let method = params["method"]
+        .as_str()
+        .unwrap_or("GET");
+
+    // Use parameters...
+    Ok(())
+}</code></pre>
+<h2 id="testing-plugins"><a class="header" href="#testing-plugins">Testing Plugins</a></h2>
+<pre><code class="language-rust">#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_plugin_metadata() {
+        let plugin = MyPlugin;
+        assert_eq!(plugin.name(), "my_plugin");
+        assert_eq!(plugin.version(), "1.0.0");
+    }
+
+    #[test]
+    fn test_plugin_execute() {
+        let mut plugin = MyPlugin;
+        let params = serde_json::json!({
+            "param1": "value1"
+        });
+        let context = TriggerContext {
+            velocity: Some(127),
+            current_mode: Some(0),
+            timestamp: std::time::Instant::now(),
+        };
+
+        assert!(plugin.execute(params, context).is_ok());
+    }
+}</code></pre>
+<h2 id="gui-plugin-manager"><a class="header" href="#gui-plugin-manager">GUI Plugin Manager</a></h2>
+<p>Plugins can be managed through the GUI:</p>
+<ol>
+<li><strong>Discover</strong>: Scan for new plugins</li>
+<li><strong>Load/Unload</strong>: Control plugin lifecycle</li>
+<li><strong>Enable/Disable</strong>: Toggle plugin availability</li>
+<li><strong>Grant/Revoke</strong>: Manage capabilities</li>
+<li><strong>Statistics</strong>: View execution counts and latency</li>
+</ol>
+<h2 id="example-plugins"><a class="header" href="#example-plugins">Example Plugins</a></h2>
+<h3 id="http-request-plugin"><a class="header" href="#http-request-plugin">HTTP Request Plugin</a></h3>
+<p>See <code>examples/http-plugin/</code> for a complete example that demonstrates:</p>
+<ul>
+<li>Making HTTP requests (GET, POST, PUT, DELETE)</li>
+<li>Custom headers</li>
+<li>JSON body</li>
+<li>Velocity substitution</li>
+<li>Error handling</li>
+</ul>
+<h3 id="creating-a-simple-logger-plugin"><a class="header" href="#creating-a-simple-logger-plugin">Creating a Simple Logger Plugin</a></h3>
+<pre><code class="language-rust">use std::fs::OpenOptions;
+use std::io::Write;
+
+pub struct LoggerPlugin {
+    log_file: String,
+}
+
+impl LoggerPlugin {
+    pub fn new() -&gt; Self {
+        Self {
+            log_file: "/tmp/midimon.log".to_string(),
+        }
+    }
+}
+
+impl ActionPlugin for LoggerPlugin {
+    // ... metadata methods ...
+
+    fn capabilities(&amp;self) -&gt; Vec&lt;Capability&gt; {
+        vec![Capability::Filesystem]
+    }
+
+    fn execute(&amp;mut self, params: Value, context: TriggerContext) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+        let message = params["message"].as_str().unwrap_or("Event triggered");
+        let velocity = context.velocity.unwrap_or(0);
+
+        let mut file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&amp;self.log_file)?;
+
+        writeln!(file, "[v={}] {}", velocity, message)?;
+        Ok(())
+    }
+}</code></pre>
+<h2 id="best-practices-6"><a class="header" href="#best-practices-6">Best Practices</a></h2>
+<ol>
+<li><strong>Error Handling</strong>: Always return proper errors, never panic</li>
+<li><strong>Performance</strong>: Keep <code>execute()</code> fast (&lt;10ms ideal)</li>
+<li><strong>Resource Cleanup</strong>: Implement <code>shutdown()</code> for cleanup</li>
+<li><strong>Documentation</strong>: Document all parameters in README</li>
+<li><strong>Testing</strong>: Write tests for all functionality</li>
+<li><strong>Security</strong>: Request minimum necessary capabilities</li>
+<li><strong>Logging</strong>: Use <code>eprintln!()</code> for debug output</li>
+</ol>
+<h2 id="distribution-1"><a class="header" href="#distribution-1">Distribution</a></h2>
+<h3 id="binary-naming"><a class="header" href="#binary-naming">Binary Naming</a></h3>
+<ul>
+<li>macOS: <code>libmyplugin.dylib</code></li>
+<li>Linux: <code>libmyplugin.so</code></li>
+<li>Windows: <code>myplugin.dll</code></li>
+</ul>
+<h3 id="directory-structure"><a class="header" href="#directory-structure">Directory Structure</a></h3>
+<pre><code>~/.midimon/plugins/
+  └── my_plugin/
+      ├── plugin.toml
+      └── libmidimon_my_plugin.dylib
+</code></pre>
+<h3 id="checksum-verification"><a class="header" href="#checksum-verification">Checksum Verification</a></h3>
+<p>Generate SHA256 for security:</p>
+<pre><code class="language-bash">shasum -a 256 target/release/libmidimon_my_plugin.dylib
+</code></pre>
+<p>Add to <code>plugin.toml</code>:</p>
+<pre><code class="language-toml">[plugin]
+checksum = "abc123..."
+</code></pre>
+<h2 id="troubleshooting-20"><a class="header" href="#troubleshooting-20">Troubleshooting</a></h2>
+<h3 id="plugin-not-discovered"><a class="header" href="#plugin-not-discovered">Plugin Not Discovered</a></h3>
+<ul>
+<li>Check <code>plugin.toml</code> is valid TOML</li>
+<li>Verify <code>~/.midimon/plugins/</code> directory exists</li>
+<li>Ensure binary name matches in manifest</li>
+</ul>
+<h3 id="plugin-fails-to-load"><a class="header" href="#plugin-fails-to-load">Plugin Fails to Load</a></h3>
+<ul>
+<li>Check binary is compiled for correct platform</li>
+<li>Verify <code>crate-type = ["cdylib"]</code> in Cargo.toml</li>
+<li>Ensure <code>_create_plugin</code> symbol is exported</li>
+</ul>
+<h3 id="capability-denied"><a class="header" href="#capability-denied">Capability Denied</a></h3>
+<ul>
+<li>Check risk level in GUI Plugin Manager</li>
+<li>Grant capability manually if needed</li>
+<li>Consider using lower-risk alternatives</li>
+</ul>
+<h2 id="further-reading-2"><a class="header" href="#further-reading-2">Further Reading</a></h2>
+<ul>
+<li><a href="https://github.com/amiable-dev/midimon/blob/main/docs/PLUGIN_DEVELOPMENT_GUIDE.md">PLUGIN_DEVELOPMENT_GUIDE.md</a> - Comprehensive guide</li>
+<li><a href="https://github.com/amiable-dev/midimon/tree/main/examples/http-plugin">HTTP Plugin Example</a> - Reference implementation</li>
+<li><a href="development/../reference/plugin-api.html">Plugin API Reference</a> - Complete API documentation</li>
+</ul>
+<h2 id="community-plugins"><a class="header" href="#community-plugins">Community Plugins</a></h2>
+<p>Share your plugins with the community! Submit a PR to add your plugin to the <a href="https://github.com/amiable-dev/midimon-plugins">Plugin Registry</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="contributing-guide"><a class="header" href="#contributing-guide">Contributing Guide</a></h1>
 <blockquote>
 <p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
@@ -15235,7 +15554,7 @@ v1.0.0 config → v0.1.0 engine ⚠️  (new features ignored with warnings)
 <li><strong>Precise Timing</strong>: Configurable delays and durations</li>
 <li><strong>Event Capture</strong>: Inspect all generated MIDI messages</li>
 </ul>
-<h3 id="quick-start-3"><a class="header" href="#quick-start-3">Quick Start</a></h3>
+<h3 id="quick-start-4"><a class="header" href="#quick-start-4">Quick Start</a></h3>
 <pre><code class="language-rust">use midi_simulator::{MidiSimulator, Gesture, EncoderDirection};
 
 // Create a simulator on MIDI channel 0
@@ -15309,7 +15628,7 @@ cargo nextest run --all-features
 </ul>
 <h2 id="end-to-end-test-suite"><a class="header" href="#end-to-end-test-suite">End-to-End Test Suite</a></h2>
 <p>The E2E test suite (<code>tests/e2e_tests.rs</code>) provides comprehensive validation of the complete MIDIMon pipeline from MIDI input through event processing, mapping, and action execution. See <a href="development/testing.html#integration-test-suites">Integration Test Suites</a> section below for full documentation of all E2E workflows, test architecture, and writing E2E tests.</p>
-<h3 id="quick-start-4"><a class="header" href="#quick-start-4">Quick Start</a></h3>
+<h3 id="quick-start-5"><a class="header" href="#quick-start-5">Quick Start</a></h3>
 <pre><code class="language-bash"># Run all E2E tests (20+ workflow tests)
 cargo test --test e2e_tests
 
@@ -15790,7 +16109,7 @@ sim.set_debug(true);
 
 sim.note_on(60, 100);
 // Output: [SIM] Sending: [90, 3C, 64]</code></pre>
-<h2 id="best-practices-6"><a class="header" href="#best-practices-6">Best Practices</a></h2>
+<h2 id="best-practices-7"><a class="header" href="#best-practices-7">Best Practices</a></h2>
 <ol>
 <li><strong>Clear events between tests</strong>: Always clear the event queue between tests to avoid interference</li>
 <li><strong>Use gestures for complex interactions</strong>: Prefer high-level gestures over manual event sequences</li>
@@ -15815,7 +16134,7 @@ jobs:
       - name: Run tests
         run: cargo test --all-features
 </code></pre>
-<h2 id="troubleshooting-20"><a class="header" href="#troubleshooting-20">Troubleshooting</a></h2>
+<h2 id="troubleshooting-21"><a class="header" href="#troubleshooting-21">Troubleshooting</a></h2>
 <h3 id="tests-timeout"><a class="header" href="#tests-timeout">Tests Timeout</a></h3>
 <p>If timing-based tests timeout, increase tolerance:</p>
 <pre><code class="language-rust">assert!(duration &gt;= Duration::from_millis(2500));
@@ -16057,7 +16376,7 @@ fn test_feature_name() {
 <hr />
 <p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="development/../development/contributing.html">Contributing Guide</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="common-issues-and-solutions"><a class="header" href="#common-issues-and-solutions">Common Issues and Solutions</a></h1>
-<h2 id="overview-15"><a class="header" href="#overview-15">Overview</a></h2>
+<h2 id="overview-16"><a class="header" href="#overview-16">Overview</a></h2>
 <p>This guide covers the most frequently encountered issues when using MIDIMon, along with step-by-step solutions. For detailed diagnostic procedures, see <a href="troubleshooting/diagnostics.html">Diagnostics Guide</a>.</p>
 <h2 id="midi-device-not-found"><a class="header" href="#midi-device-not-found">MIDI Device Not Found</a></h2>
 <h3 id="symptoms"><a class="header" href="#symptoms">Symptoms</a></h3>
@@ -17246,7 +17565,7 @@ midimonctl stop
 <hr />
 <p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="troubleshooting/../development/contributing.html">Contributing Guide</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="diagnostic-tools-and-procedures"><a class="header" href="#diagnostic-tools-and-procedures">Diagnostic Tools and Procedures</a></h1>
-<h2 id="overview-16"><a class="header" href="#overview-16">Overview</a></h2>
+<h2 id="overview-17"><a class="header" href="#overview-17">Overview</a></h2>
 <p>MIDIMon includes a comprehensive suite of diagnostic tools for debugging connectivity, event processing, LED control, and configuration issues. This guide covers each tool in detail and provides systematic troubleshooting procedures.</p>
 <h2 id="quick-diagnostic-checklist-1"><a class="header" href="#quick-diagnostic-checklist-1">Quick Diagnostic Checklist</a></h2>
 <p>Before diving deep, run through this quick checklist:</p>
