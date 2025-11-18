@@ -13,7 +13,6 @@ create-missing = true
 default-theme = "light"
 preferred-dark-theme = "navy"
 git-repository-url = "https://github.com/amiable-dev/midimon"
-git-repository-icon = "fa-github"
 edit-url-template = "https://github.com/amiable-dev/midimon/edit/main/docs-site/src/{path}"
 site-url = "/midimon/"
 cname = ""
