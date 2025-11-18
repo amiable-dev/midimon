@@ -39,7 +39,8 @@
   async function loadInstalledPlugins() {
     try {
       const installed = await invoke('list_installed_plugins');
-      installedPlugins = new Set(installed.map(p => p.id));
+      // list_installed_plugins returns array of strings (plugin names)
+      installedPlugins = new Set(installed);
     } catch (e) {
       console.error('Failed to load installed plugins:', e);
     }
@@ -47,7 +48,7 @@
 
   async function installPlugin(pluginId) {
     try {
-      await invoke('install_plugin', { pluginId });
+      await invoke('install_plugin_from_registry', { pluginId });
       installedPlugins.add(pluginId);
       installedPlugins = installedPlugins; // Trigger reactivity
       alert(`Plugin "${pluginId}" installed successfully!`);
@@ -62,7 +63,7 @@
     }
 
     try {
-      await invoke('uninstall_plugin', { pluginId });
+      await invoke('uninstall_plugin', { pluginName: pluginId });
       installedPlugins.delete(pluginId);
       installedPlugins = installedPlugins; // Trigger reactivity
       alert(`Plugin "${pluginId}" uninstalled successfully!`);
@@ -73,11 +74,11 @@
 
   // Filter plugins based on category and search
   $: filteredPlugins = plugins.filter(plugin => {
-    const matchesCategory = selectedCategory === 'all' || plugin.categories.includes(selectedCategory);
+    const matchesCategory = selectedCategory === 'all' || (plugin.categories && plugin.categories.includes(selectedCategory));
     const matchesSearch = !searchQuery ||
       plugin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       plugin.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      plugin.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      (plugin.tags && plugin.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())));
     return matchesCategory && matchesSearch;
   });
 
