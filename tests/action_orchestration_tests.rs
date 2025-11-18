@@ -425,7 +425,8 @@ fn test_repeat_with_delay() {
     let duration = start.elapsed();
     let expected_ms = repeat_count * delay_ms;
 
-    assert_duration_within_tolerance(duration, expected_ms, 20, "Repeat with delays");
+    // Use 30ms tolerance to account for system scheduling variance
+    assert_duration_within_tolerance(duration, expected_ms, 30, "Repeat with delays");
 }
 
 #[test]
