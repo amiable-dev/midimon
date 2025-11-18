@@ -23,6 +23,12 @@ pub enum EngineError {
 
     #[error("Invalid mode: {0}")]
     InvalidMode(u8),
+
+    #[error("MIDI initialization failed: {0}")]
+    MidiInit(String),
+
+    #[error("MIDI output error: {0}")]
+    MidiOutput(String),
 }
 
 /// Configuration parsing errors

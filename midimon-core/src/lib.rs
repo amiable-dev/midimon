@@ -95,6 +95,8 @@ pub mod event_processor;
 pub mod events;
 pub mod feedback;
 pub mod mapping; // Public for advanced event processing
+pub mod midi_output; // MIDI output management (v2.1)
+pub mod velocity; // Velocity mapping calculations (v2.2)
 
 // Private modules (implementation details)
 pub mod logging;
@@ -115,7 +117,10 @@ pub use events::{EncoderDirection, InputEvent, MidiEvent, ProcessedEvent, Veloci
 
 // Actions (ActionExecutor moved to midimon-daemon in Phase 2 security refactor)
 // Domain-specific types for platform-independent action representation
-pub use actions::{Action, KeyCode, ModifierKey, MouseButton, VolumeOperation};
+pub use actions::{
+    Action, Condition, KeyCode, MidiMessageParams, MidiMessageType, ModifierKey, MouseButton,
+    VelocityCurve, VelocityMapping, VolumeOperation,
+};
 
 // Feedback
 pub use feedback::{FeedbackManager, LightingScheme, PadFeedback};
@@ -128,3 +133,6 @@ pub use error::{ActionError, ConfigError, EngineError, FeedbackError, ProfileErr
 
 // Mapping
 pub use mapping::MappingEngine;
+
+// MIDI Output (v2.1)
+pub use midi_output::{MidiMessage, MidiOutputManager};

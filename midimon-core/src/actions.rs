@@ -108,6 +108,75 @@ pub enum MouseButton {
     Middle,
 }
 
+/// Condition for conditional action execution (v2.2)
+///
+/// Represents conditions that can be evaluated at runtime to determine
+/// whether to execute an action. Supports time-based, app-based, mode-based,
+/// and logical operators for complex conditional logic.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum Condition {
+    /// Always evaluates to true (useful for testing)
+    Always,
+
+    /// Always evaluates to false (useful for disabling actions)
+    Never,
+
+    /// Time-based condition: current time falls within range
+    /// Format: start and end times in 24-hour format (HH:MM)
+    /// Automatically handles ranges that cross midnight
+    TimeRange {
+        /// Start time in 24-hour format (e.g., "09:00")
+        start: String,
+        /// End time in 24-hour format (e.g., "17:30")
+        end: String,
+    },
+
+    /// Day of week condition
+    /// Days: Monday=1, Tuesday=2, ..., Sunday=7
+    DayOfWeek {
+        /// Days of week when condition is true (1-7)
+        days: Vec<u8>,
+    },
+
+    /// Application is currently running
+    /// Checks if process with given name exists
+    AppRunning {
+        /// Application name (e.g., "Ableton Live")
+        app_name: String,
+    },
+
+    /// Application is frontmost (has focus)
+    /// Platform-specific implementation
+    AppFrontmost {
+        /// Application name (e.g., "Ableton Live")
+        app_name: String,
+    },
+
+    /// Current mode matches
+    ModeIs {
+        /// Mode name to match
+        mode: String,
+    },
+
+    /// Logical AND of multiple conditions
+    And {
+        /// Conditions that must all be true
+        conditions: Vec<Condition>,
+    },
+
+    /// Logical OR of multiple conditions
+    Or {
+        /// At least one condition must be true
+        conditions: Vec<Condition>,
+    },
+
+    /// Logical NOT (negation)
+    Not {
+        /// Condition to negate
+        condition: Box<Condition>,
+    },
+}
+
 /// Action to be executed when a trigger is matched
 ///
 /// This enum uses domain-specific types (KeyCode, ModifierKey, MouseButton) instead
@@ -134,7 +203,7 @@ pub enum Action {
         delay_ms: Option<u64>,
     },
     Conditional {
-        condition: String,
+        condition: Condition,
         then_action: Box<Action>,
         else_action: Option<Box<Action>>,
     },
@@ -144,6 +213,103 @@ pub enum Action {
     },
     ModeChange {
         mode: String,
+    },
+    SendMidi {
+        port: String,
+        message_type: MidiMessageType,
+        channel: u8,
+        params: MidiMessageParams,
+    },
+}
+
+/// MIDI message type (v2.1)
+///
+/// Represents the type of MIDI message to send.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum MidiMessageType {
+    NoteOn,
+    NoteOff,
+    ControlChange,
+    ProgramChange,
+    PitchBend,
+    Aftertouch,
+}
+
+/// Velocity mapping mode for SendMIDI actions (v2.2)
+///
+/// Defines how trigger velocity is mapped to output MIDI velocity.
+/// This enables dynamic velocity control where pad dynamics can be preserved,
+/// scaled, or transformed when sending MIDI notes.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum VelocityMapping {
+    /// Fixed velocity (current behavior, v2.1 compatibility)
+    /// Always send the same velocity regardless of trigger velocity
+    Fixed {
+        velocity: u8,  // 0-127
+    },
+
+    /// Pass-through mode (1:1 mapping)
+    /// Output velocity = trigger velocity
+    PassThrough,
+
+    /// Linear scaling with configurable range
+    /// Maps input range (0-127) to output range (min-max)
+    Linear {
+        min: u8,  // Minimum output velocity (0-127)
+        max: u8,  // Maximum output velocity (0-127)
+    },
+
+    /// Curve-based transformation
+    /// Applies non-linear curve to velocity values
+    Curve {
+        curve_type: VelocityCurve,
+        intensity: f32,  // 0.0-1.0, curve strength
+    },
+}
+
+/// Velocity curve types for non-linear transformations
+///
+/// Defines the shape of the velocity mapping curve.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum VelocityCurve {
+    /// Exponential curve (soft hits louder)
+    /// Output = input ^ (1 + intensity)
+    /// Makes soft hits louder while preserving hard hits
+    Exponential,
+
+    /// Logarithmic curve (soft hits quieter)
+    /// Output = log(1 + input * intensity) / log(1 + 127 * intensity) * 127
+    /// Compresses dynamic range, makes soft hits quieter
+    Logarithmic,
+
+    /// S-curve (sigmoid) for smooth transitions
+    /// Output = 127 / (1 + exp(-intensity * (input - 63.5)))
+    /// Creates smooth acceleration in the middle range
+    SCurve,
+}
+
+/// MIDI message parameters (v2.2 - updated for variable velocity)
+///
+/// Type-specific parameters for MIDI messages.
+/// Note messages now support velocity mapping instead of fixed velocity.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum MidiMessageParams {
+    Note {
+        note: u8,
+        velocity_mapping: VelocityMapping,  // v2.2: was `velocity: u8`
+    },
+    CC {
+        controller: u8,
+        value: u8,
+    },
+    ProgramChange {
+        program: u8,
+    },
+    PitchBend {
+        value: i16,  // -8192 to +8191
+    },
+    Aftertouch {
+        pressure: u8,
     },
 }
 
@@ -193,6 +359,53 @@ impl From<ActionConfig> for Action {
                 then_action: Box::new((*then_action).into()),
                 else_action: else_action.map(|a| Box::new((*a).into())),
             },
+            ActionConfig::SendMidi {
+                port,
+                message_type,
+                channel,
+                note,
+                velocity,
+                controller,
+                value,
+                program,
+                pitch,
+                pressure,
+            } => {
+                let msg_type = parse_midi_message_type(&message_type);
+                let params = match msg_type {
+                    MidiMessageType::NoteOn | MidiMessageType::NoteOff => {
+                        // v2.2: Use Fixed velocity mapping for backward compatibility
+                        // If velocity is specified, create Fixed mapping with that value
+                        let velocity_mapping = VelocityMapping::Fixed {
+                            velocity: velocity.unwrap_or(100),
+                        };
+                        MidiMessageParams::Note {
+                            note: note.unwrap_or(60),
+                            velocity_mapping,
+                        }
+                    }
+                    MidiMessageType::ControlChange => MidiMessageParams::CC {
+                        controller: controller.unwrap_or(0),
+                        value: value.unwrap_or(0),
+                    },
+                    MidiMessageType::ProgramChange => MidiMessageParams::ProgramChange {
+                        program: program.unwrap_or(0),
+                    },
+                    MidiMessageType::PitchBend => MidiMessageParams::PitchBend {
+                        value: pitch.unwrap_or(0),
+                    },
+                    MidiMessageType::Aftertouch => MidiMessageParams::Aftertouch {
+                        pressure: pressure.unwrap_or(0),
+                    },
+                };
+
+                Action::SendMidi {
+                    port,
+                    message_type: msg_type,
+                    channel,
+                    params,
+                }
+            }
         }
     }
 }
@@ -328,6 +541,31 @@ fn parse_volume_operation(operation: &str) -> VolumeOperation {
     }
 }
 
+/// Parse MIDI message type string into enum (v2.1)
+///
+/// Converts configuration string to MidiMessageType enum variant.
+fn parse_midi_message_type(message_type: &str) -> MidiMessageType {
+    match message_type.to_lowercase().as_str() {
+        "noteon" | "note_on" | "note-on" => MidiMessageType::NoteOn,
+        "noteoff" | "note_off" | "note-off" => MidiMessageType::NoteOff,
+        "cc" | "controlchange" | "control_change" | "control-change" => {
+            MidiMessageType::ControlChange
+        }
+        "programchange" | "program_change" | "program-change" | "pc" => {
+            MidiMessageType::ProgramChange
+        }
+        "pitchbend" | "pitch_bend" | "pitch-bend" | "pb" => MidiMessageType::PitchBend,
+        "aftertouch" | "at" => MidiMessageType::Aftertouch,
+        _ => {
+            eprintln!(
+                "Unknown MIDI message type '{}', defaulting to NoteOn",
+                message_type
+            );
+            MidiMessageType::NoteOn
+        }
+    }
+}
+
 // Condition evaluation and volume control moved to midimon-daemon/action_executor.rs
 
 #[cfg(test)]
@@ -365,7 +603,7 @@ mod tests {
         use crate::config::ActionConfig;
 
         let config = ActionConfig::Conditional {
-            condition: "Always".to_string(),
+            condition: Condition::Always,
             then_action: Box::new(ActionConfig::Text {
                 text: "then".to_string(),
             }),
@@ -378,7 +616,7 @@ mod tests {
 
         match action {
             Action::Conditional { condition, .. } => {
-                assert_eq!(condition, "Always");
+                assert_eq!(condition, Condition::Always);
             }
             _ => panic!("Expected Conditional action"),
         }

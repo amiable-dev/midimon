@@ -642,6 +642,120 @@ fn validate_action(action: &ActionConfig) -> Result<(), ConfigError> {
                 validate_action(else_act)?;
             }
         }
+        ActionConfig::SendMidi {
+            port,
+            message_type,
+            channel,
+            note,
+            velocity,
+            controller,
+            value,
+            program,
+            pitch,
+            pressure,
+        } => {
+            // Validate port name
+            if port.is_empty() {
+                return Err(ConfigError::InvalidAction(
+                    "SendMidi requires port name".to_string(),
+                ));
+            }
+
+            // Validate message type
+            let valid_types = [
+                "NoteOn",
+                "NoteOff",
+                "CC",
+                "ControlChange",
+                "ProgramChange",
+                "PitchBend",
+                "Aftertouch",
+            ];
+            if !valid_types.iter().any(|t| {
+                message_type.eq_ignore_ascii_case(t)
+                    || message_type.replace('_', "").eq_ignore_ascii_case(t)
+                    || message_type.replace('-', "").eq_ignore_ascii_case(t)
+            }) {
+                return Err(ConfigError::InvalidAction(format!(
+                    "Invalid MIDI message type: '{}'. Valid types: {}",
+                    message_type,
+                    valid_types.join(", ")
+                )));
+            }
+
+            // Validate channel (0-15)
+            if *channel > 15 {
+                return Err(ConfigError::InvalidAction(format!(
+                    "MIDI channel must be 0-15, got {}",
+                    channel
+                )));
+            }
+
+            // Validate message-specific parameters
+            let msg_type_lower = message_type.to_lowercase();
+            if msg_type_lower.contains("note") {
+                if let Some(n) = note {
+                    if *n > 127 {
+                        return Err(ConfigError::InvalidAction(format!(
+                            "MIDI note must be 0-127, got {}",
+                            n
+                        )));
+                    }
+                }
+                if let Some(v) = velocity {
+                    if *v > 127 {
+                        return Err(ConfigError::InvalidAction(format!(
+                            "MIDI velocity must be 0-127, got {}",
+                            v
+                        )));
+                    }
+                }
+            } else if msg_type_lower.contains("cc") || msg_type_lower.contains("control") {
+                if let Some(c) = controller {
+                    if *c > 127 {
+                        return Err(ConfigError::InvalidAction(format!(
+                            "MIDI controller must be 0-127, got {}",
+                            c
+                        )));
+                    }
+                }
+                if let Some(v) = value {
+                    if *v > 127 {
+                        return Err(ConfigError::InvalidAction(format!(
+                            "MIDI value must be 0-127, got {}",
+                            v
+                        )));
+                    }
+                }
+            } else if msg_type_lower.contains("program") {
+                if let Some(p) = program {
+                    if *p > 127 {
+                        return Err(ConfigError::InvalidAction(format!(
+                            "MIDI program must be 0-127, got {}",
+                            p
+                        )));
+                    }
+                }
+            } else if msg_type_lower.contains("pitch") {
+                if let Some(p) = pitch {
+                    if *p < -8192 || *p > 8191 {
+                        return Err(ConfigError::InvalidAction(format!(
+                            "MIDI pitch bend must be -8192 to +8191, got {}",
+                            p
+                        )));
+                    }
+                }
+            } else if msg_type_lower.contains("aftertouch") {
+                if let Some(p) = pressure {
+                    if *p > 127 {
+                        return Err(ConfigError::InvalidAction(format!(
+                            "MIDI pressure must be 0-127, got {}",
+                            p
+                        )));
+                    }
+                }
+            }
+        }
     }
     Ok(())
 }

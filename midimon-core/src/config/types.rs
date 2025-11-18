@@ -8,6 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use crate::Condition;
 
 /// Top-level configuration structure
 ///
@@ -325,17 +326,52 @@ pub enum ActionConfig {
         delay_ms: Option<u64>,
     },
 
-    /// Conditional action execution
+    /// Conditional action execution (v2.2)
     ///
     /// Executes different actions based on a condition.
+    /// Supports time-based, app-based, mode-based conditions and logical operators.
     Conditional {
-        /// Condition to evaluate (format depends on condition type)
-        condition: String,
+        /// Condition to evaluate at runtime
+        condition: Condition,
         /// Action to execute if condition is true
         then_action: Box<ActionConfig>,
         /// Optional action to execute if condition is false
         #[serde(default)]
         else_action: Option<Box<ActionConfig>>,
+    },
+
+    /// Send MIDI message (v2.1)
+    ///
+    /// Sends a MIDI message to a virtual or physical output port.
+    /// Supports Note, CC, Program Change, Pitch Bend, and Aftertouch messages.
+    SendMidi {
+        /// Target MIDI output port name
+        port: String,
+        /// MIDI message type: "NoteOn", "NoteOff", "CC", "ProgramChange", "PitchBend", "Aftertouch"
+        message_type: String,
+        /// MIDI channel (0-15)
+        channel: u8,
+        /// Note number (0-127) for Note messages
+        #[serde(default)]
+        note: Option<u8>,
+        /// Velocity (0-127) for Note messages
+        #[serde(default)]
+        velocity: Option<u8>,
+        /// Controller number (0-127) for CC messages
+        #[serde(default)]
+        controller: Option<u8>,
+        /// Controller value (0-127) for CC messages
+        #[serde(default)]
+        value: Option<u8>,
+        /// Program number (0-127) for Program Change messages
+        #[serde(default)]
+        program: Option<u8>,
+        /// Pitch bend value (-8192 to +8191) for Pitch Bend messages
+        #[serde(default)]
+        pitch: Option<i16>,
+        /// Aftertouch pressure (0-127) for Aftertouch messages
+        #[serde(default)]
+        pressure: Option<u8>,
     },
 }
 
