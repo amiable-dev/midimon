@@ -7,7 +7,6 @@
 
 use midimon_core::plugin::{Capability, TriggerContext};
 use midimon_daemon::plugin_manager::PluginManager;
-use std::time::Instant;
 
 #[test]
 fn test_plugin_discovery() {
@@ -211,7 +210,10 @@ fn test_plugin_execution() {
     let context = TriggerContext {
         velocity: Some(100),
         current_mode: Some(0),
-        timestamp: Instant::now(),
+        timestamp: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64,
     };
 
     // Execute plugin action
@@ -284,7 +286,10 @@ fn test_plugin_enable_disable() {
     let context = TriggerContext {
         velocity: Some(100),
         current_mode: Some(0),
-        timestamp: Instant::now(),
+        timestamp: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64,
     };
 
     let result = manager.execute_plugin("spotify", action_data, Some(context));

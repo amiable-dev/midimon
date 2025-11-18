@@ -83,7 +83,8 @@ enum PluginInstance {
 }
 
 impl PluginInstance {
-    /// Execute the plugin action
+    /// Execute the plugin action (async version for WASM)
+    #[allow(dead_code)]  // Only used when plugin-wasm feature is enabled
     async fn execute_async(&mut self, params: Value, context: TriggerContext) -> Result<(), Box<dyn std::error::Error>> {
         match self {
             PluginInstance::Native(plugin) => plugin.plugin.execute(params, context),
@@ -351,13 +352,13 @@ impl PluginManager {
                 };
 
                 let mut wasm_plugin = tokio::runtime::Runtime::new()
-                    .map_err(|e| PluginManagerError::LoadError(PluginLoaderError::LoadFailed(e.to_string())))?
+                    .map_err(|e| PluginManagerError::LoadError(PluginLoaderError::LoadError(e.to_string())))?
                     .block_on(WasmPlugin::load(&binary_path, config))
-                    .map_err(|e| PluginManagerError::LoadError(PluginLoaderError::LoadFailed(e.to_string())))?;
+                    .map_err(|e| PluginManagerError::LoadError(PluginLoaderError::LoadError(e.to_string())))?;
 
                 // Initialize WASM plugin
                 tokio::runtime::Runtime::new()
-                    .map_err(|e| PluginManagerError::LoadError(PluginLoaderError::LoadFailed(e.to_string())))?
+                    .map_err(|e| PluginManagerError::LoadError(PluginLoaderError::LoadError(e.to_string())))?
                     .block_on(wasm_plugin.init())
                     .map_err(|e| PluginManagerError::ExecutionError {
                         plugin: plugin_name.to_string(),
@@ -369,7 +370,7 @@ impl PluginManager {
             #[cfg(not(feature = "plugin-wasm"))]
             {
                 return Err(PluginManagerError::LoadError(
-                    PluginLoaderError::LoadFailed(
+                    PluginLoaderError::LoadError(
                         "WASM plugins not supported (compile with --features plugin-wasm)".to_string()
                     )
                 ));

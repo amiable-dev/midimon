@@ -28,6 +28,12 @@ libloading.workspace = true  # Plugin loading (v2.3)
 sha2.workspace = true  # Checksum verification (v2.3)
 reqwest = { version = "0.12", features = ["json"], optional = true }  # Plugin registry (v2.4)
 tokio = { version = "1.40", features = ["fs"], optional = true }  # Async runtime for registry (v2.4)
+anyhow = { version = "1.0", optional = true }  # Error handling for WASM (v2.5)
+
+# Structured logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+tracing-appender = "0.2"
 
 # WASM plugin runtime (v2.5 - sandboxed execution)
 [dependencies.wasmtime]
@@ -37,11 +43,6 @@ optional = true
 [dependencies.wasmtime-wasi]
 workspace = true
 optional = true
-
-# Structured logging
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
-tracing-appender = "0.2"
 
 # Platform-specific MIDI output (optional)
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -77,4 +78,4 @@ test-mocks = []
 virtual-midi = ["dep:coremidi", "dep:alsa"]
 plugin = []  # Enable plugin support (native .dylib/.so/.dll)
 plugin-registry = ["dep:reqwest", "dep:tokio"]  # Enable plugin registry client (v2.4)
-plugin-wasm = ["dep:wasmtime", "dep:wasmtime-wasi"]  # Enable WASM plugin support (v2.5)
+plugin-wasm = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:anyhow", "dep:tokio"]  # Enable WASM plugin support (v2.5)

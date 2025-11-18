@@ -64,7 +64,12 @@ pub struct PluginMetadata {
     pub version: String,
     pub description: String,
     pub author: String,
-    pub actions: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub homepage: Option<String>,
+    pub license: String,
+    #[serde(rename = "type")]
+    pub plugin_type: String,
+    #[serde(default)]
     pub capabilities: Vec<String>,
 }
 
@@ -92,26 +97,17 @@ pub struct TriggerContext {
 // WASM Exports (Required Interface)
 // ============================================================================
 
+/// Pre-computed metadata JSON (static to avoid allocation issues)
+static METADATA_JSON: &[u8] = br#"{"name":"example_wasm_plugin","version":"0.1.0","description":"Example WASM plugin for MIDIMon","author":"Amiable","license":"MIT","type":"action","capabilities":[]}"#;
+
 /// Initialize the plugin and return metadata
 ///
-/// Returns: (ptr, len) pointer and length of JSON metadata string
+/// Returns: (ptr, len) pointer and length of JSON metadata string (packed in u64)
 #[no_mangle]
 pub extern "C" fn init() -> u64 {
-    let metadata = PluginMetadata {
-        name: "Example WASM Plugin".to_string(),
-        version: "0.1.0".to_string(),
-        description: "A template for building MIDIMon WASM plugins".to_string(),
-        author: "Your Name".to_string(),
-        actions: vec![
-            "hello".to_string(),
-            "greet".to_string(),
-            "goodbye".to_string(),
-        ],
-        capabilities: vec![],
-    };
-
-    let json = serde_json::to_string(&metadata).unwrap_or_else(|_| "{}".to_string());
-    let (ptr, len) = allocate_string(&json);
+    // Return pointer to static data in WASM linear memory
+    let ptr = METADATA_JSON.as_ptr() as u32;
+    let len = METADATA_JSON.len() as u32;
 
     // Pack ptr and len into single u64 (ptr in high 32 bits, len in low 32 bits)
     ((ptr as u64) << 32) | (len as u64)

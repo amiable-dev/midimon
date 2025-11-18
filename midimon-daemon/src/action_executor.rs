@@ -20,7 +20,6 @@ use midimon_core::{
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
-use std::time::Instant;
 
 /// Context about the triggering event passed to action execution
 ///
@@ -336,7 +335,10 @@ impl ActionExecutor {
                     midimon_core::plugin::TriggerContext {
                         velocity: ctx.velocity,
                         current_mode: None, // TODO: Convert mode name to index
-                        timestamp: Instant::now(),
+                        timestamp: std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap()
+                            .as_millis() as u64,
                     }
                 });
 
