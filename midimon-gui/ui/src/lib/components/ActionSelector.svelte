@@ -3,6 +3,8 @@
 
 <script>
   import { createEventDispatcher } from 'svelte';
+  import SendMidiActionEditor from './SendMidiActionEditor.svelte';
+  import ConditionalActionEditor from './ConditionalActionEditor.svelte';
 
   /**
    * Props
@@ -25,6 +27,8 @@
     { value: 'VolumeControl', label: 'Volume Control', description: 'Control system volume' },
     { value: 'ModeChange', label: 'Change Mode', description: 'Switch to another mode' },
     { value: 'Delay', label: 'Delay', description: 'Wait for duration' },
+    { value: 'SendMidi', label: 'Send MIDI', description: 'Send MIDI output message' },
+    { value: 'Conditional', label: 'Conditional', description: 'Execute action based on condition' },
   ];
 
   /**
@@ -62,6 +66,20 @@
       VolumeControl: { type: 'VolumeControl', operation: 'Up', value: null },
       ModeChange: { type: 'ModeChange', mode: availableModes[0] || 'Default' },
       Delay: { type: 'Delay', ms: 100 },
+      SendMidi: {
+        type: 'SendMidi',
+        port: '',
+        message_type: 'note_on',
+        channel: 0,
+        note: 60,
+        velocity: 100,
+      },
+      Conditional: {
+        type: 'Conditional',
+        condition: 'Always',
+        then_action: { type: 'Keystroke', keys: '', modifiers: [] },
+        else_action: null,
+      },
     };
     return defaults[type] || defaults.Keystroke;
   }
@@ -345,6 +363,31 @@
         <small>{(config.ms / 1000).toFixed(2)}s delay</small>
       </div>
     </div>
+  {/if}
+
+  <!-- SendMidi Action -->
+  {#if selectedType === 'SendMidi'}
+    <SendMidiActionEditor
+      bind:action={config}
+      {readonly}
+      on:change={(e) => {
+        config = e.detail.config;
+        emitChange();
+      }}
+    />
+  {/if}
+
+  <!-- Conditional Action -->
+  {#if selectedType === 'Conditional'}
+    <ConditionalActionEditor
+      bind:action={config}
+      {readonly}
+      {availableModes}
+      on:change={(e) => {
+        config = e.detail.config;
+        emitChange();
+      }}
+    />
   {/if}
 </div>
 

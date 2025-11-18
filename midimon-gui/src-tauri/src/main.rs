@@ -77,6 +77,9 @@ fn main() {
             commands::start_event_monitoring,
             commands::stop_event_monitoring,
             commands::is_event_monitoring_active,
+            commands::list_midi_output_ports,
+            commands::test_midi_output,
+            commands::validate_send_midi_action,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

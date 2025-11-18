@@ -7,6 +7,7 @@ use crate::app_detection::{AppDetector, AppInfo};
 use crate::events::EventStreamManager;
 use crate::midi_learn::MidiLearnSession;
 use crate::profile_manager::ProfileManager;
+use midimon_core::midi_output::MidiOutputManager;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -27,6 +28,8 @@ struct AppStateInner {
     profile_manager: Arc<ProfileManager>,
     /// Event stream manager for live console
     event_stream_manager: Arc<EventStreamManager>,
+    /// MIDI output manager for virtual MIDI output
+    midi_output_manager: Arc<RwLock<MidiOutputManager>>,
 }
 
 impl AppState {
@@ -41,6 +44,7 @@ impl AppState {
                 app_detector: Arc::new(AppDetector::new()),
                 profile_manager: Arc::new(profile_manager),
                 event_stream_manager: Arc::new(EventStreamManager::new(1000)),
+                midi_output_manager: Arc::new(RwLock::new(MidiOutputManager::new())),
             })),
         }
     }
@@ -127,6 +131,12 @@ impl AppState {
     pub async fn get_event_stream_manager(&self) -> Arc<EventStreamManager> {
         let inner = self.inner.read().await;
         Arc::clone(&inner.event_stream_manager)
+    }
+
+    /// Get MIDI output manager
+    pub async fn get_midi_output_manager(&self) -> Arc<RwLock<MidiOutputManager>> {
+        let inner = self.inner.read().await;
+        Arc::clone(&inner.midi_output_manager)
     }
 }
 

@@ -3,9 +3,9 @@
   "version": "2.0.0",
   "identifier": "com.amiable.midimon",
   "build": {
-    "beforeDevCommand": "cd ../ui && npm run dev",
+    "beforeDevCommand": "npm --prefix ui run dev",
     "devUrl": "http://localhost:5173",
-    "beforeBuildCommand": "cd ../ui && npm run build",
+    "beforeBuildCommand": "npm --prefix ui run build",
     "frontendDist": "../ui/dist"
   },
   "bundle": {
@@ -20,6 +20,7 @@
     }
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "MIDIMon Configuration",
@@ -31,7 +32,8 @@
         "fullscreen": false,
         "decorations": true,
         "transparent": false,
-        "alwaysOnTop": false
+        "alwaysOnTop": false,
+        "devtools": true
       }
     ],
     "security": {

@@ -435,3 +435,122 @@ export const isMidiLearnActive = derived(
   midiLearnStore,
   $learn => $learn.state === 'Waiting'
 );
+
+/**
+ * MIDI Output Ports Store (v2.1)
+ * Manages the list of available MIDI output ports
+ */
+function createMidiOutputPortsStore() {
+  const { subscribe, set, update } = writable({
+    ports: [],
+    selectedPort: null,
+    loading: false,
+    error: null,
+    testResult: null,
+  });
+
+  return {
+    subscribe,
+
+    /**
+     * Fetch list of MIDI output ports
+     */
+    async fetch() {
+      update(state => ({ ...state, loading: true, error: null }));
+      try {
+        const ports = await api.midiOutput.listPorts();
+        set({
+          ports,
+          selectedPort: ports.length > 0 ? ports[0].name : null,
+          loading: false,
+          error: null,
+          testResult: null,
+        });
+        return ports;
+      } catch (error) {
+        const errorMsg = error.message || String(error);
+        update(state => ({
+          ...state,
+          loading: false,
+          error: errorMsg,
+        }));
+        throw error;
+      }
+    },
+
+    /**
+     * Select a MIDI output port
+     * @param {string} portName - Name of the port to select
+     */
+    selectPort(portName) {
+      update(state => ({
+        ...state,
+        selectedPort: portName,
+        testResult: null,
+      }));
+    },
+
+    /**
+     * Test the selected MIDI output port
+     * @param {string} messageType - Type of MIDI message ('note_on', 'note_off', 'cc')
+     * @param {number} channel - MIDI channel (0-15)
+     * @param {Object} options - Optional parameters
+     */
+    async testPort(messageType = 'note_on', channel = 0, options = {}) {
+      const currentState = get({ subscribe });
+      if (!currentState.selectedPort) {
+        throw new Error('No port selected');
+      }
+
+      update(state => ({ ...state, loading: true, error: null, testResult: null }));
+      try {
+        const result = await api.midiOutput.testOutput(
+          currentState.selectedPort,
+          messageType,
+          channel,
+          options
+        );
+        update(state => ({
+          ...state,
+          loading: false,
+          testResult: result,
+        }));
+        return result;
+      } catch (error) {
+        const errorMsg = error.message || String(error);
+        update(state => ({
+          ...state,
+          loading: false,
+          error: errorMsg,
+        }));
+        throw error;
+      }
+    },
+
+    /**
+     * Clear test result and errors
+     */
+    clearMessages() {
+      update(state => ({
+        ...state,
+        error: null,
+        testResult: null,
+      }));
+    },
+
+    /**
+     * Reset store state
+     */
+    reset() {
+      set({
+        ports: [],
+        selectedPort: null,
+        loading: false,
+        error: null,
+        testResult: null,
+      });
+    },
+  };
+}
+
+export const midiOutputPortsStore = createMidiOutputPortsStore();
