@@ -50,8 +50,8 @@ path = "benches/reload_benchmark.rs"
 harness = false
 
 [dependencies]
-# Core engine
-midimon-core = { path = "../midimon-core" }
+# Core engine (with optional WASM plugin support)
+midimon-core = { path = "../midimon-core", features = [] }
 
 # CLI dependencies
 colored.workspace = true
@@ -109,3 +109,7 @@ libc = "0.2"
 [dev-dependencies]
 rstest.workspace = true
 tempfile = "3.8"
+
+[features]
+default = []
+plugin-wasm = ["midimon-core/plugin-wasm"]

@@ -6,7 +6,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::error::Error;
-use std::time::Instant;
 
 use super::Capability;
 
@@ -160,7 +159,7 @@ pub trait ActionPlugin: Send + Sync {
 /// Contains information about the event that triggered the action.
 /// Plugins can use this context to make velocity-sensitive or
 /// mode-aware decisions.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TriggerContext {
     /// MIDI velocity (0-127) if trigger was velocity-sensitive
     ///
@@ -172,10 +171,10 @@ pub struct TriggerContext {
     /// Plugins can use this to implement mode-aware behavior.
     pub current_mode: Option<usize>,
 
-    /// Timestamp of trigger event
+    /// Timestamp of trigger event (milliseconds since Unix epoch)
     ///
     /// Use for timing analysis or rate limiting.
-    pub timestamp: Instant,
+    pub timestamp: u64,
 }
 
 impl TriggerContext {
@@ -184,7 +183,10 @@ impl TriggerContext {
         Self {
             velocity: None,
             current_mode: None,
-            timestamp: Instant::now(),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64,
         }
     }
 
@@ -193,7 +195,10 @@ impl TriggerContext {
         Self {
             velocity: Some(velocity),
             current_mode: None,
-            timestamp: Instant::now(),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64,
         }
     }
 
@@ -202,7 +207,10 @@ impl TriggerContext {
         Self {
             velocity: Some(velocity),
             current_mode: Some(mode),
-            timestamp: Instant::now(),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64,
         }
     }
 }

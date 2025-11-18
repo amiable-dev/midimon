@@ -22,6 +22,9 @@ use midimon_core::plugin::{
 };
 use serde_json::Value;
 
+#[cfg(feature = "plugin-wasm")]
+use midimon_core::plugin::wasm_runtime::{WasmConfig, WasmPlugin};
+
 /// Plugin manager error types
 #[derive(Debug, Error)]
 pub enum PluginManagerError {
@@ -69,10 +72,59 @@ pub enum PluginManagerError {
 /// Plugin manager result type
 pub type PluginManagerResult<T> = Result<T, PluginManagerError>;
 
+/// Plugin execution wrapper (native or WASM)
+enum PluginInstance {
+    /// Native plugin (.dylib, .so, .dll)
+    Native(LoadedPlugin),
+
+    /// WASM plugin (.wasm)
+    #[cfg(feature = "plugin-wasm")]
+    Wasm(WasmPlugin),
+}
+
+impl PluginInstance {
+    /// Execute the plugin action
+    async fn execute_async(&mut self, params: Value, context: TriggerContext) -> Result<(), Box<dyn std::error::Error>> {
+        match self {
+            PluginInstance::Native(plugin) => plugin.plugin.execute(params, context),
+            #[cfg(feature = "plugin-wasm")]
+            PluginInstance::Wasm(plugin) => {
+                // Extract action name from params
+                let action = params.get("action")
+                    .and_then(|v| v.as_str())
+                    .ok_or("Missing 'action' field in params")?;
+
+                plugin.execute(action, &context).await
+                    .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
+            }
+        }
+    }
+
+    /// Synchronous execute wrapper
+    fn execute_sync(&mut self, params: Value, context: TriggerContext) -> Result<(), Box<dyn std::error::Error>> {
+        #[cfg(feature = "plugin-wasm")]
+        {
+            // For WASM plugins, we need to use a runtime
+            if matches!(self, PluginInstance::Wasm(_)) {
+                return tokio::runtime::Runtime::new()
+                    .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?
+                    .block_on(self.execute_async(params, context));
+            }
+        }
+
+        // For native plugins, execute synchronously
+        match self {
+            PluginInstance::Native(plugin) => plugin.plugin.execute(params, context),
+            #[cfg(feature = "plugin-wasm")]
+            _ => unreachable!(),
+        }
+    }
+}
+
 /// Loaded plugin with execution state
 struct ManagedPlugin {
-    /// Loaded plugin instance
-    plugin: LoadedPlugin,
+    /// Loaded plugin instance (native or WASM)
+    plugin: PluginInstance,
 
     /// Plugin metadata (for quick access without locking plugin)
     metadata: PluginMetadata,
@@ -250,6 +302,8 @@ impl PluginManager {
     /// Loads the plugin binary and initializes it. Capabilities are granted
     /// based on auto_grant_safe setting.
     ///
+    /// Supports both native (.dylib/.so/.dll) and WASM (.wasm) plugins.
+    ///
     /// # Errors
     ///
     /// Returns error if:
@@ -279,17 +333,62 @@ impl PluginManager {
         // Verify checksum if present in metadata
         Self::verify_checksum(&binary_path, &metadata.checksum)?;
 
-        // Load plugin
-        let mut loaded_plugin = self.loader.load_plugin(&binary_path)?;
+        // Detect plugin type based on file extension
+        let is_wasm = binary_path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext == "wasm")
+            .unwrap_or(false);
 
-        // Initialize plugin
-        loaded_plugin
-            .plugin
-            .initialize()
-            .map_err(|e| PluginManagerError::ExecutionError {
-                plugin: plugin_name.to_string(),
-                reason: format!("Initialization failed: {}", e),
-            })?;
+        let plugin_instance = if is_wasm {
+            #[cfg(feature = "plugin-wasm")]
+            {
+                // Load WASM plugin
+                let config = WasmConfig {
+                    max_memory_bytes: 128 * 1024 * 1024, // 128 MB
+                    max_execution_time: std::time::Duration::from_secs(5),
+                    capabilities: metadata.capabilities.clone(),
+                };
+
+                let mut wasm_plugin = tokio::runtime::Runtime::new()
+                    .map_err(|e| PluginManagerError::LoadError(PluginLoaderError::LoadFailed(e.to_string())))?
+                    .block_on(WasmPlugin::load(&binary_path, config))
+                    .map_err(|e| PluginManagerError::LoadError(PluginLoaderError::LoadFailed(e.to_string())))?;
+
+                // Initialize WASM plugin
+                tokio::runtime::Runtime::new()
+                    .map_err(|e| PluginManagerError::LoadError(PluginLoaderError::LoadFailed(e.to_string())))?
+                    .block_on(wasm_plugin.init())
+                    .map_err(|e| PluginManagerError::ExecutionError {
+                        plugin: plugin_name.to_string(),
+                        reason: format!("WASM initialization failed: {}", e),
+                    })?;
+
+                PluginInstance::Wasm(wasm_plugin)
+            }
+            #[cfg(not(feature = "plugin-wasm"))]
+            {
+                return Err(PluginManagerError::LoadError(
+                    PluginLoaderError::LoadFailed(
+                        "WASM plugins not supported (compile with --features plugin-wasm)".to_string()
+                    )
+                ));
+            }
+        } else {
+            // Load native plugin
+            let mut loaded_plugin = self.loader.load_plugin(&binary_path)?;
+
+            // Initialize plugin
+            loaded_plugin
+                .plugin
+                .initialize()
+                .map_err(|e| PluginManagerError::ExecutionError {
+                    plugin: plugin_name.to_string(),
+                    reason: format!("Initialization failed: {}", e),
+                })?;
+
+            PluginInstance::Native(loaded_plugin)
+        };
 
         // Determine granted capabilities
         let granted_capabilities = if self.auto_grant_safe {
@@ -305,7 +404,7 @@ impl PluginManager {
 
         // Create managed plugin
         let managed = ManagedPlugin {
-            plugin: loaded_plugin,
+            plugin: plugin_instance,
             metadata: metadata.clone(),
             enabled: true,
             granted_capabilities,
@@ -332,9 +431,17 @@ impl PluginManager {
             .write()
             .map_err(|e| PluginManagerError::LockError(e.to_string()))?;
 
-        if let Some(mut managed) = plugins.remove(plugin_name) {
-            // Call shutdown
-            let _ = managed.plugin.plugin.shutdown(); // Ignore shutdown errors
+        if let Some(managed) = plugins.remove(plugin_name) {
+            // Call shutdown (only for native plugins)
+            match managed.plugin {
+                PluginInstance::Native(mut plugin) => {
+                    let _ = plugin.plugin.shutdown(); // Ignore shutdown errors
+                }
+                #[cfg(feature = "plugin-wasm")]
+                PluginInstance::Wasm(_) => {
+                    // WASM plugins don't need explicit shutdown
+                }
+            }
             Ok(())
         } else {
             Err(PluginManagerError::PluginNotFound(plugin_name.to_string()))
@@ -458,11 +565,10 @@ impl PluginManager {
             }
         }
 
-        // Execute plugin
+        // Execute plugin (synchronous wrapper for both native and WASM)
         let result = managed
             .plugin
-            .plugin
-            .execute(params, context.unwrap_or_default());
+            .execute_sync(params, context.unwrap_or_default());
 
         // Update statistics
         managed.stats.executions += 1;

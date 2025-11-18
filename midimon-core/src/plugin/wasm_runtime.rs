@@ -199,7 +199,7 @@ impl WasmPlugin {
 
         // Instantiate module
         let instance = self.linker.instantiate_async(&mut store, &self.module).await
-            .map_err(|e| EngineError::ActionExecutionFailed(format!("Failed to instantiate: {}", e)))?;
+            .map_err(|e| EngineError::PluginExecutionFailed(format!("Failed to instantiate: {}", e)))?;
 
         // Serialize request
         let request = ActionRequest {
@@ -207,7 +207,7 @@ impl WasmPlugin {
             context: context.clone(),
         };
         let request_json = serde_json::to_string(&request)
-            .map_err(|e| EngineError::ActionExecutionFailed(format!("Serialization failed: {}", e)))?;
+            .map_err(|e| EngineError::PluginExecutionFailed(format!("Serialization failed: {}", e)))?;
 
         // Write request to WASM memory
         let (ptr, len) = self.write_string_to_memory(&instance, &mut store, &request_json)?;
@@ -215,7 +215,7 @@ impl WasmPlugin {
         // Call execute(ptr, len) -> result_code
         let execute_func = instance
             .get_typed_func::<(u32, u32), i32>(&mut store, "execute")
-            .map_err(|e| EngineError::ActionExecutionFailed(format!("Missing execute export: {}", e)))?;
+            .map_err(|e| EngineError::PluginExecutionFailed(format!("Missing execute export: {}", e)))?;
 
         // Execute with timeout
         let timeout = self.config.max_execution_time;
@@ -223,11 +223,11 @@ impl WasmPlugin {
             timeout,
             execute_func.call_async(&mut store, (ptr, len))
         ).await
-            .map_err(|_| EngineError::ActionExecutionFailed(format!("Execution timeout ({}s)", timeout.as_secs())))?
-            .map_err(|e| EngineError::ActionExecutionFailed(format!("Execution failed: {}", e)))?;
+            .map_err(|_| EngineError::PluginExecutionFailed(format!("Execution timeout ({}s)", timeout.as_secs())))?
+            .map_err(|e| EngineError::PluginExecutionFailed(format!("Execution failed: {}", e)))?;
 
         if result != 0 {
-            return Err(EngineError::ActionExecutionFailed(format!("Plugin returned error code: {}", result)));
+            return Err(EngineError::PluginExecutionFailed(format!("Plugin returned error code: {}", result)));
         }
 
         Ok(())
@@ -293,20 +293,20 @@ impl WasmPlugin {
     ) -> Result<(u32, u32), EngineError> {
         let memory = instance
             .get_memory(store, "memory")
-            .ok_or_else(|| EngineError::ActionExecutionFailed("No memory export".to_string()))?;
+            .ok_or_else(|| EngineError::PluginExecutionFailed("No memory export".to_string()))?;
 
         // Allocate memory in WASM
         let alloc_func = instance
             .get_typed_func::<u32, u32>(store, "alloc")
-            .map_err(|_| EngineError::ActionExecutionFailed("No alloc export".to_string()))?;
+            .map_err(|_| EngineError::PluginExecutionFailed("No alloc export".to_string()))?;
 
         let len = data.len() as u32;
         let ptr = alloc_func.call(store, len)
-            .map_err(|e| EngineError::ActionExecutionFailed(format!("Allocation failed: {}", e)))?;
+            .map_err(|e| EngineError::PluginExecutionFailed(format!("Allocation failed: {}", e)))?;
 
         // Write data to memory
         memory.write(store, ptr as usize, data.as_bytes())
-            .map_err(|e| EngineError::ActionExecutionFailed(format!("Memory write failed: {}", e)))?;
+            .map_err(|e| EngineError::PluginExecutionFailed(format!("Memory write failed: {}", e)))?;
 
         Ok((ptr, len))
     }
@@ -321,14 +321,14 @@ impl WasmPlugin {
     ) -> Result<String, EngineError> {
         let memory = instance
             .get_memory(store, "memory")
-            .ok_or_else(|| EngineError::ActionExecutionFailed("No memory export".to_string()))?;
+            .ok_or_else(|| EngineError::PluginExecutionFailed("No memory export".to_string()))?;
 
         let mut buffer = vec![0u8; len as usize];
         memory.read(store, ptr as usize, &mut buffer)
-            .map_err(|e| EngineError::ActionExecutionFailed(format!("Memory read failed: {}", e)))?;
+            .map_err(|e| EngineError::PluginExecutionFailed(format!("Memory read failed: {}", e)))?;
 
         String::from_utf8(buffer)
-            .map_err(|e| EngineError::ActionExecutionFailed(format!("Invalid UTF-8: {}", e)))
+            .map_err(|e| EngineError::PluginExecutionFailed(format!("Invalid UTF-8: {}", e)))
     }
 }
 

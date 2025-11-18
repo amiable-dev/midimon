@@ -29,6 +29,12 @@ pub enum EngineError {
 
     #[error("MIDI output error: {0}")]
     MidiOutput(String),
+
+    #[error("Plugin load failed: {0}")]
+    PluginLoadFailed(String),
+
+    #[error("Plugin execution failed: {0}")]
+    PluginExecutionFailed(String),
 }
 
 /// Configuration parsing errors
