@@ -59,6 +59,25 @@ Help us support more MIDI controllers:
 - Document device-specific quirks or features
 - Implement LED feedback for new devices
 
+### 🔌 WASM Plugins
+
+Extend MIDIMon's functionality with sandboxed WASM plugins:
+- Create plugins for media control (Spotify, iTunes, etc.)
+- Build system utility plugins (screenshots, clipboard, etc.)
+- Develop DAW integration plugins (Logic Pro, Ableton, etc.)
+- Add home automation plugins (smart lights, etc.)
+- See `plugins/README.md` for details
+- Use `./scripts/new-plugin.sh` to get started
+
+**Plugin requirements:**
+- Must be useful and solve a real problem
+- Request only necessary capabilities
+- Include comprehensive tests
+- Provide clear documentation
+- Use MIT or compatible license
+
+See the [Plugin Development Guide](docs/WASM_PLUGIN_DEVELOPMENT_GUIDE.md) for complete instructions.
+
 ## Development Setup
 
 ### Prerequisites
