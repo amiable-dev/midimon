@@ -44,6 +44,8 @@ fn create_config_with_mappings(num_mappings: usize) -> Config {
         device: DeviceConfig {
             name: "Test Device".to_string(),
             auto_connect: false,
+            auto_reconnect: true,
+            port: None,
         },
         modes: vec![mode],
         global_mappings: vec![],
@@ -149,6 +151,8 @@ fn bench_cc_mapping_lookup(c: &mut Criterion) {
         device: DeviceConfig {
             name: "Test Device".to_string(),
             auto_connect: false,
+            auto_reconnect: true,
+            port: None,
         },
         modes: vec![Mode {
             name: "Default".to_string(),

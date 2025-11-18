@@ -167,6 +167,7 @@
 pub mod daemon;
 pub mod action_executor;
 pub mod conditions;
+pub mod midi_device;
 
 // Re-export core types for convenience
 pub use daemon::{
@@ -183,3 +184,6 @@ pub use action_executor::{ActionExecutor, TriggerContext, parse_command_line};
 
 // Re-export condition evaluation for daemon use
 pub use conditions::{ConditionContext, evaluate_condition};
+
+// Re-export MIDI device manager for daemon use
+pub use midi_device::MidiDeviceManager;

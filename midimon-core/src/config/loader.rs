@@ -275,6 +275,8 @@ impl Config {
             device: DeviceConfig {
                 name: "Mikro".to_string(),
                 auto_connect: true,
+                auto_reconnect: true,
+                port: None,
             },
             modes: vec![
                 Mode {

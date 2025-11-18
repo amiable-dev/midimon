@@ -84,6 +84,16 @@ pub struct DeviceConfig {
     pub name: String,
     /// Whether to automatically connect to the first available device matching this name
     pub auto_connect: bool,
+    /// Enable automatic reconnection on disconnect (default: true)
+    #[serde(default = "default_auto_reconnect")]
+    pub auto_reconnect: bool,
+    /// Optional explicit port index to override auto-detection
+    #[serde(default)]
+    pub port: Option<usize>,
+}
+
+fn default_auto_reconnect() -> bool {
+    true
 }
 
 /// A mode defines a set of mappings that can be switched between at runtime

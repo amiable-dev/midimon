@@ -44,6 +44,8 @@ fn create_test_config(num_mappings: usize) -> Config {
         device: DeviceConfig {
             name: "Test Device".to_string(),
             auto_connect: false,
+            auto_reconnect: true,
+            port: None,
         },
         modes: vec![Mode {
             name: "Default".to_string(),
@@ -178,6 +180,8 @@ fn bench_encoder_input(c: &mut Criterion) {
         device: DeviceConfig {
             name: "Test Device".to_string(),
             auto_connect: false,
+            auto_reconnect: true,
+            port: None,
         },
         modes: vec![Mode {
             name: "Default".to_string(),

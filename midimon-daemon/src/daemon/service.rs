@@ -72,6 +72,7 @@ impl DaemonService {
             config,
             self.config_path.clone(),
             command_rx,
+            self.command_tx.clone(),
             self.shutdown_tx.clone(),
         )?;
 

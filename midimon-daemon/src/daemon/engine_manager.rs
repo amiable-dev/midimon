@@ -3,6 +3,7 @@
 
 //! Engine manager with atomic config reloading and device reconnection
 
+use crate::action_executor::{ActionExecutor, TriggerContext};
 use crate::daemon::error::{DaemonError, IpcErrorCode, Result};
 use crate::daemon::ipc::create_success_response;
 use crate::daemon::state::{ConfigInfo, EngineInfo, calculate_checksum};
@@ -10,14 +11,15 @@ use crate::daemon::types::{
     DaemonCommand, DaemonStatistics, DeviceStatus, ErrorDetails, ErrorEntry, IpcCommand,
     IpcResponse, LifecycleState, ReloadMetrics, ResponseStatus,
 };
-use crate::action_executor::ActionExecutor;
+use crate::midi_device::MidiDeviceManager;
+use midimon_core::event_processor::MidiEvent;
 use midimon_core::{Config, EventProcessor, MappingEngine};
 use serde_json::json;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tokio::sync::{Mutex, RwLock, broadcast, mpsc};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info, trace, warn};
 
 /// Engine manager coordinating MIDIMon engine with daemon lifecycle
 pub struct EngineManager {
@@ -26,12 +28,16 @@ pub struct EngineManager {
     config_path: PathBuf,
 
     /// Engine components
-    #[allow(dead_code)] // Reserved for future direct event processing integration
     event_processor: Arc<RwLock<EventProcessor>>,
     mapping_engine: Arc<RwLock<MappingEngine>>,
-    #[allow(dead_code)]
-    // Reserved for future direct action execution integration (uses Mutex as ActionExecutor is not Sync)
     action_executor: Arc<Mutex<ActionExecutor>>,
+
+    /// MIDI device manager
+    midi_device: Arc<Mutex<Option<MidiDeviceManager>>>,
+
+    /// MIDI event channel (buffer: 100 events ~100ms at 1000 events/sec)
+    midi_event_tx: mpsc::Sender<MidiEvent>,
+    midi_event_rx: mpsc::Receiver<MidiEvent>,
 
     /// Lifecycle state
     state: Arc<RwLock<LifecycleState>>,
@@ -49,6 +55,9 @@ pub struct EngineManager {
     /// Command receiver
     command_rx: mpsc::Receiver<DaemonCommand>,
 
+    /// Command sender (for self-commands and reconnection)
+    command_tx: mpsc::Sender<DaemonCommand>,
+
     /// Shutdown broadcaster
     shutdown_tx: broadcast::Sender<()>,
 }
@@ -59,6 +68,7 @@ impl EngineManager {
         config: Config,
         config_path: PathBuf,
         command_rx: mpsc::Receiver<DaemonCommand>,
+        command_tx: mpsc::Sender<DaemonCommand>,
         shutdown_tx: broadcast::Sender<()>,
     ) -> Result<Self> {
         let event_processor = EventProcessor::new();
@@ -66,18 +76,25 @@ impl EngineManager {
         mapping_engine.load_from_config(&config);
         let action_executor = ActionExecutor::new();
 
+        // Create MIDI event channel (buffer: 100 events)
+        let (midi_event_tx, midi_event_rx) = mpsc::channel::<MidiEvent>(100);
+
         Ok(Self {
             config: Arc::new(RwLock::new(config)),
             config_path,
             event_processor: Arc::new(RwLock::new(event_processor)),
             mapping_engine: Arc::new(RwLock::new(mapping_engine)),
             action_executor: Arc::new(Mutex::new(action_executor)),
+            midi_device: Arc::new(Mutex::new(None)),
+            midi_event_tx,
+            midi_event_rx,
             state: Arc::new(RwLock::new(LifecycleState::Init)),
             device_status: Arc::new(RwLock::new(DeviceStatus::default())),
             statistics: Arc::new(RwLock::new(DaemonStatistics::default())),
             start_time: Instant::now(),
             error_log: Arc::new(RwLock::new(Vec::new())),
             command_rx,
+            command_tx,
             shutdown_tx,
         })
     }
@@ -89,79 +106,106 @@ impl EngineManager {
         // Transition to Starting state
         self.transition_state(LifecycleState::Starting).await?;
 
-        // TODO: Initialize MIDI device connection
-        // For now, just transition to Running
+        // Initialize MIDI device connection
+        if let Err(e) = self.connect_midi_device().await {
+            warn!("Failed to connect to MIDI device during startup: {}", e);
+            self.log_error("MidiConnectionFailed", e.to_string()).await;
+            // Continue anyway - device may be connected later via IPC
+        }
+
         self.transition_state(LifecycleState::Running).await?;
 
         info!("Engine manager running");
 
-        // Main command loop
-        while let Some(command) = self.command_rx.recv().await {
-            match command {
-                DaemonCommand::IpcRequest {
-                    request,
-                    response_tx,
-                } => {
-                    let response = self.handle_ipc_request(request).await;
-                    let _ = response_tx.send(response);
-                }
-
-                DaemonCommand::ConfigFileChanged(path) => {
-                    info!("Config file changed: {:?}", path);
-                    if let Err(e) = self.reload_config().await {
-                        error!("Config reload failed: {}", e);
-                        self.log_error("ConfigReloadFailed", e.to_string()).await;
+        // Main event loop: process MIDI events and commands concurrently
+        loop {
+            tokio::select! {
+                // MIDI events from device
+                Some(midi_event) = self.midi_event_rx.recv() => {
+                    if let Err(e) = self.process_midi_event(midi_event).await {
+                        error!("Failed to process MIDI event: {}", e);
+                        self.log_error("MidiEventProcessingFailed", e.to_string()).await;
                     }
                 }
 
-                DaemonCommand::DeviceDisconnected => {
-                    warn!("Device disconnected");
-                    self.transition_state(LifecycleState::Degraded).await?;
-                    self.update_device_status(false, None, None).await;
-                    self.log_error("DeviceDisconnected", "MIDI device unplugged")
-                        .await;
+                // Commands from IPC, config watcher, or reconnection thread
+                Some(command) = self.command_rx.recv() => {
+                    match command {
+                        DaemonCommand::IpcRequest {
+                            request,
+                            response_tx,
+                        } => {
+                            let response = self.handle_ipc_request(request).await;
+                            let _ = response_tx.send(response);
+                        }
+
+                        DaemonCommand::ConfigFileChanged(path) => {
+                            info!("Config file changed: {:?}", path);
+                            if let Err(e) = self.reload_config().await {
+                                error!("Config reload failed: {}", e);
+                                self.log_error("ConfigReloadFailed", e.to_string()).await;
+                            }
+                        }
+
+                        DaemonCommand::DeviceDisconnected => {
+                            warn!("Device disconnected");
+                            self.transition_state(LifecycleState::Degraded).await?;
+                            self.update_device_status(false, None, None).await;
+                            self.log_error("DeviceDisconnected", "MIDI device unplugged").await;
+
+                            // Disconnect device manager
+                            self.disconnect_midi_device().await;
+                        }
+
+                        DaemonCommand::DeviceReconnected => {
+                            info!("Device reconnected - attempting to establish connection");
+                            if let Err(e) = self.connect_midi_device().await {
+                                error!("Failed to reconnect to MIDI device: {}", e);
+                                self.log_error("MidiReconnectionFailed", e.to_string()).await;
+                            } else {
+                                self.transition_state(LifecycleState::Running).await?;
+                            }
+                        }
+
+                        DaemonCommand::DeviceReconnectionFailed => {
+                            error!("Device reconnection failed after max attempts");
+                            self.log_error(
+                                "DeviceReconnectionFailed",
+                                "Failed to reconnect after multiple attempts",
+                            )
+                            .await;
+                        }
+
+                        DaemonCommand::FatalError(msg) => {
+                            error!("Fatal error: {}", msg);
+                            self.log_error("FatalError", msg).await;
+                            self.transition_state(LifecycleState::Stopping).await?;
+                            break;
+                        }
+
+                        DaemonCommand::Shutdown => {
+                            info!("Shutdown requested");
+                            self.transition_state(LifecycleState::Stopping).await?;
+                            break;
+                        }
+
+                        DaemonCommand::MenuBarAction(_) => {
+                            // TODO: Handle menu bar actions
+                            debug!("Menu bar action received (not yet implemented)");
+                        }
+                    }
                 }
 
-                DaemonCommand::DeviceReconnected => {
-                    info!("Device reconnected");
-                    self.transition_state(LifecycleState::Running).await?;
-                    // TODO: Update device status with actual device info
-                    self.update_device_status(
-                        true,
-                        Some("Maschine Mikro MK3".to_string()),
-                        Some(0),
-                    )
-                    .await;
-                }
-
-                DaemonCommand::DeviceReconnectionFailed => {
-                    error!("Device reconnection failed after max attempts");
-                    self.log_error(
-                        "DeviceReconnectionFailed",
-                        "Failed to reconnect after multiple attempts",
-                    )
-                    .await;
-                }
-
-                DaemonCommand::FatalError(msg) => {
-                    error!("Fatal error: {}", msg);
-                    self.log_error("FatalError", msg).await;
-                    self.transition_state(LifecycleState::Stopping).await?;
+                // Both channels closed - shutdown
+                else => {
+                    info!("All channels closed, shutting down");
                     break;
-                }
-
-                DaemonCommand::Shutdown => {
-                    info!("Shutdown requested");
-                    self.transition_state(LifecycleState::Stopping).await?;
-                    break;
-                }
-
-                DaemonCommand::MenuBarAction(_) => {
-                    // TODO: Handle menu bar actions
-                    debug!("Menu bar action received (not yet implemented)");
                 }
             }
         }
+
+        // Disconnect MIDI device before shutdown
+        self.disconnect_midi_device().await;
 
         // Final state transition
         self.transition_state(LifecycleState::Stopped).await?;
@@ -541,6 +585,100 @@ impl EngineManager {
         *self.state.read().await
     }
 
+    /// Connect to MIDI device based on config
+    async fn connect_midi_device(&mut self) -> Result<()> {
+        let config = self.config.read().await;
+        let device_config = &config.device;
+
+        info!(
+            "Attempting to connect to MIDI device: {} (auto_reconnect: {})",
+            device_config.name, device_config.auto_reconnect
+        );
+
+        // Create MIDI device manager
+        let mut manager = MidiDeviceManager::new(
+            device_config.name.clone(),
+            device_config.auto_reconnect,
+        );
+
+        // Connect to device
+        let (port_index, port_name) = manager
+            .connect(self.midi_event_tx.clone(), self.command_tx.clone())
+            .map_err(|e| DaemonError::Ipc(format!("MIDI connection failed: {}", e)))?;
+
+        info!(
+            "Successfully connected to MIDI device: {} (port {})",
+            port_name, port_index
+        );
+
+        // Update device status
+        self.update_device_status(true, Some(port_name), Some(port_index))
+            .await;
+
+        // Store device manager
+        *self.midi_device.lock().await = Some(manager);
+
+        Ok(())
+    }
+
+    /// Disconnect from MIDI device
+    async fn disconnect_midi_device(&mut self) {
+        info!("Disconnecting MIDI device");
+
+        // Drop device manager (closes connection)
+        *self.midi_device.lock().await = None;
+
+        // Update device status
+        self.update_device_status(false, None, None).await;
+
+        info!("MIDI device disconnected");
+    }
+
+    /// Process a MIDI event through the engine pipeline
+    async fn process_midi_event(&mut self, midi_event: MidiEvent) -> Result<()> {
+        debug!("Processing MIDI event: {:?}", midi_event);
+
+        // Phase 1: Process MidiEvent → ProcessedEvent (with timing, gestures)
+        let processed_events = {
+            let mut processor = self.event_processor.write().await;
+            processor.process(midi_event.clone())
+        };
+
+        // Phase 2: Map MidiEvent → Action (current mode = 0 for now)
+        let action = {
+            let engine = self.mapping_engine.read().await;
+            engine.get_action(&midi_event, 0) // TODO: Track current mode
+        };
+
+        // Phase 3: Execute action if found
+        if let Some(action) = action {
+            debug!("Executing action for MIDI event");
+
+            // Create trigger context with velocity from MIDI event
+            let context = TriggerContext {
+                velocity: match &midi_event {
+                    MidiEvent::NoteOn { velocity, .. } => Some(*velocity),
+                    _ => None,
+                },
+                current_mode: None, // TODO: Track current mode
+            };
+
+            let mut executor = self.action_executor.lock().await;
+            executor.execute(action, Some(context));
+
+            // Update statistics
+            let mut stats = self.statistics.write().await;
+            stats.events_processed += 1;
+        }
+
+        // ProcessedEvents are available for future use (UI feedback, etc.)
+        if !processed_events.is_empty() {
+            trace!("Processed {} events from MIDI input", processed_events.len());
+        }
+
+        Ok(())
+    }
+
     /// Enumerate available MIDI devices
     fn enumerate_midi_devices() -> Result<Vec<crate::daemon::types::MidiDeviceInfo>> {
         use midir::MidiInput;
@@ -584,11 +722,16 @@ mod tests {
     #[tokio::test]
     async fn test_engine_manager_creation() {
         let config = create_test_config();
-        let (_cmd_tx, cmd_rx) = mpsc::channel(10);
+        let (cmd_tx, cmd_rx) = mpsc::channel(10);
         let (shutdown_tx, _shutdown_rx) = broadcast::channel(1);
 
-        let manager =
-            EngineManager::new(config, PathBuf::from("/tmp/test.toml"), cmd_rx, shutdown_tx);
+        let manager = EngineManager::new(
+            config,
+            PathBuf::from("/tmp/test.toml"),
+            cmd_rx,
+            cmd_tx,
+            shutdown_tx,
+        );
 
         assert!(manager.is_ok());
     }
@@ -596,12 +739,17 @@ mod tests {
     #[tokio::test]
     async fn test_state_transitions() {
         let config = create_test_config();
-        let (_cmd_tx, cmd_rx) = mpsc::channel(10);
+        let (cmd_tx, cmd_rx) = mpsc::channel(10);
         let (shutdown_tx, _shutdown_rx) = broadcast::channel(1);
 
-        let manager =
-            EngineManager::new(config, PathBuf::from("/tmp/test.toml"), cmd_rx, shutdown_tx)
-                .unwrap();
+        let manager = EngineManager::new(
+            config,
+            PathBuf::from("/tmp/test.toml"),
+            cmd_rx,
+            cmd_tx,
+            shutdown_tx,
+        )
+        .unwrap();
 
         // Initial state should be Init
         let state = manager.get_state().await;
@@ -618,12 +766,17 @@ mod tests {
     #[tokio::test]
     async fn test_invalid_state_transition() {
         let config = create_test_config();
-        let (_cmd_tx, cmd_rx) = mpsc::channel(10);
+        let (cmd_tx, cmd_rx) = mpsc::channel(10);
         let (shutdown_tx, _shutdown_rx) = broadcast::channel(1);
 
-        let manager =
-            EngineManager::new(config, PathBuf::from("/tmp/test.toml"), cmd_rx, shutdown_tx)
-                .unwrap();
+        let manager = EngineManager::new(
+            config,
+            PathBuf::from("/tmp/test.toml"),
+            cmd_rx,
+            cmd_tx,
+            shutdown_tx,
+        )
+        .unwrap();
 
         // Invalid transition: Init -> Running (must go through Starting)
         let result = manager.transition_state(LifecycleState::Running).await;
@@ -633,12 +786,17 @@ mod tests {
     #[tokio::test]
     async fn test_error_logging() {
         let config = create_test_config();
-        let (_cmd_tx, cmd_rx) = mpsc::channel(10);
+        let (cmd_tx, cmd_rx) = mpsc::channel(10);
         let (shutdown_tx, _shutdown_rx) = broadcast::channel(1);
 
-        let manager =
-            EngineManager::new(config, PathBuf::from("/tmp/test.toml"), cmd_rx, shutdown_tx)
-                .unwrap();
+        let manager = EngineManager::new(
+            config,
+            PathBuf::from("/tmp/test.toml"),
+            cmd_rx,
+            cmd_tx,
+            shutdown_tx,
+        )
+        .unwrap();
 
         manager.log_error("TestError", "This is a test error").await;
 
@@ -651,12 +809,17 @@ mod tests {
     #[tokio::test]
     async fn test_statistics() {
         let config = create_test_config();
-        let (_cmd_tx, cmd_rx) = mpsc::channel(10);
+        let (cmd_tx, cmd_rx) = mpsc::channel(10);
         let (shutdown_tx, _shutdown_rx) = broadcast::channel(1);
 
-        let manager =
-            EngineManager::new(config, PathBuf::from("/tmp/test.toml"), cmd_rx, shutdown_tx)
-                .unwrap();
+        let manager = EngineManager::new(
+            config,
+            PathBuf::from("/tmp/test.toml"),
+            cmd_rx,
+            cmd_tx,
+            shutdown_tx,
+        )
+        .unwrap();
 
         // Wait a bit to accumulate uptime
         tokio::time::sleep(Duration::from_millis(100)).await;
