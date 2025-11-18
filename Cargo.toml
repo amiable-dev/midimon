@@ -7,6 +7,7 @@ members = [
 exclude = [
     "plugins/midimon-spotify-plugin",
     "plugins/midimon-obs-plugin",
+    "plugins/wasm-template",
 ]
 resolver = "2"
 
