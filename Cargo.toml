@@ -35,13 +35,15 @@ path = "src/lib.rs"
 midimon-core = { path = "midimon-core" }
 
 [dev-dependencies]
-# For integration tests that use ActionExecutor
+# For integration tests that use ActionExecutor and PluginManager
 midimon-daemon = { path = "midimon-daemon" }
 proptest.workspace = true
 rstest.workspace = true
 chrono.workspace = true
 enigo.workspace = true
 toml.workspace = true
+serde_json.workspace = true
+dirs.workspace = true
 
 [workspace.dependencies]
 # Core dependencies (used by midimon-core)
