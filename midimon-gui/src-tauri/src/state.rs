@@ -8,6 +8,8 @@ use crate::events::EventStreamManager;
 use crate::midi_learn::MidiLearnSession;
 use crate::profile_manager::ProfileManager;
 use midimon_core::midi_output::MidiOutputManager;
+use midimon_daemon::plugin_manager::PluginManager;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -30,12 +32,20 @@ struct AppStateInner {
     event_stream_manager: Arc<EventStreamManager>,
     /// MIDI output manager for virtual MIDI output
     midi_output_manager: Arc<RwLock<MidiOutputManager>>,
+    /// Plugin manager for plugin management
+    plugin_manager: Arc<RwLock<PluginManager>>,
 }
 
 impl AppState {
     /// Create a new application state
     pub fn new() -> Self {
         let profile_manager = ProfileManager::new().expect("Failed to create profile manager");
+
+        // Initialize plugin manager with default plugins directory
+        let plugins_dir = dirs::home_dir()
+            .map(|home| home.join(".midimon/plugins"))
+            .unwrap_or_else(|| PathBuf::from(".midimon/plugins"));
+        let plugin_manager = PluginManager::new(plugins_dir);
 
         Self {
             inner: Arc::new(RwLock::new(AppStateInner {
@@ -45,6 +55,7 @@ impl AppState {
                 profile_manager: Arc::new(profile_manager),
                 event_stream_manager: Arc::new(EventStreamManager::new(1000)),
                 midi_output_manager: Arc::new(RwLock::new(MidiOutputManager::new())),
+                plugin_manager: Arc::new(RwLock::new(plugin_manager)),
             })),
         }
     }
@@ -137,6 +148,12 @@ impl AppState {
     pub async fn get_midi_output_manager(&self) -> Arc<RwLock<MidiOutputManager>> {
         let inner = self.inner.read().await;
         Arc::clone(&inner.midi_output_manager)
+    }
+
+    /// Get plugin manager
+    pub async fn get_plugin_manager(&self) -> Arc<RwLock<PluginManager>> {
+        let inner = self.inner.read().await;
+        Arc::clone(&inner.plugin_manager)
     }
 }
 

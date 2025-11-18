@@ -15,6 +15,7 @@ mod device_templates;
 mod events;
 mod menu_bar;
 mod midi_learn;
+mod plugin_commands;
 mod profile_manager;
 mod state;
 
@@ -80,6 +81,17 @@ fn main() {
             commands::list_midi_output_ports,
             commands::test_midi_output,
             commands::validate_send_midi_action,
+            plugin_commands::plugin_discover,
+            plugin_commands::plugin_list_available,
+            plugin_commands::plugin_list_loaded,
+            plugin_commands::plugin_get_metadata,
+            plugin_commands::plugin_load,
+            plugin_commands::plugin_unload,
+            plugin_commands::plugin_enable,
+            plugin_commands::plugin_disable,
+            plugin_commands::plugin_grant_capability,
+            plugin_commands::plugin_revoke_capability,
+            plugin_commands::plugin_get_stats,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

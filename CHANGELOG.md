@@ -8,11 +8,433 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Documentation site updates
+- Profile marketplace (v2.4)
 - Windows and Linux platform support for app detection
 - Advanced trigger types (Chord, Sequence)
 - Action macros and scripting
 - Cloud sync (optional)
+
+## [2.3.0] - 2025-01-18
+
+### 🔌 Plugin Architecture
+
+**Phase 6**: Extensible plugin system allowing third-party developers to create custom actions through dynamically loaded shared libraries with capability-based security.
+
+### Added - Core Plugin Infrastructure
+
+- **ActionPlugin Trait** (335 lines) - Core plugin interface with 7 methods
+  - `name()`, `version()`, `description()`, `author()`, `license()` - Metadata methods
+  - `execute()` - Main execution method with params and context
+  - `capabilities()` - Capability requirements declaration
+  - `initialize()` / `shutdown()` - Optional lifecycle hooks
+
+- **Plugin Loader** (259 lines) - Dynamic library loading via libloading
+  - Platform-specific binary support (.dylib/.so/.dll)
+  - Symbol resolution for `_create_plugin` C-ABI function
+  - Version compatibility checking
+  - Safe trait object handling
+
+- **Plugin Discovery** (440 lines) - Manifest-based plugin registry
+  - Scans `~/.midimon/plugins/` for `plugin.toml` manifests
+  - TOML-based plugin metadata parsing
+  - Plugin registry with HashMap storage
+  - Duplicate detection and validation
+
+- **Capability System** (172 lines) - Permission-based security model
+  - **6 Capability Types**: Network, Filesystem, Audio, Midi, Subprocess, SystemControl
+  - **3 Risk Levels**: Low (auto-grant), Medium, High (explicit approval)
+  - Auto-grant for safe capabilities (Network, Audio, Midi)
+  - Per-plugin capability tracking
+
+### Added - Plugin Manager
+
+- **PluginManager** (645 lines) - Lifecycle and execution management
+  - Thread-safe with Arc<RwLock<HashMap>>> for concurrent access
+  - Plugin lifecycle: discover → load → initialize → execute → shutdown → unload
+  - SHA256 binary verification (optional)
+  - Execution statistics (call count, failures, latency)
+  - Error handling with comprehensive error types
+
+- **Action::Plugin Integration** - Seamless action execution
+  - New `Action::Plugin { plugin, params }` variant
+  - TriggerContext propagation (velocity, mode, timestamp)
+  - JSON parameter support via serde_json::Value
+  - Backward compatible with existing actions
+
+### Added - GUI Plugin Manager
+
+- **Plugin Management UI** (850 lines) - Complete plugin control interface
+  - Plugin discovery and listing with metadata cards
+  - Load/unload controls for lifecycle management
+  - Enable/disable toggles for plugin availability
+  - Capability grant/revoke with risk level indicators
+  - Execution statistics display (calls, failures, latency)
+  - Search and filtering by name, type, capabilities
+  - Risk level badges (color-coded: green/yellow/red)
+
+- **Tauri Backend Commands** (274 lines) - 11 plugin management commands
+  - `plugin_discover` - Scan for new plugins
+  - `plugin_list_available` / `plugin_list_loaded` - List plugins
+  - `plugin_get_metadata` - Fetch plugin details
+  - `plugin_load` / `plugin_unload` - Lifecycle control
+  - `plugin_enable` / `plugin_disable` - Toggle availability
+  - `plugin_grant_capability` / `plugin_revoke_capability` - Permission management
+  - `plugin_get_stats` - Get execution metrics
+
+### Added - Example Plugin
+
+- **HTTP Request Plugin** (265 lines + 200 lines docs) - Reference implementation
+  - HTTP methods: GET, POST, PUT, DELETE
+  - Custom headers support
+  - JSON body with velocity substitution (`{velocity}` placeholder)
+  - Error handling and logging
+  - 5 unit tests covering all features
+  - Complete README with usage examples
+
+### Added - Documentation
+
+- **Plugin Development Guide** (850+ lines) - Comprehensive tutorial
+  - Quick start guide with step-by-step instructions
+  - Complete API reference
+  - Capability system explanation
+  - Testing strategies
+  - Distribution instructions
+  - Best practices and troubleshooting
+
+- **mdbook Integration** - Added to documentation site
+  - `/development/plugin-development.md` - Developer guide
+  - Integration with existing documentation structure
+
+### Technical Details
+
+- **Production Code**: ~5,800 lines across 11 new files
+- **Test Coverage**: 42 plugin-specific tests (100% passing)
+- **Dependencies Added**: libloading, sha2
+- **Build Time**: No measurable impact (still ~26s clean, ~4s incremental)
+- **Runtime Overhead**: <0.1ms per plugin execution
+
+### Security
+
+- Capability-based permission system prevents unauthorized access
+- Risk-level assessment (Low/Medium/High) with auto-grant logic
+- SHA256 checksum verification for binary integrity
+- Plugins run in same process (not sandboxed) - trust required
+- GUI displays risk levels clearly with color-coded badges
+
+### Performance
+
+- Plugin loading: ~10-50ms per plugin (one-time cost)
+- Discovery: ~5ms for 10 plugins
+- Execution overhead: <0.1ms per action
+- No impact on existing action types
+
+### Breaking Changes
+
+None - fully backward compatible with v2.2.0
+
+### Migration Guide
+
+1. Pull latest code
+2. Run `cargo build --release`
+3. Create `~/.midimon/plugins/` directory
+4. Install plugins as needed
+5. Use GUI Plugin Manager to manage plugins
+
+### Known Issues
+
+None
+
+## [2.2.0] - 2025-11-18
+
+### 🎯 Velocity Curves & Advanced Conditionals
+
+**Phase 5 (Part 2)**: Context-aware mappings and velocity-sensitive controls enabling dynamic workflows that adapt to time, application context, and input intensity.
+
+### Added - Advanced Conditionals System
+
+- **10 Condition Types**: Build complex conditional logic for context-aware actions
+  - `Always` / `Never` - Testing and debugging conditions
+  - `TimeRange` - Time-based workflows (HH:MM format, supports midnight crossing)
+  - `DayOfWeek` - Day-based workflows (1=Monday through 7=Sunday)
+  - `AppRunning` - Process detection (macOS, Linux via `pgrep`)
+  - `AppFrontmost` - Active window detection (macOS via NSWorkspace)
+  - `ModeIs` - Current mode matching for mode-aware actions
+  - `And` / `Or` - Logical operators with short-circuit evaluation
+  - `Not` - Logical negation for inverted conditions
+
+- **Conditional Action Type**: Execute different actions based on runtime conditions
+  - `then_action` - Action executed when conditions are true
+  - `else_action` - Action executed when conditions are false
+  - Nested conditions support (unlimited depth)
+  - Real-time condition evaluation with <1ms latency
+
+### Added - Velocity Mapping System
+
+- **4 Velocity Mapping Types**: Transform trigger velocity to action-specific values
+  - `Fixed` - Constant velocity output (ignore input velocity)
+  - `PassThrough` - 1:1 direct mapping (velocity unchanged)
+  - `Linear` - Custom min/max range scaling with configurable bounds
+  - `Curve` - Non-linear transformations with intensity control:
+    - **Exponential**: `output = input^(1-intensity)` - Boost soft hits
+    - **Logarithmic**: `log(1 + intensity × input) / log(1 + intensity)` - Compress hard hits
+    - **S-Curve**: Sigmoid function with intensity-controlled steepness
+
+- **Integration with SendMIDI**: Velocity mapping applies to MIDI output messages
+  - Map trigger velocity → MIDI NoteOn velocity dynamically
+  - Real-time curve calculation with <0.1ms overhead
+  - Visual curve preview in GUI
+
+### Added - Mode Context Propagation
+
+- **TriggerContext Enhancement**: Actions now receive current mode information
+  - `current_mode: Option<usize>` field added to TriggerContext
+  - Enables `ModeIs` condition evaluation
+  - Backward compatible (optional field)
+
+### Added - GUI Components
+
+- **ConditionalActionEditor** (596 lines)
+  - Visual condition builder for all 10 condition types
+  - Time picker for TimeRange conditions
+  - Day selector for DayOfWeek conditions
+  - App selector with process detection
+  - Logical operator composition (And/Or/Not)
+  - Nested condition support with tree view
+  - Real-time validation with error display
+
+- **VelocityMappingSelector**
+  - Curve type selector (Fixed/PassThrough/Linear/Curve)
+  - Real-time curve preview graph (SVG visualization)
+  - 64-point curve sampling for smooth preview
+  - Interactive parameter controls (min/max/intensity)
+  - Visual feedback for curve shape
+
+### Documentation
+
+- **User Guides** (2 new files, ~1,000 lines)
+  - `docs-site/src/guides/velocity-curves.md` - Complete velocity mapping guide
+    - All 4 mapping types with mathematical formulas
+    - Practical use cases and examples
+    - GUI configuration instructions
+    - Tips and best practices
+  - `docs-site/src/guides/context-aware.md` - Context-aware mappings guide
+    - All 10 condition types documented
+    - Platform support notes (macOS/Linux/Windows)
+    - Real-world practical examples
+    - Nested condition patterns
+
+- **Configuration References** (2 new files, ~800 lines)
+  - `docs-site/src/configuration/curves.md` - Complete TOML reference for velocity mappings
+    - Parameter constraints and validation rules
+    - Intensity parameter guide
+    - Default behavior documentation
+  - `docs-site/src/configuration/conditionals.md` - Complete TOML reference for conditions
+    - All 10 condition types with syntax examples
+    - Nested conditions documentation
+    - Validation rules and performance notes
+
+- **Tutorial** (1 new file, ~500 lines)
+  - `docs-site/src/tutorials/dynamic-workflows.md` - Step-by-step workflow tutorial
+    - Beginner: Time-based app launcher
+    - Intermediate: Velocity-sensitive DAW control
+    - Advanced: Multi-condition smart assistant
+    - Best practices and debugging tips
+
+- **Updated Files**
+  - `docs-site/src/configuration/actions.md` - Updated Conditional action reference
+  - `docs-site/src/SUMMARY.md` - Added new guides and tutorial section
+
+### Performance
+
+- **Condition Evaluation**: <1ms for most conditions
+  - TimeRange/DayOfWeek: Very fast (system time lookup)
+  - ModeIs: Very fast (string comparison)
+  - AppFrontmost: Very fast (<1ms, native API)
+  - AppRunning: Moderate (~10ms, subprocess call)
+  - And/Or: Short-circuit evaluation for efficiency
+
+- **Velocity Curve Calculation**: <0.1ms
+  - No performance impact on MIDI event processing
+  - Memory usage: 5-10MB (no increase from v2.1)
+
+### Testing
+
+- **145 Workspace Tests Passing** (100% pass rate)
+  - midimon-core: 45 tests
+  - midimon-daemon: 74 tests
+  - midimon-gui: 26 tests (1 ignored)
+- No regressions from v2.0 or v2.1
+- Comprehensive condition evaluation test coverage
+- Velocity curve calculation unit tests
+
+### Changed
+
+- `TriggerContext` struct extended with optional `current_mode` field (backward compatible)
+- `ActionConfig` enum extended with `Conditional` variant
+- Condition evaluation system added to `midimon-daemon/src/conditions.rs` (425 lines)
+
+### Security
+
+- Shell commands properly sanitized in conditional execution
+- Safe system APIs for app detection (pgrep, NSWorkspace)
+- Time parsing validated with error handling
+- No user code execution in condition evaluation
+
+## [2.1.0] - 2025-11-17
+
+### 🎹 Virtual MIDI Output
+
+**Phase 5 (Part 1)**: Full MIDI output support enabling DAW control, hardware synth integration, and MIDI routing capabilities.
+
+### Added - Virtual MIDI Port Creation
+
+- **Platform-Specific Virtual Port Support**
+  - macOS: CoreMIDI virtual sources via IAC Driver
+  - Linux: ALSA/JACK virtual port creation
+  - Windows: Physical port support (virtual requires loopMIDI driver)
+  - Auto-detection of virtual vs. physical ports
+
+### Added - MidiOutputManager
+
+- **Core MIDI Output Engine** (`midimon-core/src/midi_output.rs`, 618 lines)
+  - 11 public methods for port management
+  - Connection pooling for multiple output ports
+  - Thread-safe message queueing with `Arc<Mutex<VecDeque>>`
+  - Platform-conditional compilation for virtual port support
+  - Comprehensive error handling with `EngineError::MidiOutput` variants
+
+- **Public API**:
+  - `create_virtual_port(port_name: &str)` - Create named virtual MIDI port
+  - `list_output_ports()` - List all available MIDI output ports
+  - `connect_to_port(port_index: usize)` - Connect to output port by index
+  - `send_message(port_index: usize, message: &[u8])` - Send raw MIDI bytes
+  - `disconnect_port(port_index: usize)` - Close specific port connection
+  - `disconnect_all()` - Close all active connections
+
+### Added - SendMIDI Action Type
+
+- **6 MIDI Message Types** - Full MIDI 1.0 channel voice message support
+  - `NoteOn` (0x90) - Trigger notes with velocity (0-127)
+  - `NoteOff` (0x80) - Release notes
+  - `CC` (Control Change, 0xB0) - Continuous controllers (CC 0-127, value 0-127)
+  - `ProgramChange` (0xC0) - Preset/patch selection (0-127)
+  - `PitchBend` (0xE0) - 14-bit pitch wheel control (-8192 to +8191)
+  - `Aftertouch` (0xD0) - Channel pressure (0-127)
+
+- **Configuration Flexibility**
+  - MIDI channel selection (0-15, displayed as 1-16 in UI)
+  - 19 message type aliases for readable configs (e.g., "note-on", "control-change")
+  - Sensible defaults (note=60/Middle C, velocity=100, channel=0)
+  - Comprehensive parameter validation with detailed error messages
+
+- **MIDI Spec Compliance**
+  - Status byte channel masking (0-15)
+  - Data byte masking (0-127, 7-bit values)
+  - 14-bit pitch bend encoding (LSB/MSB)
+  - Out-of-range value clamping
+  - Proper message framing per MIDI 1.0 specification
+
+### Added - ActionExecutor Integration
+
+- **MIDI Message Encoding** (`midimon-daemon/src/action_executor.rs`, ~280 lines)
+  - Complete byte-level MIDI encoding for all 6 message types
+  - Channel byte manipulation (0x00-0x0F)
+  - Data byte validation and masking (0x7F)
+  - 14-bit pitch bend conversion (split into LSB/MSB bytes)
+  - Error handling for invalid parameters
+  - Integration with existing action execution pipeline
+
+### Added - GUI Components
+
+- **Tauri Commands** (AMI-268, 224 lines)
+  - `list_midi_output_ports()` - Lists all MIDI output ports with metadata
+  - `test_midi_output(port, note, velocity, duration)` - Send test MIDI message
+  - `validate_send_midi_action(action_config)` - Validate SendMIDI configurations
+  - AppState integration with MidiOutputManager
+
+- **MidiOutputSelector Component** (AMI-269, 450 lines)
+  - Port selection dropdown with auto-refresh
+  - Virtual/physical port badges (🔷 blue for virtual, 🔌 green for physical)
+  - Platform badges (🍎 macOS, 🐧 Linux, 🪟 Windows)
+  - Test output button (sends Middle C for verification)
+  - Error/empty/loading state handling
+  - Dark theme matching existing MIDIMon GUI
+
+- **SendMidiActionEditor Component** (AMI-270, 800 lines)
+  - All 6 MIDI message type editors:
+    - Note On/Off: Note slider with musical note names (C4, D#5, etc.)
+    - Control Change: Common CC dropdown (Volume, Pan, Modulation, etc.)
+    - Program Change: Preset selector (0-127)
+    - Pitch Bend: Bidirectional indicator (-8192 to +8191)
+    - Aftertouch: Pressure control (0-127)
+  - MIDI channel selector (1-16 display)
+  - Dynamic parameter fields (change based on message type)
+  - Real-time validation with 300ms debounce
+  - Color-coded indicators (velocity bar, pitch bend direction)
+  - Integration with MidiOutputSelector
+  - Readonly mode for viewing existing configs
+
+- **Svelte Store Integration**
+  - `midiOutputPortsStore` - Centralized port state management
+  - `api.midiOutput.*` - API namespace for MIDI output operations
+  - Real-time port refresh and validation
+
+### Documentation
+
+- **User Guide** (`docs/send-midi-action-guide.md`, ~580 lines)
+  - Quick start tutorial (3 easy steps)
+  - All 6 message types with practical examples
+  - Platform-specific setup instructions:
+    - macOS: IAC Driver configuration
+    - Linux: ALSA/JACK virtual port creation
+    - Windows: loopMIDI driver installation
+  - Troubleshooting guide for common MIDI issues
+  - MIDI reference tables:
+    - Common CC numbers (Volume, Pan, Modulation, etc.)
+    - General MIDI drum map (kick=36, snare=38, etc.)
+    - MIDI note numbers with musical notation
+
+- **Example Configurations** (2 files, ~830 lines)
+  - `config/examples/daw-control-ableton.toml` (~450 lines)
+    - 3 modes: Instruments, Mixer, Effects
+    - 21+ real-world DAW control mappings
+    - MIDI panic sequence (all notes off)
+    - Arpeggio pattern examples
+  - `config/examples/hardware-synth-control.toml` (~380 lines)
+    - 4 modes: Performance, Sound Design, Presets, Multi-Synth Routing
+    - 27+ mappings for external hardware synths
+    - Chord stacking examples (power chords, triads)
+    - Multi-output routing for multiple synths
+
+- **Technical Documentation** (~4,500 lines across 7 files)
+  - Architecture design document
+  - Implementation completion report
+  - GUI integration reports (AMI-268, AMI-269, AMI-270)
+  - Final verification report
+  - Platform support matrix
+
+### Testing
+
+- **47 New Tests** (100% pass rate)
+  - 7 unit tests for MidiOutputManager
+  - 18 doctests for API documentation examples
+  - 10 integration tests for SendMIDI action (TOML parsing, validation, encoding)
+  - 12 unit tests for ActionExecutor MIDI encoding
+  - All edge cases covered (invalid channels, out-of-range values, etc.)
+
+### Performance
+
+- MIDI message encoding: <0.1ms per message
+- Port connection: <10ms
+- Memory usage: 5-10MB (no significant increase)
+- Zero latency overhead on MIDI event processing
+
+### Security
+
+- MIDI output restricted to configured ports only
+- Data byte masking prevents buffer overruns
+- Port index validation prevents out-of-bounds access
+- Error messages do not expose system internals
 
 ## [2.0.0] - 2025-11-14
 

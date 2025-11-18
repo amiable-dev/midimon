@@ -14,6 +14,7 @@ path = "src/lib.rs"
 # Core engine dependencies
 midir.workspace = true
 serde.workspace = true
+serde_json.workspace = true  # Plugin system
 toml.workspace = true
 hidapi.workspace = true
 quick-xml.workspace = true
@@ -23,6 +24,8 @@ rand.workspace = true
 regex.workspace = true  # Security validation
 dirs.workspace = true  # Path handling
 midi-msg.workspace = true  # MIDI message parsing
+libloading.workspace = true  # Plugin loading (v2.3)
+sha2.workspace = true  # Checksum verification (v2.3)
 
 # Structured logging
 tracing = "0.1"
@@ -41,6 +44,7 @@ midimon-daemon = { path = "../midimon-daemon" }  # For integration tests
 proptest.workspace = true
 rstest.workspace = true
 criterion = { version = "0.5", features = ["html_reports"] }
+tempfile = "3.15"  # For plugin discovery tests
 
 [[bench]]
 name = "event_processing"

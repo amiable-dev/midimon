@@ -168,6 +168,7 @@ pub mod daemon;
 pub mod action_executor;
 pub mod conditions;
 pub mod midi_device;
+pub mod plugin_manager;
 
 // Re-export core types for convenience
 pub use daemon::{
@@ -187,3 +188,6 @@ pub use conditions::{ConditionContext, evaluate_condition};
 
 // Re-export MIDI device manager for daemon use
 pub use midi_device::MidiDeviceManager;
+
+// Re-export PluginManager for daemon use (v2.3)
+pub use plugin_manager::{PluginManager, PluginManagerError, PluginManagerResult};

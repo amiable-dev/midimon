@@ -297,6 +297,130 @@ impl MidiDeviceManager {
         Ok((port_index, port_name))
     }
 
+    /// Connect to a specific MIDI port by index
+    ///
+    /// Similar to `connect()` but bypasses device name search and connects
+    /// directly to the specified port index.
+    ///
+    /// # Arguments
+    ///
+    /// * `port_index` - Explicit port index to connect to
+    /// * `event_tx` - Channel for sending parsed MIDI events
+    /// * `command_tx` - Channel for sending reconnection commands
+    ///
+    /// # Returns
+    ///
+    /// * `Ok((port_index, port_name))` - Successfully connected
+    /// * `Err(String)` - Connection failed with error message
+    ///
+    /// # Errors
+    ///
+    /// - Port index out of range
+    /// - Failed to create MIDI input
+    /// - Failed to establish connection
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use midimon_daemon::midi_device::MidiDeviceManager;
+    /// use tokio::sync::mpsc;
+    ///
+    /// # async fn example() -> Result<(), String> {
+    /// let (event_tx, _) = mpsc::channel(1024);
+    /// let (command_tx, _) = mpsc::channel(32);
+    ///
+    /// let mut manager = MidiDeviceManager::new(String::new(), true);
+    /// let (port_idx, port_name) = manager.connect_to_port(2, event_tx, command_tx)?;
+    ///
+    /// println!("Connected to port {}: {}", port_idx, port_name);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn connect_to_port(
+        &mut self,
+        port_index: usize,
+        event_tx: mpsc::Sender<MidiEvent>,
+        _command_tx: mpsc::Sender<DaemonCommand>,
+    ) -> Result<(usize, String), String> {
+        info!("Connecting to MIDI port index {}", port_index);
+
+        // Create MIDI input
+        let midi_in = MidiInput::new("MIDIMon Daemon")
+            .map_err(|e| format!("Failed to create MIDI input: {}", e))?;
+
+        // Get available ports
+        let ports = midi_in.ports();
+        if ports.is_empty() {
+            return Err("No MIDI input ports available".to_string());
+        }
+
+        // Validate port index
+        if port_index >= ports.len() {
+            return Err(format!(
+                "Port index {} out of range (0-{})",
+                port_index,
+                ports.len() - 1
+            ));
+        }
+
+        // Get target port
+        let port = &ports[port_index];
+        let port_name = midi_in
+            .port_name(port)
+            .unwrap_or_else(|_| format!("Port {}", port_index));
+
+        debug!(
+            "Opening MIDI port {} (index {})",
+            port_name, port_index
+        );
+
+        // Create callback that parses and sends events
+        let callback = move |_timestamp: u64, message: &[u8], _: &mut ()| {
+            trace!("MIDI callback received {} bytes: {:02X?}", message.len(), message);
+
+            // Parse MIDI message using midi-msg library
+            match MidiEvent::from_midi_msg(message) {
+                Ok(event) => {
+                    // Non-blocking send to prevent callback blocking
+                    if let Err(e) = event_tx.try_send(event.clone()) {
+                        match e {
+                            mpsc::error::TrySendError::Full(_) => {
+                                warn!("Event channel full, dropping event: {:?}", event);
+                            }
+                            mpsc::error::TrySendError::Closed(_) => {
+                                error!("Event channel closed, cannot send event");
+                            }
+                        }
+                    } else {
+                        trace!("Successfully sent event: {:?}", event);
+                    }
+                }
+                Err(e) => {
+                    // Log parsing errors at debug level (many MIDI messages are unsupported)
+                    debug!("Failed to parse MIDI message: {} (bytes: {:02X?})", e, message);
+                }
+            }
+        };
+
+        // Establish connection
+        let connection = midi_in
+            .connect(port, &format!("midimon-{}", port_index), callback, ())
+            .map_err(|e| format!("Failed to connect to port: {}", e))?;
+
+        // Update state
+        *self.connection.lock().unwrap() = Some(connection);
+        *self.port_index.lock().unwrap() = Some(port_index);
+        *self.port_name.lock().unwrap() = Some(port_name.clone());
+        *self.is_connected.lock().unwrap() = true;
+
+        info!(
+            "Successfully connected to MIDI device: {} (port {})",
+            port_name, port_index
+        );
+
+        Ok((port_index, port_name))
+    }
+
     /// Find the target MIDI port by name or use first available
     ///
     /// # Arguments

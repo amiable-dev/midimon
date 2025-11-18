@@ -220,6 +220,16 @@ pub enum Action {
         channel: u8,
         params: MidiMessageParams,
     },
+    /// Plugin action (v2.3)
+    ///
+    /// Execute a custom action plugin with given parameters.
+    /// The plugin must be installed and enabled for this to work.
+    Plugin {
+        /// Plugin identifier (must match ActionPlugin::name())
+        plugin: String,
+        /// Plugin-specific parameters (JSON object)
+        params: serde_json::Value,
+    },
 }
 
 /// MIDI message type (v2.1)

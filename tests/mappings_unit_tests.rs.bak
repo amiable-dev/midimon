@@ -24,8 +24,6 @@ fn create_test_config() -> Config {
     Config {
         device: DeviceConfig {
             name: "TestDevice".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![
@@ -115,8 +113,6 @@ fn test_load_empty_config() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![],
@@ -141,8 +137,6 @@ fn test_load_config_with_multiple_modes() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![
@@ -228,8 +222,6 @@ fn test_compile_note_trigger_with_velocity_min() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -276,8 +268,6 @@ fn test_compile_note_trigger_without_velocity_min() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -323,8 +313,6 @@ fn test_compile_cc_trigger_with_value_min() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -371,8 +359,6 @@ fn test_compile_cc_trigger_without_value_min() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -418,8 +404,6 @@ fn test_compile_note_chord_trigger() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -465,8 +449,6 @@ fn test_note_trigger_matches_exact_note() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -513,8 +495,6 @@ fn test_note_trigger_velocity_threshold() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -569,8 +549,6 @@ fn test_cc_trigger_matches_exact_cc() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -617,8 +595,6 @@ fn test_cc_trigger_value_threshold() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -673,8 +649,6 @@ fn test_trigger_does_not_match_wrong_event_type() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -720,8 +694,6 @@ fn test_trigger_does_not_match_aftertouch() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -758,8 +730,6 @@ fn test_trigger_does_not_match_pitch_bend() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -800,8 +770,6 @@ fn test_mode_specific_mappings() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![
@@ -858,8 +826,6 @@ fn test_mode_isolation() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![
@@ -925,8 +891,6 @@ fn test_nonexistent_mode_falls_back_to_global() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -970,8 +934,6 @@ fn test_global_mappings_work_in_all_modes() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![
@@ -1042,8 +1004,6 @@ fn test_mode_specific_overrides_global() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1093,8 +1053,6 @@ fn test_multiple_global_mappings() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1178,8 +1136,6 @@ fn test_compile_keystroke_action() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1220,8 +1176,6 @@ fn test_compile_text_action() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1261,8 +1215,6 @@ fn test_compile_launch_action() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1302,8 +1254,6 @@ fn test_compile_shell_action() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1343,8 +1293,6 @@ fn test_compile_sequence_action() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1392,8 +1340,6 @@ fn test_compile_delay_action() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1431,8 +1377,6 @@ fn test_compile_mouse_click_action() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1478,8 +1422,6 @@ fn test_first_matching_trigger_wins() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1532,8 +1474,6 @@ fn test_no_mapping_returns_none() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1573,8 +1513,6 @@ fn test_mode_without_mappings_returns_none() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1608,8 +1546,6 @@ fn test_note_zero_is_valid() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1648,8 +1584,6 @@ fn test_note_127_is_valid() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1688,8 +1622,6 @@ fn test_velocity_zero_does_not_match_default() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1729,8 +1661,6 @@ fn test_velocity_one_matches_default() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1770,8 +1700,6 @@ fn test_cc_zero_is_valid() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1810,8 +1738,6 @@ fn test_cc_127_is_valid() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {
@@ -1850,8 +1776,6 @@ fn test_description_is_optional() {
     let config = Config {
         device: DeviceConfig {
             name: "Test".to_string(),
-            auto_reconnect: true,
-            port: None,
             auto_connect: false,
         },
         modes: vec![Mode {

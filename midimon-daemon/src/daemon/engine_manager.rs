@@ -369,16 +369,31 @@ impl EngineManager {
                 match request.args.get("port").and_then(|v| v.as_u64()) {
                     Some(port_index) => {
                         let port_index = port_index as usize;
-                        // TODO: Implement device switching
-                        // For now, just update device status
                         info!("Device switch requested to port {}", port_index);
-                        create_success_response(
-                            &id,
-                            Some(json!({
-                                "message": format!("Device switch to port {} queued (not yet implemented)", port_index),
-                                "port": port_index
-                            })),
-                        )
+
+                        // Attempt device switch
+                        match self.switch_device(port_index).await {
+                            Ok((port_name, actual_port)) => {
+                                create_success_response(
+                                    &id,
+                                    Some(json!({
+                                        "message": "Device switched successfully",
+                                        "port": actual_port,
+                                        "port_name": port_name,
+                                    })),
+                                )
+                            }
+                            Err(e) => IpcResponse {
+                                id,
+                                status: ResponseStatus::Error,
+                                data: None,
+                                error: Some(ErrorDetails {
+                                    code: IpcErrorCode::InternalError.as_u16(),
+                                    message: format!("Device switch failed: {}", e),
+                                    details: None,
+                                }),
+                            },
+                        }
                     }
                     None => IpcResponse {
                         id,
@@ -632,6 +647,48 @@ impl EngineManager {
         self.update_device_status(false, None, None).await;
 
         info!("MIDI device disconnected");
+    }
+
+    /// Switch to a different MIDI device by port index
+    async fn switch_device(&mut self, port_index: usize) -> Result<(String, usize)> {
+        info!("Switching to MIDI device at port {}", port_index);
+
+        // Disconnect current device
+        self.disconnect_midi_device().await;
+
+        // Update config with new port preference
+        {
+            let mut config = self.config.write().await;
+            config.device.port = Some(port_index);
+        }
+
+        // Create new device manager with explicit port
+        let config = self.config.read().await;
+        let device_config = &config.device;
+
+        let mut manager = MidiDeviceManager::new(
+            String::new(), // Empty name = use port_index directly
+            device_config.auto_reconnect,
+        );
+
+        // Connect to specific port
+        let (actual_port, port_name) = manager
+            .connect_to_port(port_index, self.midi_event_tx.clone(), self.command_tx.clone())
+            .map_err(|e| DaemonError::Ipc(format!("Failed to connect to port {}: {}", port_index, e)))?;
+
+        info!(
+            "Successfully switched to MIDI device: {} (port {})",
+            port_name, actual_port
+        );
+
+        // Update device status
+        self.update_device_status(true, Some(port_name.clone()), Some(actual_port))
+            .await;
+
+        // Store device manager
+        *self.midi_device.lock().await = Some(manager);
+
+        Ok((port_name, actual_port))
     }
 
     /// Process a MIDI event through the engine pipeline

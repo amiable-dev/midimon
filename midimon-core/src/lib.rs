@@ -136,3 +136,6 @@ pub use mapping::MappingEngine;
 
 // MIDI Output (v2.1)
 pub use midi_output::{MidiMessage, MidiOutputManager};
+
+// Plugin System (v2.3)
+pub mod plugin;

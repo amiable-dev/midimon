@@ -15,7 +15,9 @@ use enigo::{Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
+use std::time::Instant;
 use crate::conditions::{evaluate_condition, ConditionContext};
+use crate::plugin_manager::PluginManager;
 
 /// Context about the triggering event passed to action execution
 ///
@@ -192,6 +194,7 @@ fn to_enigo_button(mouse_button: MouseButton) -> Button {
 pub struct ActionExecutor {
     enigo: Enigo,
     midi_output: MidiOutputManager,
+    plugin_manager: PluginManager,
 }
 
 impl Default for ActionExecutor {
@@ -206,7 +209,22 @@ impl ActionExecutor {
         Self {
             enigo: Enigo::new(&Settings::default()).unwrap(),
             midi_output: MidiOutputManager::new(),
+            plugin_manager: PluginManager::default(),
         }
+    }
+
+    /// Get a reference to the plugin manager
+    ///
+    /// Allows external code to manage plugins (discover, load, configure permissions)
+    pub fn plugin_manager(&self) -> &PluginManager {
+        &self.plugin_manager
+    }
+
+    /// Get a mutable reference to the plugin manager
+    ///
+    /// Allows external code to manage plugins (discover, load, configure permissions)
+    pub fn plugin_manager_mut(&mut self) -> &mut PluginManager {
+        &mut self.plugin_manager
     }
 
     /// Execute an action
@@ -294,6 +312,26 @@ impl ActionExecutor {
             }
             Action::SendMidi { port, message_type, channel, params } => {
                 self.execute_send_midi(&port, &message_type, channel, &params, context.as_ref());
+            }
+            Action::Plugin { plugin, params } => {
+                // Convert TriggerContext from daemon to plugin TriggerContext
+                let plugin_context = context.as_ref().map(|ctx| {
+                    midimon_core::plugin::TriggerContext {
+                        velocity: ctx.velocity,
+                        current_mode: None, // TODO: Convert mode name to index
+                        timestamp: Instant::now(),
+                    }
+                });
+
+                // Execute plugin
+                match self.plugin_manager.execute_plugin(&plugin, params, plugin_context) {
+                    Ok(()) => {
+                        // Plugin executed successfully
+                    }
+                    Err(e) => {
+                        eprintln!("Plugin execution error for '{}': {}", plugin, e);
+                    }
+                }
             }
         }
     }

@@ -1131,7 +1131,7 @@ fn test_execute_text_action_safe() {
     let action = Action::Text(" ".to_string()); // Single space - minimal side effect
 
     // This will actually type a space, but that's relatively safe
-    executor.execute(action);
+    executor.execute(action, None);
 }
 
 #[test]
@@ -1142,7 +1142,7 @@ fn test_execute_delay_action() {
     let mut executor = ActionExecutor::new();
     let action = Action::Delay(1); // 1ms delay - no side effects
 
-    executor.execute(action);
+    executor.execute(action, None);
 }
 
 #[test]
@@ -1153,7 +1153,7 @@ fn test_execute_sequence_action() {
     let mut executor = ActionExecutor::new();
     let action = Action::Sequence(vec![Action::Delay(1), Action::Delay(1)]);
 
-    executor.execute(action);
+    executor.execute(action, None);
 }
 
 #[test]
@@ -1166,7 +1166,7 @@ fn test_execute_launch_action_safe() {
     // /dev/null is safe to "open" on Unix systems - it's a no-op
     let action = Action::Launch("/dev/null".to_string());
 
-    executor.execute(action);
+    executor.execute(action, None);
 }
 
 #[test]
@@ -1179,7 +1179,7 @@ fn test_execute_shell_action_safe() {
     // "true" is a safe no-op command that always succeeds
     let action = Action::Shell("true".to_string());
 
-    executor.execute(action);
+    executor.execute(action, None);
 }
 
 #[test]
@@ -1194,7 +1194,7 @@ fn test_execute_keystroke_action_safe() {
         modifiers: vec![],
     };
 
-    executor.execute(action);
+    executor.execute(action, None);
 }
 
 #[test]
@@ -1209,7 +1209,7 @@ fn test_execute_keystroke_with_modifiers_safe() {
         modifiers: vec![],
     };
 
-    executor.execute(action);
+    executor.execute(action, None);
 }
 
 #[test]
@@ -1227,7 +1227,7 @@ fn test_execute_mouse_click_without_position() {
 
     // WARNING: This will click wherever the mouse currently is
     // Only run in controlled test environment
-    executor.execute(action);
+    executor.execute(action, None);
 }
 
 #[test]
@@ -1245,7 +1245,7 @@ fn test_execute_mouse_click_with_position() {
 
     // WARNING: This will click at (0, 0)
     // Only run in controlled test environment
-    executor.execute(action);
+    executor.execute(action, None);
 }
 
 // ============================================================================

@@ -69,6 +69,7 @@
 
 - [Development Setup](development/setup.md)
 - [Architecture Overview](development/architecture.md)
+- [Plugin Development](development/plugin-development.md)
 - [Contributing Guide](development/contributing.md)
 - [Testing Guide](development/testing.md)
 - [Release Process](development/release-process.md)
