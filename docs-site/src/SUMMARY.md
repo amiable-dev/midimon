@@ -24,12 +24,26 @@
 - [Per-App Profiles](guides/per-app-profiles.md)
 - [LED System](guides/led-system.md)
 - [Event Console](guides/event-console.md)
+- [Velocity Curves](guides/velocity-curves.md)
+- [Context-Aware Mappings](guides/context-aware.md)
+- [DAW Control](guides/daw-control.md)
+
+# Tutorials
+
+- [Dynamic Workflows](tutorials/dynamic-workflows.md)
+
+# Examples
+
+- [Logic Pro Integration](examples/logic-pro.md)
+- [Ableton Live Integration](examples/ableton-live.md)
 
 # Configuration
 
 - [Configuration Overview](configuration/overview.md)
 - [Triggers Reference](configuration/triggers.md)
 - [Actions Reference](configuration/actions.md)
+- [Velocity Mappings](configuration/curves.md)
+- [Conditional Actions](configuration/conditionals.md)
 - [Modes System](configuration/modes.md)
 - [LED Feedback](configuration/led-feedback.md)
 - [Device Profiles](configuration/device-profiles.md)
@@ -62,6 +76,7 @@
 # Troubleshooting
 
 - [Common Issues](troubleshooting/common-issues.md)
+- [MIDI Output Issues](troubleshooting/midi-output.md)
 - [FAQ](troubleshooting/faq.md)
 - [Diagnostic Tools](troubleshooting/diagnostics.md)
 - [Performance](troubleshooting/performance.md)
