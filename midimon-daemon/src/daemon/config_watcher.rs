@@ -7,16 +7,22 @@ use crate::daemon::error::{DaemonError, Result};
 use crate::daemon::types::DaemonCommand;
 use notify::event::{EventKind, ModifyKind};
 use notify::{Event, RecommendedWatcher, RecursiveMode};
-use notify_debouncer_full::{DebounceEventResult, Debouncer, FileIdMap, new_debouncer};
+use notify_debouncer_full::{DebounceEventResult, Debouncer, new_debouncer};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tokio::sync::{broadcast, mpsc};
 use tracing::{debug, error, info};
 
+// Platform-specific cache types for file watching
+#[cfg(target_os = "macos")]
+use notify_debouncer_full::FileIdMap as CacheType;
+#[cfg(not(target_os = "macos"))]
+use notify_debouncer_full::NoCache as CacheType;
+
 /// Config file watcher with debouncing
 pub struct ConfigWatcher {
     config_path: PathBuf,
-    debouncer: Option<Debouncer<RecommendedWatcher, FileIdMap>>,
+    debouncer: Option<Debouncer<RecommendedWatcher, CacheType>>,
     event_rx: mpsc::Receiver<PathBuf>,
     command_tx: mpsc::Sender<DaemonCommand>,
     shutdown_rx: broadcast::Receiver<()>,
