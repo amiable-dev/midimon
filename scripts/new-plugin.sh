@@ -252,22 +252,16 @@ pub extern "C" fn execute(_ptr: u32, _len: u32) -> i32 {
 
 /// Allocate memory in WASM linear memory (called by host)
 #[no_mangle]
-pub extern "C" fn alloc(size: u32) -> *mut u8 {
-    use core::alloc::{alloc, Layout};
-    unsafe {
-        let layout = Layout::from_size_align_unchecked(size as usize, 1);
-        alloc(layout)
-    }
+pub extern "C" fn alloc(_size: u32) -> *mut u8 {
+    // For minimal plugin, we don't support dynamic allocation
+    // Return null pointer to indicate failure
+    core::ptr::null_mut()
 }
 
 /// Deallocate memory in WASM linear memory (called by host)
 #[no_mangle]
-pub extern "C" fn dealloc(ptr: *mut u8, size: u32) {
-    use core::alloc::{dealloc, Layout};
-    unsafe {
-        let layout = Layout::from_size_align_unchecked(size as usize, 1);
-        dealloc(ptr, layout);
-    }
+pub extern "C" fn dealloc(_ptr: *mut u8, _size: u32) {
+    // No-op for minimal plugin
 }
 
 /// Panic handler (required for no_std)
@@ -275,10 +269,6 @@ pub extern "C" fn dealloc(ptr: *mut u8, size: u32) {
 fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
-
-/// Global allocator (required for alloc)
-#[global_allocator]
-static ALLOCATOR: core::alloc::System = core::alloc::System;
 EOF
 
     # Replace placeholders
@@ -510,7 +500,7 @@ set -e
 echo "Building WASM plugin..."
 cargo build --target wasm32-wasip1 --release
 
-WASM_FILE="target/wasm32-wasip1/release/{{ PLUGIN_CRATE_NAME }}.wasm"
+WASM_FILE="target/wasm32-wasip1/release/$(echo "{{ PLUGIN_CRATE_NAME }}" | tr '-' '_').wasm"
 SIZE=$(ls -lh "$WASM_FILE" | awk '{print $5}')
 
 echo "✅ Plugin built successfully!"
