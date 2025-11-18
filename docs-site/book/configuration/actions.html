@@ -191,9 +191,12 @@
 <tr><td><a href="#shell">Shell</a></td><td>Execute shell commands</td><td>Simple</td></tr>
 <tr><td><a href="#sequence">Sequence</a></td><td>Chain multiple actions</td><td>Moderate</td></tr>
 <tr><td><a href="#delay">Delay</a></td><td>Add timing control</td><td>Simple</td></tr>
-<tr><td><a href="#mouseclickcode%3E">MouseClick</a></td><td>Simulate mouse clicks</td><td>Simple</td></tr>
+<tr><td><a href="#mouseclick">MouseClick</a></td><td>Simulate mouse clicks</td><td>Simple</td></tr>
 <tr><td><a href="#repeat">Repeat</a></td><td>Repeat actions N times</td><td>Moderate</td></tr>
-<tr><td><a href="#conditional">Conditional</a></td><td>Conditional execution</td><td>Advanced</td></tr>
+<tr><td><a href="#volumecontrol">VolumeControl</a></td><td>System volume control</td><td>Simple</td></tr>
+<tr><td><a href="#modechange">ModeChange</a></td><td>Switch mapping modes</td><td>Simple</td></tr>
+<tr><td><a href="#sendmidi">SendMidi</a></td><td>Send MIDI messages</td><td>Moderate</td></tr>
+<tr><td><a href="#conditional">Conditional</a></td><td>Context-aware execution</td><td>Advanced</td></tr>
 </tbody></table>
 </div>
 <h2 id="simple-actions"><a class="header" href="#simple-actions">Simple Actions</a></h2>
@@ -635,62 +638,233 @@ type = "ModeChange"
 mode = "Media"
 </code></pre>
 <p><strong>Note</strong>: Mode changes trigger LED color updates and mapping context switches. The mode name must match a defined mode in your configuration.</p>
-<h2 id="advanced-actions"><a class="header" href="#advanced-actions">Advanced Actions</a></h2>
-<h3 id="conditional"><a class="header" href="#conditional">Conditional</a></h3>
-<p>Execute actions based on runtime conditions. Currently supports time-based conditions with plans for app state and modifier detection.</p>
+<h2 id="midi-output-actions"><a class="header" href="#midi-output-actions">MIDI Output Actions</a></h2>
+<h3 id="sendmidi"><a class="header" href="#sendmidi">SendMidi</a></h3>
+<p>Send MIDI messages to physical or virtual MIDI output ports. Enables DAW control, external synth control, and MIDI routing.</p>
+<p><strong>Platform Support</strong>: macOS, Linux, Windows (all platforms with MIDI output)</p>
+<pre><code class="language-toml"># Send MIDI Note On
+[modes.mappings.action]
+type = "SendMidi"
+port = "IAC Driver Bus 1"  # Virtual MIDI port name
+message_type = "NoteOn"
+channel = 0        # MIDI channel 0-15 (maps to channel 1-16)
+note = 60          # Middle C (0-127)
+velocity = 100     # Note velocity (0-127)
+</code></pre>
+<p><strong>Message Types</strong>:</p>
+<p><strong>NoteOn</strong> - Note on with velocity:</p>
 <pre><code class="language-toml">[modes.mappings.action]
-type = "Conditional"
-condition = "TimeRange:09:00-17:00"
-then_action = { type = "Launch", app = "Slack" }
-else_action = { type = "Launch", app = "Discord" }
+type = "SendMidi"
+port = "Virtual MIDI Port"
+message_type = "NoteOn"
+channel = 0    # MIDI channel 0-15
+note = 60      # Note number (0-127)
+velocity = 100 # Velocity (0-127)
 </code></pre>
-<p><strong>Parameters</strong>:</p>
+<p><strong>NoteOff</strong> - Note off:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "SendMidi"
+port = "Virtual MIDI Port"
+message_type = "NoteOff"
+channel = 0
+note = 60
+velocity = 0  # Release velocity (usually 0)
+</code></pre>
+<p><strong>CC (Control Change)</strong> - MIDI control change:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "SendMidi"
+port = "Virtual MIDI Port"
+message_type = "CC"
+channel = 0
+controller = 7  # Controller number (0-127, e.g., 7=Volume, 1=Modulation)
+value = 100     # Controller value (0-127)
+</code></pre>
+<p><strong>ProgramChange</strong> - Change program/preset:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "SendMidi"
+port = "Virtual MIDI Port"
+message_type = "ProgramChange"
+channel = 0
+program = 9  # Program number (0-127)
+</code></pre>
+<p><strong>PitchBend</strong> - Pitch bend wheel:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "SendMidi"
+port = "Virtual MIDI Port"
+message_type = "PitchBend"
+channel = 0
+value = 0  # Pitch bend value (-8192 to +8191, 0 = center)
+</code></pre>
+<p><strong>Aftertouch</strong> - Channel pressure:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "SendMidi"
+port = "Virtual MIDI Port"
+message_type = "Aftertouch"
+channel = 0
+pressure = 64  # Pressure value (0-127)
+</code></pre>
+<p><strong>Use Cases</strong>:</p>
 <ul>
-<li><code>condition</code> (string): Condition to evaluate</li>
-<li><code>then_action</code> (object): Action when condition is true</li>
-<li><code>else_action</code> (object, optional): Action when condition is false</li>
+<li><strong>DAW Control</strong>: Send notes/CC to control Logic Pro, Ableton Live, FL Studio</li>
+<li><strong>Virtual Instruments</strong>: Trigger software synths and samplers</li>
+<li><strong>MIDI Routing</strong>: Route controller input to different destinations</li>
+<li><strong>Hardware Synths</strong>: Control external synthesizers and drum machines</li>
+<li><strong>Lighting Control</strong>: Send MIDI to DMX/lighting systems</li>
 </ul>
-<p><strong>Condition Types</strong>:</p>
-<p><strong>Always</strong> - Always evaluates to true (useful for testing):</p>
-<pre><code class="language-toml">condition = "Always"
-</code></pre>
-<p><strong>Never</strong> - Always evaluates to false (useful for testing):</p>
-<pre><code class="language-toml">condition = "Never"
-</code></pre>
-<p><strong>TimeRange</strong> - Check if current time falls within range (24-hour format):</p>
-<pre><code class="language-toml">condition = "TimeRange:09:00-17:00"  # During work hours
-condition = "TimeRange:18:00-23:59"  # Evening hours
-condition = "TimeRange:22:00-02:00"  # Crosses midnight
-</code></pre>
-<p><strong>Example - Time-based launcher</strong>:</p>
+<p><strong>Example - Velocity-Sensitive MIDI</strong>:</p>
 <pre><code class="language-toml">[[modes.mappings]]
-description = "Launch work/personal app based on time"
+description = "Expressive MIDI note with velocity curve"
+
 [modes.mappings.trigger]
 type = "Note"
-note = 10
+note = 1
+
+[modes.mappings.velocity_mapping]
+type = "Curve"
+curve_type = "Exponential"
+intensity = 0.7  # Boost soft hits
+
 [modes.mappings.action]
-type = "Conditional"
-condition = "TimeRange:09:00-17:00"
-then_action = { type = "Launch", app = "Slack" }  # Work hours
-else_action = { type = "Launch", app = "Discord" }  # Off hours
+type = "SendMidi"
+port = "IAC Driver Bus 1"
+message_type = "NoteOn"
+channel = 0
+note = 60
+# Velocity is derived from velocity_mapping transformation
 </code></pre>
-<p><strong>Example - Nested conditionals</strong>:</p>
+<p><strong>Example - Control DAW Volume</strong>:</p>
+<pre><code class="language-toml">[[modes.mappings]]
+description = "Control track volume with CC"
+
+[modes.mappings.trigger]
+type = "Note"
+note = 5
+
+[modes.mappings.action]
+type = "SendMidi"
+port = "IAC Driver Bus 1"
+message_type = "CC"
+channel = 0
+controller = 7   # Volume CC
+value = 100
+</code></pre>
+<p><strong>Example - Note On/Off Sequence</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Sequence"
+actions = [
+  { type = "SendMidi", port = "IAC", message_type = "NoteOn", channel = 0, note = 60, velocity = 100 },
+  { type = "Delay", ms = 500 },
+  { type = "SendMidi", port = "IAC", message_type = "NoteOff", channel = 0, note = 60, velocity = 0 }
+]
+</code></pre>
+<p><strong>Virtual MIDI Ports</strong>:</p>
+<ul>
+<li><strong>macOS</strong>: Use IAC Driver (Audio MIDI Setup → Window → Show MIDI Studio → IAC Driver)</li>
+<li><strong>Windows</strong>: Use loopMIDI or similar virtual MIDI port software</li>
+<li><strong>Linux</strong>: Use ALSA virtual ports</li>
+</ul>
+<p><strong>Note</strong>: Virtual MIDI port creation is not yet automated. Use system tools to create virtual ports, then reference them by name in the <code>port</code> parameter.</p>
+<h2 id="advanced-actions"><a class="header" href="#advanced-actions">Advanced Actions</a></h2>
+<h3 id="conditional"><a class="header" href="#conditional">Conditional</a></h3>
+<p>Execute different actions based on runtime conditions such as time, active app, current mode, or day of week. Enables context-aware, adaptive behavior.</p>
+<p><strong>Complete Documentation</strong>: See <a href="conditionals.html">Configuration: Conditionals</a> for comprehensive reference.</p>
+<p><strong>Basic Structure</strong>:</p>
 <pre><code class="language-toml">[modes.mappings.action]
 type = "Conditional"
-condition = "TimeRange:09:00-17:00"
-then_action = {
-    type = "Conditional",
-    condition = "Always",  # Placeholder for future AppRunning condition
-    then_action = { type = "Keystroke", keys = "b", modifiers = ["cmd", "shift"] },
-    else_action = { type = "Launch", app = "Visual Studio Code" }
-}
-else_action = { type = "Launch", app = "Spotify" }
+condition = { /* condition definition */ }
+then_action = { /* action if true */ }
+else_action = { /* optional action if false */ }
 </code></pre>
-<p><strong>Future Condition Types</strong> (not yet implemented):</p>
+<p><strong>Quick Examples</strong>:</p>
+<p><strong>Time-Based Launcher</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Conditional"
+
+[modes.mappings.action.condition]
+type = "TimeRange"
+start = "09:00"
+end = "17:00"
+
+[modes.mappings.action.then_action]
+type = "Launch"
+app = "Slack"  # Work hours
+
+[modes.mappings.action.else_action]
+type = "Launch"
+app = "Discord"  # Off hours
+</code></pre>
+<p><strong>App-Aware Control</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Conditional"
+
+[modes.mappings.action.condition]
+type = "AppRunning"
+app_name = "Logic Pro"
+
+[modes.mappings.action.then_action]
+type = "SendMidi"
+port = "IAC Driver Bus 1"
+message_type = "NoteOn"
+channel = 0
+note = 60
+velocity = 100
+
+[modes.mappings.action.else_action]
+type = "Launch"
+app = "Logic Pro"
+</code></pre>
+<p><strong>Multiple Conditions (AND)</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Conditional"
+
+[modes.mappings.action.condition]
+type = "And"
+conditions = [
+  { type = "TimeRange", start = "09:00", end = "17:00" },
+  { type = "DayOfWeek", days = [1, 2, 3, 4, 5] },
+  { type = "AppRunning", app_name = "Slack" }
+]
+
+[modes.mappings.action.then_action]
+type = "Keystroke"
+keys = "s"
+modifiers = ["cmd", "shift"]
+</code></pre>
+<p><strong>Multiple Conditions (OR)</strong>:</p>
+<pre><code class="language-toml">[modes.mappings.action]
+type = "Conditional"
+
+[modes.mappings.action.condition]
+type = "Or"
+conditions = [
+  { type = "AppFrontmost", app_name = "Safari" },
+  { type = "AppFrontmost", app_name = "Chrome" },
+  { type = "AppFrontmost", app_name = "Firefox" }
+]
+
+[modes.mappings.action.then_action]
+type = "Keystroke"
+keys = "t"
+modifiers = ["cmd"]  # New tab in any browser
+</code></pre>
+<p><strong>Available Condition Types</strong>:</p>
 <ul>
-<li><code>AppRunning:bundle_id</code> - Check if specific app is running</li>
-<li><code>ModifierPressed:Shift</code> - Check if modifier key is held</li>
-<li><code>ModeIs:1</code> - Check active mode index</li>
+<li><code>Always</code> - Always true</li>
+<li><code>Never</code> - Always false</li>
+<li><code>TimeRange</code> - Time window (HH:MM format)</li>
+<li><code>DayOfWeek</code> - Specific days (1=Monday through 7=Sunday)</li>
+<li><code>AppRunning</code> - Process detection (macOS, Linux)</li>
+<li><code>AppFrontmost</code> - Active window detection (macOS only)</li>
+<li><code>ModeIs</code> - Current mode matching</li>
+<li><code>And</code> - Logical AND of multiple conditions</li>
+<li><code>Or</code> - Logical OR of multiple conditions</li>
+<li><code>Not</code> - Logical negation</li>
+</ul>
+<p><strong>See Also</strong>:</p>
+<ul>
+<li><a href="conditionals.html">Configuration: Conditionals</a> - Complete TOML reference</li>
+<li><a href="../guides/context-aware.html">Guide: Context-Aware Mappings</a> - User guide with examples</li>
+<li><a href="../tutorials/dynamic-workflows.html">Tutorial: Dynamic Workflows</a> - Step-by-step tutorial</li>
 </ul>
 <h2 id="action-composition-patterns"><a class="header" href="#action-composition-patterns">Action Composition Patterns</a></h2>
 <h3 id="1-velocity-based-repeat-count"><a class="header" href="#1-velocity-based-repeat-count">1. Velocity-Based Repeat Count</a></h3>
@@ -816,7 +990,7 @@ actions = [
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../configuration/modes.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../configuration/curves.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -830,7 +1004,7 @@ actions = [
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../configuration/modes.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../configuration/curves.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
