@@ -116,10 +116,7 @@ pub async fn plugin_get_metadata(
 
 /// Load a plugin
 #[tauri::command]
-pub async fn plugin_load(
-    plugin_name: String,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn plugin_load(plugin_name: String, state: State<'_, AppState>) -> Result<(), String> {
     let plugin_manager = state.get_plugin_manager().await;
     let mut pm = plugin_manager.write().await;
 
@@ -131,10 +128,7 @@ pub async fn plugin_load(
 
 /// Unload a plugin
 #[tauri::command]
-pub async fn plugin_unload(
-    plugin_name: String,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn plugin_unload(plugin_name: String, state: State<'_, AppState>) -> Result<(), String> {
     let plugin_manager = state.get_plugin_manager().await;
     let mut pm = plugin_manager.write().await;
 
@@ -146,10 +140,7 @@ pub async fn plugin_unload(
 
 /// Enable a plugin
 #[tauri::command]
-pub async fn plugin_enable(
-    plugin_name: String,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn plugin_enable(plugin_name: String, state: State<'_, AppState>) -> Result<(), String> {
     let plugin_manager = state.get_plugin_manager().await;
     let mut pm = plugin_manager.write().await;
 
@@ -161,10 +152,7 @@ pub async fn plugin_enable(
 
 /// Disable a plugin
 #[tauri::command]
-pub async fn plugin_disable(
-    plugin_name: String,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn plugin_disable(plugin_name: String, state: State<'_, AppState>) -> Result<(), String> {
     let plugin_manager = state.get_plugin_manager().await;
     let mut pm = plugin_manager.write().await;
 
@@ -196,12 +184,7 @@ pub async fn plugin_grant_capability(
     };
 
     pm.grant_capability(&plugin_name, cap)
-        .map_err(|e| {
-            format!(
-                "Failed to grant {} to {}: {}",
-                capability, plugin_name, e
-            )
-        })?;
+        .map_err(|e| format!("Failed to grant {} to {}: {}", capability, plugin_name, e))?;
 
     Ok(())
 }
@@ -227,13 +210,12 @@ pub async fn plugin_revoke_capability(
         _ => return Err(format!("Unknown capability: {}", capability)),
     };
 
-    pm.revoke_capability(&plugin_name, &cap)
-        .map_err(|e| {
-            format!(
-                "Failed to revoke {} from {}: {}",
-                capability, plugin_name, e
-            )
-        })?;
+    pm.revoke_capability(&plugin_name, &cap).map_err(|e| {
+        format!(
+            "Failed to revoke {} from {}: {}",
+            capability, plugin_name, e
+        )
+    })?;
 
     Ok(())
 }

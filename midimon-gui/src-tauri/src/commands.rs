@@ -745,7 +745,7 @@ pub async fn list_midi_output_ports(
                 || name.contains("Virtual")
                 || name.contains("Bus")
                 || name.contains("MIDIMon")
-                || name.contains("loopMIDI");      // Windows loopMIDI driver
+                || name.contains("loopMIDI"); // Windows loopMIDI driver
 
             MidiOutputPort {
                 index,
@@ -865,7 +865,9 @@ pub async fn test_midi_output(
 
     Ok(format!(
         "Successfully sent {} message to {} (channel {})",
-        message_type, port_name, (channel as u8) + 1
+        message_type,
+        port_name,
+        (channel as u8) + 1
     ))
 }
 
@@ -938,10 +940,14 @@ pub fn validate_send_midi_action(config: SendMidiConfig) -> Result<ValidationRes
         "aftertouch" => {
             if let Some(pressure) = config.aftertouch {
                 if pressure > 127 {
-                    errors.push(format!("Aftertouch pressure must be 0-127, got {}", pressure));
+                    errors.push(format!(
+                        "Aftertouch pressure must be 0-127, got {}",
+                        pressure
+                    ));
                 }
             } else {
-                warnings.push("Aftertouch pressure not specified, will use default (64)".to_string());
+                warnings
+                    .push("Aftertouch pressure not specified, will use default (64)".to_string());
             }
         }
         _ => {

@@ -76,13 +76,13 @@ fn test_error_code_exists() {
 fn test_boundary_conditions() {
     // Test requests at various sizes relative to the limit
     let sizes = vec![
-        1_000,           // 1KB - tiny
-        100_000,         // 100KB - normal
-        500_000,         // 500KB - large but valid
-        1_048_575,       // 1 byte under limit - should accept
-        1_048_576,       // Exactly at limit - should accept
-        1_048_577,       // 1 byte over limit - should reject
-        10_000_000,      // 10MB - way over limit
+        1_000,      // 1KB - tiny
+        100_000,    // 100KB - normal
+        500_000,    // 500KB - large but valid
+        1_048_575,  // 1 byte under limit - should accept
+        1_048_576,  // Exactly at limit - should accept
+        1_048_577,  // 1 byte over limit - should reject
+        10_000_000, // 10MB - way over limit
     ];
 
     for size in sizes {
@@ -181,11 +181,16 @@ fn test_security_error_details() {
 
     // Verify details include security context
     let details = error.details.unwrap();
-    assert!(details["security"]
-        .as_str()
-        .unwrap()
-        .contains("memory exhaustion"));
-    assert_eq!(details["max_size"].as_u64().unwrap(), MAX_REQUEST_SIZE as u64);
+    assert!(
+        details["security"]
+            .as_str()
+            .unwrap()
+            .contains("memory exhaustion")
+    );
+    assert_eq!(
+        details["max_size"].as_u64().unwrap(),
+        MAX_REQUEST_SIZE as u64
+    );
 }
 
 /// Performance test: Verify size check has negligible overhead

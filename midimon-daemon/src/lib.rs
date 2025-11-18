@@ -164,9 +164,9 @@
 //! - [`daemon::types`] - Shared types and data structures
 //! - [`daemon::error`] - Error types and handling
 
-pub mod daemon;
 pub mod action_executor;
 pub mod conditions;
+pub mod daemon;
 pub mod midi_device;
 pub mod plugin_manager;
 

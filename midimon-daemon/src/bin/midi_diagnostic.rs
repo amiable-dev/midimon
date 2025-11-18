@@ -2,14 +2,16 @@
 // SPDX-License-Identifier: MIT
 
 use colored::Colorize;
+use midi_msg::{ChannelVoiceMsg, MidiMsg};
 use midir::MidiInput;
-use midi_msg::{MidiMsg, ChannelVoiceMsg};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 // Convert MIDI note number (0-127) to musical note name (e.g., "C4", "A#3")
 fn note_to_name(note: u8) -> String {
-    const NOTE_NAMES: [&str; 12] = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const NOTE_NAMES: [&str; 12] = [
+        "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+    ];
     let octave = (note / 12) as i32 - 1; // MIDI note 60 = C4
     let note_name = NOTE_NAMES[(note % 12) as usize];
     format!("{}{}", note_name, octave)
@@ -102,8 +104,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Parse MIDI message using midi-msg library
             match MidiMsg::from_midi(msg) {
-                Ok((MidiMsg::ChannelVoice { channel, msg: voice_msg }, _)) |
-                Ok((MidiMsg::RunningChannelVoice { channel, msg: voice_msg }, _)) => {
+                Ok((
+                    MidiMsg::ChannelVoice {
+                        channel,
+                        msg: voice_msg,
+                    },
+                    _,
+                ))
+                | Ok((
+                    MidiMsg::RunningChannelVoice {
+                        channel,
+                        msg: voice_msg,
+                    },
+                    _,
+                )) => {
                     let ch = channel as u8 + 1; // Display as 1-based
 
                     match voice_msg {
@@ -126,7 +140,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 );
                             } else {
                                 // Note on with velocity 0 (acts as note off)
-                                if let Some(press_time) = held_notes_clone.lock().unwrap().remove(&note) {
+                                if let Some(press_time) =
+                                    held_notes_clone.lock().unwrap().remove(&note)
+                                {
                                     let duration = now.duration_since(press_time);
                                     println!(
                                         "{} {:>3} ({:3}) vel=  0 ch={:2} (held {:.3}s)",
@@ -143,7 +159,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         ChannelVoiceMsg::NoteOff { note, velocity: _ } => {
                             let note_name = note_to_name(note);
 
-                            if let Some(press_time) = held_notes_clone.lock().unwrap().remove(&note) {
+                            if let Some(press_time) = held_notes_clone.lock().unwrap().remove(&note)
+                            {
                                 let duration = now.duration_since(press_time);
                                 println!(
                                     "{} {:>3} ({:3})         ch={:2} (held {:.3}s)",

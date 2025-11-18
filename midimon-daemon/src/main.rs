@@ -88,9 +88,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Verify config file exists
     if !config_path.exists() {
         error!("Config file not found: {}", config_path.display());
-        eprintln!("Error: Configuration file not found: {}", config_path.display());
+        eprintln!(
+            "Error: Configuration file not found: {}",
+            config_path.display()
+        );
         eprintln!();
-        eprintln!("Please create a config file at this location or specify a different path with --config");
+        eprintln!(
+            "Please create a config file at this location or specify a different path with --config"
+        );
         eprintln!();
         eprintln!("Example config.toml:");
         eprintln!("{}", get_example_config());
@@ -106,11 +111,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Run in foreground mode (tokio runtime required for async daemon)
     let rt = tokio::runtime::Runtime::new()?;
 
-    info!("Starting daemon service (foreground mode: {})", args.foreground);
+    info!(
+        "Starting daemon service (foreground mode: {})",
+        args.foreground
+    );
 
-    let result = rt.block_on(async {
-        run_daemon_with_config(config_path).await
-    });
+    let result = rt.block_on(async { run_daemon_with_config(config_path).await });
 
     match result {
         Ok(()) => {
@@ -136,13 +142,12 @@ fn setup_logging(verbose: bool, trace: bool) {
     };
 
     // Build filter: MIDIMon modules at specified level, others at WARN
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| {
-            EnvFilter::new(format!(
-                "midimon={},midimon_core={},midimon_daemon={},warn",
-                log_level, log_level, log_level
-            ))
-        });
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+        EnvFilter::new(format!(
+            "midimon={},midimon_core={},midimon_daemon={},warn",
+            log_level, log_level, log_level
+        ))
+    });
 
     // Use human-readable format with timestamps
     tracing_subscriber::registry()
@@ -153,7 +158,7 @@ fn setup_logging(verbose: bool, trace: bool) {
                 .with_level(true)
                 .with_thread_ids(false)
                 .with_thread_names(false)
-                .with_line_number(true)
+                .with_line_number(true),
         )
         .init();
 }
@@ -162,8 +167,7 @@ fn setup_logging(verbose: bool, trace: bool) {
 fn get_default_config_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
     #[cfg(target_os = "macos")]
     {
-        let home = std::env::var("HOME")
-            .map_err(|_| "HOME environment variable not set")?;
+        let home = std::env::var("HOME").map_err(|_| "HOME environment variable not set")?;
         Ok(PathBuf::from(home)
             .join("Library")
             .join("Application Support")
@@ -173,10 +177,9 @@ fn get_default_config_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
 
     #[cfg(target_os = "linux")]
     {
-        let home = std::env::var("HOME")
-            .map_err(|_| "HOME environment variable not set")?;
-        let config_home = std::env::var("XDG_CONFIG_HOME")
-            .unwrap_or_else(|_| format!("{}/.config", home));
+        let home = std::env::var("HOME").map_err(|_| "HOME environment variable not set")?;
+        let config_home =
+            std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| format!("{}/.config", home));
         Ok(PathBuf::from(config_home)
             .join("midimon")
             .join("config.toml"))
@@ -184,11 +187,9 @@ fn get_default_config_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
 
     #[cfg(target_os = "windows")]
     {
-        let appdata = std::env::var("APPDATA")
-            .map_err(|_| "APPDATA environment variable not set")?;
-        Ok(PathBuf::from(appdata)
-            .join("midimon")
-            .join("config.toml"))
+        let appdata =
+            std::env::var("APPDATA").map_err(|_| "APPDATA environment variable not set")?;
+        Ok(PathBuf::from(appdata).join("midimon").join("config.toml"))
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]

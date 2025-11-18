@@ -280,12 +280,11 @@ impl PluginDiscovery {
         let content = fs::read_to_string(manifest_path)?;
 
         // Parse TOML
-        let manifest: PluginManifest = toml::from_str(&content).map_err(|e| {
-            DiscoveryError::ManifestParseError {
+        let manifest: PluginManifest =
+            toml::from_str(&content).map_err(|e| DiscoveryError::ManifestParseError {
                 path: manifest_path.display().to_string(),
                 reason: e.to_string(),
-            }
-        })?;
+            })?;
 
         // Build binary path
         let binary_path = plugin_dir.join(&manifest.plugin.binary);

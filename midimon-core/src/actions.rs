@@ -255,7 +255,7 @@ pub enum VelocityMapping {
     /// Fixed velocity (current behavior, v2.1 compatibility)
     /// Always send the same velocity regardless of trigger velocity
     Fixed {
-        velocity: u8,  // 0-127
+        velocity: u8, // 0-127
     },
 
     /// Pass-through mode (1:1 mapping)
@@ -265,15 +265,15 @@ pub enum VelocityMapping {
     /// Linear scaling with configurable range
     /// Maps input range (0-127) to output range (min-max)
     Linear {
-        min: u8,  // Minimum output velocity (0-127)
-        max: u8,  // Maximum output velocity (0-127)
+        min: u8, // Minimum output velocity (0-127)
+        max: u8, // Maximum output velocity (0-127)
     },
 
     /// Curve-based transformation
     /// Applies non-linear curve to velocity values
     Curve {
         curve_type: VelocityCurve,
-        intensity: f32,  // 0.0-1.0, curve strength
+        intensity: f32, // 0.0-1.0, curve strength
     },
 }
 
@@ -306,7 +306,7 @@ pub enum VelocityCurve {
 pub enum MidiMessageParams {
     Note {
         note: u8,
-        velocity_mapping: VelocityMapping,  // v2.2: was `velocity: u8`
+        velocity_mapping: VelocityMapping, // v2.2: was `velocity: u8`
     },
     CC {
         controller: u8,
@@ -316,7 +316,7 @@ pub enum MidiMessageParams {
         program: u8,
     },
     PitchBend {
-        value: i16,  // -8192 to +8191
+        value: i16, // -8192 to +8191
     },
     Aftertouch {
         pressure: u8,
@@ -359,12 +359,20 @@ impl From<ActionConfig> for Action {
                 value,
             },
             ActionConfig::ModeChange { mode } => Action::ModeChange { mode },
-            ActionConfig::Repeat { action, count, delay_ms } => Action::Repeat {
+            ActionConfig::Repeat {
+                action,
+                count,
+                delay_ms,
+            } => Action::Repeat {
                 action: Box::new((*action).into()),
                 count,
                 delay_ms,
             },
-            ActionConfig::Conditional { condition, then_action, else_action } => Action::Conditional {
+            ActionConfig::Conditional {
+                condition,
+                then_action,
+                else_action,
+            } => Action::Conditional {
                 condition,
                 then_action: Box::new((*then_action).into()),
                 else_action: else_action.map(|a| Box::new((*a).into())),
@@ -600,7 +608,9 @@ mod tests {
         let action: Action = config.into();
 
         match action {
-            Action::Repeat { count, delay_ms, .. } => {
+            Action::Repeat {
+                count, delay_ms, ..
+            } => {
                 assert_eq!(count, 5);
                 assert_eq!(delay_ms, Some(100));
             }

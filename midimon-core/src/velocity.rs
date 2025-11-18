@@ -65,9 +65,7 @@ pub fn calculate_velocity(trigger_velocity: u8, mapping: &VelocityMapping) -> u8
 
         VelocityMapping::PassThrough => trigger_velocity,
 
-        VelocityMapping::Linear { min, max } => {
-            calculate_linear(trigger_velocity, *min, *max)
-        }
+        VelocityMapping::Linear { min, max } => calculate_linear(trigger_velocity, *min, *max),
 
         VelocityMapping::Curve {
             curve_type,
@@ -231,7 +229,7 @@ mod tests {
 
         // Exponential curve makes soft hits louder
         let soft = calculate_velocity(30, &mapping);
-        let linear_soft = (30.0 / 127.0 * 127.0) as u8;  // Would be 30 with passthrough
+        let linear_soft = (30.0 / 127.0 * 127.0) as u8; // Would be 30 with passthrough
         assert!(
             soft > linear_soft,
             "Exponential should make soft hits louder: {} vs {}",
@@ -301,9 +299,9 @@ mod tests {
     fn test_clamping() {
         // All curves should clamp output to 0-127
         let curves = vec![
-            VelocityMapping::Fixed { velocity: 200 },  // Invalid, should clamp
+            VelocityMapping::Fixed { velocity: 200 }, // Invalid, should clamp
             VelocityMapping::PassThrough,
-            VelocityMapping::Linear { min: 0, max: 200 },  // Invalid max, should clamp
+            VelocityMapping::Linear { min: 0, max: 200 }, // Invalid max, should clamp
         ];
 
         for mapping in curves {
@@ -331,10 +329,7 @@ mod tests {
         for mapping in mappings {
             // Zero input
             let output_zero = calculate_velocity(0, &mapping);
-            assert!(
-                output_zero <= 127,
-                "Zero input should produce valid output"
-            );
+            assert!(output_zero <= 127, "Zero input should produce valid output");
 
             // Max input
             let output_max = calculate_velocity(127, &mapping);

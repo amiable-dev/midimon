@@ -9,12 +9,12 @@
 //! - Plugin lifecycle management (enable/disable/reload)
 //! - Security validation (checksums, capabilities)
 
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use thiserror::Error;
-use sha2::{Digest, Sha256};
 
 use midimon_core::plugin::{
     Capability, LoadedPlugin, PluginDiscovery, PluginLoader, PluginLoaderError, PluginMetadata,
@@ -477,8 +477,7 @@ impl PluginManager {
             managed.stats.avg_execution_time_us = elapsed_us;
         } else {
             managed.stats.avg_execution_time_us =
-                (managed.stats.avg_execution_time_us * (managed.stats.executions - 1)
-                    + elapsed_us)
+                (managed.stats.avg_execution_time_us * (managed.stats.executions - 1) + elapsed_us)
                     / managed.stats.executions;
         }
 

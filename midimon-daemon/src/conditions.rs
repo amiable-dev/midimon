@@ -23,9 +23,7 @@ pub struct ConditionContext {
 
 impl Default for ConditionContext {
     fn default() -> Self {
-        Self {
-            current_mode: None,
-        }
+        Self { current_mode: None }
     }
 }
 
@@ -65,12 +63,8 @@ pub fn evaluate_condition(condition: &Condition, context: Option<&ConditionConte
                 false
             }
         }
-        Condition::And { conditions } => {
-            conditions.iter().all(|c| evaluate_condition(c, context))
-        }
-        Condition::Or { conditions } => {
-            conditions.iter().any(|c| evaluate_condition(c, context))
-        }
+        Condition::And { conditions } => conditions.iter().all(|c| evaluate_condition(c, context)),
+        Condition::Or { conditions } => conditions.iter().any(|c| evaluate_condition(c, context)),
         Condition::Not { condition } => !evaluate_condition(condition, context),
     }
 }
@@ -186,10 +180,7 @@ fn evaluate_app_frontmost(app_name: &str) -> bool {
     {
         let script = r#"tell application "System Events" to get name of first application process whose frontmost is true"#;
 
-        let output = Command::new("osascript")
-            .arg("-e")
-            .arg(script)
-            .output();
+        let output = Command::new("osascript").arg("-e").arg(script).output();
 
         match output {
             Ok(result) if result.status.success() => {

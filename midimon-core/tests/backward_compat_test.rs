@@ -25,7 +25,8 @@ keys = "space"
 modifiers = ["cmd"]
 "#;
 
-    let config: Config = toml::from_str(toml_str).expect("Failed to parse old config without new fields");
+    let config: Config =
+        toml::from_str(toml_str).expect("Failed to parse old config without new fields");
     assert_eq!(config.device.name, "Test Device");
     assert_eq!(config.device.auto_connect, true);
     assert_eq!(config.device.auto_reconnect, true); // default value
@@ -44,7 +45,7 @@ port = 2
 [[modes]]
 name = "Default"
 "#;
-    
+
     let config: Config = toml::from_str(toml_str).expect("Failed to parse config with new fields");
     assert_eq!(config.device.name, "Test Device");
     assert_eq!(config.device.auto_connect, true);
@@ -63,7 +64,7 @@ auto_reconnect = false
 [[modes]]
 name = "Default"
 "#;
-    
+
     let config: Config = toml::from_str(toml_str).expect("Failed to parse config");
     assert_eq!(config.device.auto_reconnect, false);
     assert_eq!(config.device.port, None); // still defaults to None
@@ -80,7 +81,7 @@ port = 5
 [[modes]]
 name = "Default"
 "#;
-    
+
     let config: Config = toml::from_str(toml_str).expect("Failed to parse config");
     assert_eq!(config.device.auto_reconnect, true); // still defaults to true
     assert_eq!(config.device.port, Some(5));

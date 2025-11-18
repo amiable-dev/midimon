@@ -150,9 +150,7 @@ impl MidiEventInfo {
                                     raw_bytes: bytes.to_vec(),
                                     description: format!(
                                         "CC: #{} Value {} Channel {}",
-                                        cc,
-                                        value,
-                                        channel_num
+                                        cc, value, channel_num
                                     ),
                                 }
                             } else {

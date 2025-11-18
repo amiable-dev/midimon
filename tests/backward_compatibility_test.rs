@@ -5,12 +5,12 @@
 
 // Test old-style imports through the compatibility layer
 use midimon::actions::Action;
-use midimon_daemon::ActionExecutor;  // ActionExecutor moved to daemon in Phase 2
 use midimon::config::{ActionConfig, Config, Trigger};
 use midimon::device_profile::{DeviceProfile, PadPageMapping};
 use midimon::event_processor::EventProcessor;
 use midimon::feedback::LightingScheme;
 use midimon::mappings::MappingEngine;
+use midimon_daemon::ActionExecutor; // ActionExecutor moved to daemon in Phase 2
 
 #[test]
 fn test_config_module_accessible() {

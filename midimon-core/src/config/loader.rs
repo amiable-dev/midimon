@@ -200,11 +200,9 @@ impl Config {
             absolute_path.canonicalize()?
         } else if let Some(parent) = absolute_path.parent() {
             if parent.exists() {
-                parent.canonicalize()?.join(
-                    absolute_path
-                        .file_name()
-                        .ok_or("Invalid file name")?,
-                )
+                parent
+                    .canonicalize()?
+                    .join(absolute_path.file_name().ok_or("Invalid file name")?)
             } else {
                 // Parent doesn't exist - allow it (will be created)
                 absolute_path
@@ -234,7 +232,9 @@ impl Config {
     fn check_path_allowed(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         // Get allowed directories (canonicalized to handle symlinks)
         let config_dir = dirs::config_dir().and_then(|p| p.canonicalize().ok());
-        let current_dir = std::env::current_dir().ok().and_then(|p| p.canonicalize().ok());
+        let current_dir = std::env::current_dir()
+            .ok()
+            .and_then(|p| p.canonicalize().ok());
         let tmp_dir = std::env::temp_dir().canonicalize().ok();
 
         // Check if path is within any allowed directory
@@ -244,9 +244,7 @@ impl Config {
         let is_in_current_dir = current_dir
             .as_ref()
             .map_or(false, |dir| path.starts_with(dir));
-        let is_in_tmp = tmp_dir
-            .as_ref()
-            .map_or(false, |dir| path.starts_with(dir));
+        let is_in_tmp = tmp_dir.as_ref().map_or(false, |dir| path.starts_with(dir));
 
         if !is_in_config_dir && !is_in_current_dir && !is_in_tmp {
             return Err(format!(
@@ -470,8 +468,8 @@ fn validate_shell_command(command: &str) -> Result<(), ConfigError> {
         ("`", "backtick command substitution"),
         ("$(", "dollar-paren command substitution"),
         ("${", "variable expansion"),
-        (">>", "append redirection"),  // Check before ">"
-        ("<<", "here-document"),  // Check before "<"
+        (">>", "append redirection"), // Check before ">"
+        ("<<", "here-document"),      // Check before "<"
         (">", "output redirection"),
         ("<", "input redirection"),
         ("&\n", "background execution"),
@@ -626,7 +624,11 @@ fn validate_action(action: &ActionConfig) -> Result<(), ConfigError> {
                 ));
             }
         }
-        ActionConfig::Repeat { action, count, delay_ms: _ } => {
+        ActionConfig::Repeat {
+            action,
+            count,
+            delay_ms: _,
+        } => {
             if *count == 0 {
                 return Err(ConfigError::InvalidAction(
                     "Repeat count must be > 0".to_string(),
@@ -940,7 +942,12 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("command chaining with semicolon"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("command chaining with semicolon")
+        );
     }
 
     #[test]
@@ -952,7 +959,12 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("command chaining with AND"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("command chaining with AND")
+        );
     }
 
     #[test]
@@ -964,7 +976,12 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("command chaining with OR"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("command chaining with OR")
+        );
     }
 
     #[test]
@@ -988,7 +1005,12 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("backtick command substitution"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("backtick command substitution")
+        );
     }
 
     #[test]
@@ -1000,7 +1022,12 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("dollar-paren command substitution"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("dollar-paren command substitution")
+        );
     }
 
     #[test]
@@ -1012,7 +1039,12 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("variable expansion"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("variable expansion")
+        );
     }
 
     #[test]
@@ -1024,7 +1056,12 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("output redirection"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("output redirection")
+        );
     }
 
     #[test]
@@ -1036,7 +1073,12 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("append redirection"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("append redirection")
+        );
     }
 
     #[test]
@@ -1048,7 +1090,12 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("input redirection"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("input redirection")
+        );
     }
 
     #[test]
@@ -1060,7 +1107,12 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("background execution"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("background execution")
+        );
     }
 
     #[test]
@@ -1094,7 +1146,12 @@ mod tests {
 
         let result = config.validate();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("invalid characters"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("invalid characters")
+        );
     }
 
     #[test]
@@ -1146,7 +1203,10 @@ mod tests {
     fn test_path_traversal_relative_etc_blocked() {
         // Trying to traverse to /etc should be blocked
         let result = Config::load("../../../../etc/passwd");
-        assert!(result.is_err(), "Loading from /etc via traversal should be blocked");
+        assert!(
+            result.is_err(),
+            "Loading from /etc via traversal should be blocked"
+        );
         // Could be either "outside allowed directories" or "No such file" (both are acceptable security outcomes)
     }
 
@@ -1187,7 +1247,10 @@ mod tests {
 
         // Should be able to load via symlink (resolves to /tmp)
         let loaded = Config::load(symlink_file.to_str().unwrap());
-        assert!(loaded.is_ok(), "Loading via symlink should work if target is in allowed dir");
+        assert!(
+            loaded.is_ok(),
+            "Loading via symlink should work if target is in allowed dir"
+        );
 
         // Cleanup
         let _ = fs::remove_file(real_file);
@@ -1202,10 +1265,16 @@ mod tests {
 
         let config = Config::default_config();
         let result = config.save("test_relative.toml");
-        assert!(result.is_ok(), "Saving to relative path in current dir should work");
+        assert!(
+            result.is_ok(),
+            "Saving to relative path in current dir should work"
+        );
 
         let loaded = Config::load("test_relative.toml");
-        assert!(loaded.is_ok(), "Loading from relative path in current dir should work");
+        assert!(
+            loaded.is_ok(),
+            "Loading from relative path in current dir should work"
+        );
 
         // Cleanup
         let _ = std::fs::remove_file(temp_dir.join("test_relative.toml"));
@@ -1228,11 +1297,17 @@ mod tests {
         assert!(result.is_ok(), "Atomic write should succeed");
 
         // File should exist
-        assert!(test_file.exists(), "Final file should exist after atomic write");
+        assert!(
+            test_file.exists(),
+            "Final file should exist after atomic write"
+        );
 
         // Temp file should NOT exist (was renamed)
         let temp_file = test_file.with_extension("tmp");
-        assert!(!temp_file.exists(), "Temporary file should not exist after rename");
+        assert!(
+            !temp_file.exists(),
+            "Temporary file should not exist after rename"
+        );
 
         // Cleanup
         let _ = std::fs::remove_file(test_file);
@@ -1262,7 +1337,10 @@ mod tests {
         let result = config.save(malicious_file.to_str().unwrap());
 
         // Should fail with "outside allowed directories" error
-        assert!(result.is_err(), "Should reject symlink to forbidden location");
+        assert!(
+            result.is_err(),
+            "Should reject symlink to forbidden location"
+        );
 
         if let Err(e) = result {
             let error_msg = e.to_string();
@@ -1286,9 +1364,15 @@ mod tests {
         let config = Config::default_config();
         let result = config.save(nonexistent.to_str().unwrap());
 
-        assert!(result.is_err(), "Should reject non-existent parent directory");
         assert!(
-            result.unwrap_err().to_string().contains("Parent directory does not exist"),
+            result.is_err(),
+            "Should reject non-existent parent directory"
+        );
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Parent directory does not exist"),
             "Should fail with parent directory error"
         );
     }

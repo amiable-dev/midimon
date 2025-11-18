@@ -135,22 +135,20 @@ impl PluginLoader {
 
         // Load the library
         let library = unsafe {
-            libloading::Library::new(path).map_err(|e| {
-                PluginLoaderError::LoadError(format!("{}: {}", path.display(), e))
-            })?
+            libloading::Library::new(path)
+                .map_err(|e| PluginLoaderError::LoadError(format!("{}: {}", path.display(), e)))?
         };
 
         // Resolve the plugin creation function
         // Plugins must export: extern "C" fn _create_plugin() -> *mut dyn ActionPlugin
-        let create_plugin: libloading::Symbol<unsafe extern "C" fn() -> *mut dyn ActionPlugin> =
-            unsafe {
-                library.get(b"_create_plugin").map_err(|e| {
-                    PluginLoaderError::MissingSymbol {
-                        symbol: "_create_plugin".to_string(),
-                        reason: e.to_string(),
-                    }
+        let create_plugin: libloading::Symbol<unsafe extern "C" fn() -> *mut dyn ActionPlugin> = unsafe {
+            library
+                .get(b"_create_plugin")
+                .map_err(|e| PluginLoaderError::MissingSymbol {
+                    symbol: "_create_plugin".to_string(),
+                    reason: e.to_string(),
                 })?
-            };
+        };
 
         // Create the plugin instance
         let plugin_ptr = unsafe { create_plugin() };

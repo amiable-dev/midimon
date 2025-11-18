@@ -233,10 +233,7 @@ impl MidiOutputManager {
 
         // Connect to the port (consumes midi_out)
         let connection = midi_out.connect(port, &port_name).map_err(|e| {
-            EngineError::MidiOutput(format!(
-                "Failed to connect to port '{}': {}",
-                port_name, e
-            ))
+            EngineError::MidiOutput(format!("Failed to connect to port '{}': {}", port_name, e))
         })?;
 
         // Store the connection

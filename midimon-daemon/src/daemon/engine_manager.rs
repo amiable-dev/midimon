@@ -373,16 +373,14 @@ impl EngineManager {
 
                         // Attempt device switch
                         match self.switch_device(port_index).await {
-                            Ok((port_name, actual_port)) => {
-                                create_success_response(
-                                    &id,
-                                    Some(json!({
-                                        "message": "Device switched successfully",
-                                        "port": actual_port,
-                                        "port_name": port_name,
-                                    })),
-                                )
-                            }
+                            Ok((port_name, actual_port)) => create_success_response(
+                                &id,
+                                Some(json!({
+                                    "message": "Device switched successfully",
+                                    "port": actual_port,
+                                    "port_name": port_name,
+                                })),
+                            ),
                             Err(e) => IpcResponse {
                                 id,
                                 status: ResponseStatus::Error,
@@ -611,10 +609,8 @@ impl EngineManager {
         );
 
         // Create MIDI device manager
-        let mut manager = MidiDeviceManager::new(
-            device_config.name.clone(),
-            device_config.auto_reconnect,
-        );
+        let mut manager =
+            MidiDeviceManager::new(device_config.name.clone(), device_config.auto_reconnect);
 
         // Connect to device
         let (port_index, port_name) = manager
@@ -673,8 +669,14 @@ impl EngineManager {
 
         // Connect to specific port
         let (actual_port, port_name) = manager
-            .connect_to_port(port_index, self.midi_event_tx.clone(), self.command_tx.clone())
-            .map_err(|e| DaemonError::Ipc(format!("Failed to connect to port {}: {}", port_index, e)))?;
+            .connect_to_port(
+                port_index,
+                self.midi_event_tx.clone(),
+                self.command_tx.clone(),
+            )
+            .map_err(|e| {
+                DaemonError::Ipc(format!("Failed to connect to port {}: {}", port_index, e))
+            })?;
 
         info!(
             "Successfully switched to MIDI device: {} (port {})",
@@ -730,7 +732,10 @@ impl EngineManager {
 
         // ProcessedEvents are available for future use (UI feedback, etc.)
         if !processed_events.is_empty() {
-            trace!("Processed {} events from MIDI input", processed_events.len());
+            trace!(
+                "Processed {} events from MIDI input",
+                processed_events.len()
+            );
         }
 
         Ok(())

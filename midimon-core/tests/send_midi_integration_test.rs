@@ -344,8 +344,8 @@ fn test_send_midi_with_defaults() {
         port: "Virtual Synth".to_string(),
         message_type: "NoteOn".to_string(),
         channel: 0,
-        note: None,      // Should default to 60
-        velocity: None,  // Should default to 100
+        note: None,     // Should default to 60
+        velocity: None, // Should default to 100
         controller: None,
         value: None,
         program: None,

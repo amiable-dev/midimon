@@ -10,9 +10,9 @@
 //! - Windows: System Tray
 
 use tauri::{
-    AppHandle, Manager, Emitter,
-    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu, MenuItemKind},
-    tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState},
+    AppHandle, Emitter, Manager,
+    menu::{Menu, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 use tauri_plugin_shell::ShellExt;
 
@@ -169,7 +169,10 @@ fn handle_menu_click(app: &AppHandle, menu_id: &str) {
             #[cfg(target_os = "windows")]
             {
                 let shell = app.shell();
-                let _ = shell.command("explorer").args(["%APPDATA%\\midimon\\logs"]).spawn();
+                let _ = shell
+                    .command("explorer")
+                    .args(["%APPDATA%\\midimon\\logs"])
+                    .spawn();
             }
         }
         MENU_CONFIG => {

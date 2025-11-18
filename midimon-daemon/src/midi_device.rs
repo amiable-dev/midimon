@@ -73,8 +73,8 @@
 //! # }
 //! ```
 
-use midir::{MidiInput, MidiInputConnection, MidiInputPort};
 use midimon_core::event_processor::MidiEvent;
+use midir::{MidiInput, MidiInputConnection, MidiInputPort};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -245,14 +245,15 @@ impl MidiDeviceManager {
             .port_name(&port)
             .unwrap_or_else(|_| format!("Port {}", port_index));
 
-        debug!(
-            "Opening MIDI port {} (index {})",
-            port_name, port_index
-        );
+        debug!("Opening MIDI port {} (index {})", port_name, port_index);
 
         // Create callback that parses and sends events
         let callback = move |_timestamp: u64, message: &[u8], _: &mut ()| {
-            trace!("MIDI callback received {} bytes: {:02X?}", message.len(), message);
+            trace!(
+                "MIDI callback received {} bytes: {:02X?}",
+                message.len(),
+                message
+            );
 
             // Parse MIDI message using midi-msg library
             match MidiEvent::from_midi_msg(message) {
@@ -273,7 +274,10 @@ impl MidiDeviceManager {
                 }
                 Err(e) => {
                     // Log parsing errors at debug level (many MIDI messages are unsupported)
-                    debug!("Failed to parse MIDI message: {} (bytes: {:02X?})", e, message);
+                    debug!(
+                        "Failed to parse MIDI message: {} (bytes: {:02X?})",
+                        e, message
+                    );
                 }
             }
         };
@@ -369,14 +373,15 @@ impl MidiDeviceManager {
             .port_name(port)
             .unwrap_or_else(|_| format!("Port {}", port_index));
 
-        debug!(
-            "Opening MIDI port {} (index {})",
-            port_name, port_index
-        );
+        debug!("Opening MIDI port {} (index {})", port_name, port_index);
 
         // Create callback that parses and sends events
         let callback = move |_timestamp: u64, message: &[u8], _: &mut ()| {
-            trace!("MIDI callback received {} bytes: {:02X?}", message.len(), message);
+            trace!(
+                "MIDI callback received {} bytes: {:02X?}",
+                message.len(),
+                message
+            );
 
             // Parse MIDI message using midi-msg library
             match MidiEvent::from_midi_msg(message) {
@@ -397,7 +402,10 @@ impl MidiDeviceManager {
                 }
                 Err(e) => {
                     // Log parsing errors at debug level (many MIDI messages are unsupported)
-                    debug!("Failed to parse MIDI message: {} (bytes: {:02X?})", e, message);
+                    debug!(
+                        "Failed to parse MIDI message: {} (bytes: {:02X?})",
+                        e, message
+                    );
                 }
             }
         };
@@ -698,7 +706,11 @@ impl MidiDeviceManager {
 
         // Create callback
         let callback = move |_timestamp: u64, message: &[u8], _: &mut ()| {
-            trace!("MIDI callback (reconnected) received {} bytes: {:02X?}", message.len(), message);
+            trace!(
+                "MIDI callback (reconnected) received {} bytes: {:02X?}",
+                message.len(),
+                message
+            );
 
             match MidiEvent::from_midi_msg(message) {
                 Ok(event) => {
@@ -716,7 +728,10 @@ impl MidiDeviceManager {
                     }
                 }
                 Err(e) => {
-                    debug!("Failed to parse MIDI message: {} (bytes: {:02X?})", e, message);
+                    debug!(
+                        "Failed to parse MIDI message: {} (bytes: {:02X?})",
+                        e, message
+                    );
                 }
             }
         };

@@ -1,10 +1,10 @@
 // Copyright 2025 Amiable
 // SPDX-License-Identifier: MIT
 
+use midi_msg::{ChannelVoiceMsg, ControlChange, MidiMsg};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tracing::{debug, trace};
-use midi_msg::{MidiMsg, ChannelVoiceMsg, ControlChange};
 
 #[derive(Debug, Clone)]
 pub enum MidiEvent {
@@ -97,10 +97,7 @@ impl MidiEvent {
                                 time: now,
                             })
                         } else {
-                            Err(format!(
-                                "Unsupported ControlChange variant: {:?}",
-                                control
-                            ))
+                            Err(format!("Unsupported ControlChange variant: {:?}", control))
                         }
                     }
 
@@ -112,16 +109,15 @@ impl MidiEvent {
                         })
                     }
 
-                    ChannelVoiceMsg::ChannelPressure { pressure } => {
-                        Ok(MidiEvent::Aftertouch { pressure, time: now })
-                    }
+                    ChannelVoiceMsg::ChannelPressure { pressure } => Ok(MidiEvent::Aftertouch {
+                        pressure,
+                        time: now,
+                    }),
 
-                    ChannelVoiceMsg::PitchBend { bend } => {
-                        Ok(MidiEvent::PitchBend {
-                            value: bend,
-                            time: now,
-                        })
-                    }
+                    ChannelVoiceMsg::PitchBend { bend } => Ok(MidiEvent::PitchBend {
+                        value: bend,
+                        time: now,
+                    }),
 
                     ChannelVoiceMsg::ProgramChange { program } => {
                         Ok(MidiEvent::ProgramChange { program, time: now })

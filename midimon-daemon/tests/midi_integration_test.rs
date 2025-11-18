@@ -292,7 +292,10 @@ async fn test_multiple_midi_event_types() {
     };
     let result2 = processor.process(cc2);
     // Second CC event should produce EncoderTurned
-    assert!(!result2.is_empty(), "Second CC event should produce EncoderTurned");
+    assert!(
+        !result2.is_empty(),
+        "Second CC event should produce EncoderTurned"
+    );
 }
 
 /// Test that velocity is correctly extracted from different event types
@@ -334,8 +337,7 @@ async fn test_velocity_extraction() {
     };
 
     assert_eq!(
-        context_note_off.velocity,
-        None,
+        context_note_off.velocity, None,
         "Note Off should have no velocity"
     );
 }
@@ -369,10 +371,7 @@ async fn test_event_channel_backpressure() {
     };
 
     let result = event_tx.try_send(event3);
-    assert!(
-        result.is_err(),
-        "try_send should fail when channel is full"
-    );
+    assert!(result.is_err(), "try_send should fail when channel is full");
 
     // Drain one event
     event_rx.recv().await.unwrap();
@@ -449,11 +448,17 @@ async fn test_auto_reconnect_flag() {
 
     // Create manager with auto-reconnect enabled
     let manager_auto = MidiDeviceManager::new("Test Device".to_string(), true);
-    assert!(!manager_auto.is_connected(), "Should not be connected initially");
+    assert!(
+        !manager_auto.is_connected(),
+        "Should not be connected initially"
+    );
 
     // Create manager with auto-reconnect disabled
     let manager_manual = MidiDeviceManager::new("Test Device".to_string(), false);
-    assert!(!manager_manual.is_connected(), "Should not be connected initially");
+    assert!(
+        !manager_manual.is_connected(),
+        "Should not be connected initially"
+    );
 
     // Both should have same initial state (disconnected)
     // The auto-reconnect flag would only matter during actual connection attempts

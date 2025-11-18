@@ -3,7 +3,6 @@
 
 //! Integration test to verify public API exports work correctly
 
-use midimon_daemon::ActionExecutor;
 use midimon_core::{
     // Actions
     Action,
@@ -34,6 +33,7 @@ use midimon_core::{
     Trigger,
     VelocityLevel,
 };
+use midimon_daemon::ActionExecutor;
 
 #[test]
 fn test_all_types_accessible() {

@@ -19,8 +19,8 @@
 
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use midimon_core::{
-    ActionConfig, Config, DeviceConfig, EventProcessor, Mapping, MappingEngine,
-    MidiEvent, Mode, Trigger,
+    ActionConfig, Config, DeviceConfig, EventProcessor, Mapping, MappingEngine, MidiEvent, Mode,
+    Trigger,
 };
 use std::time::Instant;
 

@@ -2,7 +2,6 @@
 title = "MIDIMon Documentation"
 authors = ["Amiable Dev"]
 language = "en"
-multilingual = false
 src = "src"
 description = "Transform MIDI controllers into advanced macro pads with RGB feedback and timing-based triggers"
 

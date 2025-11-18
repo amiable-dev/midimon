@@ -401,9 +401,8 @@ fn get_runtime_dir() -> Result<PathBuf> {
         }
 
         // Fall back to ~/.midimon/run if XDG_RUNTIME_DIR not available
-        let home = dirs::home_dir().ok_or_else(|| {
-            DaemonError::StatePersistence("No home directory found".to_string())
-        })?;
+        let home = dirs::home_dir()
+            .ok_or_else(|| DaemonError::StatePersistence("No home directory found".to_string()))?;
         Ok(home.join(".midimon").join("run"))
     } else if cfg!(target_os = "macos") {
         // Use Application Support directory (macOS convention)
@@ -414,9 +413,8 @@ fn get_runtime_dir() -> Result<PathBuf> {
         Ok(support_dir.join("midimon").join("run"))
     } else {
         // Other Unix systems - use home directory fallback
-        let home = dirs::home_dir().ok_or_else(|| {
-            DaemonError::StatePersistence("No home directory found".to_string())
-        })?;
+        let home = dirs::home_dir()
+            .ok_or_else(|| DaemonError::StatePersistence("No home directory found".to_string()))?;
         Ok(home.join(".midimon").join("run"))
     }
 }
@@ -520,7 +518,8 @@ mod tests {
             if cfg!(target_os = "linux") {
                 // Should be XDG_RUNTIME_DIR/midimon or ~/.midimon/run
                 let path_str = path.to_string_lossy();
-                let is_xdg = path_str.contains("/run/user/") || path_str.contains("XDG_RUNTIME_DIR");
+                let is_xdg =
+                    path_str.contains("/run/user/") || path_str.contains("XDG_RUNTIME_DIR");
                 let is_home_fallback = path_str.contains(".midimon/run");
                 assert!(
                     is_xdg || is_home_fallback,
@@ -530,8 +529,8 @@ mod tests {
             } else if cfg!(target_os = "macos") {
                 // Should be in Application Support
                 assert!(
-                    path.to_string_lossy().contains("Application Support") ||
-                    path.to_string_lossy().contains(".midimon/run"),
+                    path.to_string_lossy().contains("Application Support")
+                        || path.to_string_lossy().contains(".midimon/run"),
                     "macOS socket path should be in Application Support or ~/.midimon/run: {:?}",
                     path
                 );
@@ -570,8 +569,8 @@ mod tests {
         } else if cfg!(target_os = "macos") {
             // Should be in Application Support
             assert!(
-                dir.to_string_lossy().contains("Application Support") ||
-                dir.to_string_lossy().contains(".midimon/run"),
+                dir.to_string_lossy().contains("Application Support")
+                    || dir.to_string_lossy().contains(".midimon/run"),
                 "macOS runtime dir should be in Application Support: {:?}",
                 dir
             );

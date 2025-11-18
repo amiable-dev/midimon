@@ -10,14 +10,17 @@
 //! - Core: Pure data structures and logic (UI-independent)
 //! - Daemon: System interaction (keyboard, mouse, shell, etc.)
 
-use midimon_core::{Action, KeyCode, MidiMessageParams, MidiMessageType, ModifierKey, MouseButton, MidiOutputManager, VolumeOperation};
+use crate::conditions::{ConditionContext, evaluate_condition};
+use crate::plugin_manager::PluginManager;
 use enigo::{Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
+use midimon_core::{
+    Action, KeyCode, MidiMessageParams, MidiMessageType, MidiOutputManager, ModifierKey,
+    MouseButton, VolumeOperation,
+};
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
-use crate::conditions::{evaluate_condition, ConditionContext};
-use crate::plugin_manager::PluginManager;
 
 /// Context about the triggering event passed to action execution
 ///
@@ -278,7 +281,11 @@ impl ActionExecutor {
                 let enigo_button = to_enigo_button(button);
                 self.enigo.button(enigo_button, Direction::Click).unwrap();
             }
-            Action::Repeat { action, count, delay_ms } => {
+            Action::Repeat {
+                action,
+                count,
+                delay_ms,
+            } => {
                 for i in 0..count {
                     self.execute((*action).clone(), context.clone());
 
@@ -290,9 +297,14 @@ impl ActionExecutor {
                     }
                 }
             }
-            Action::Conditional { condition, then_action, else_action } => {
+            Action::Conditional {
+                condition,
+                then_action,
+                else_action,
+            } => {
                 // Create condition context from trigger context (includes current mode)
-                let cond_ctx = context.as_ref()
+                let cond_ctx = context
+                    .as_ref()
                     .and_then(|ctx| ctx.current_mode.as_ref())
                     .map(|mode| ConditionContext::with_mode(mode.clone()));
 
@@ -310,7 +322,12 @@ impl ActionExecutor {
                 // This action just serves as a marker in the config
                 eprintln!("ModeChange to '{}' (handled by mapping engine)", mode);
             }
-            Action::SendMidi { port, message_type, channel, params } => {
+            Action::SendMidi {
+                port,
+                message_type,
+                channel,
+                params,
+            } => {
                 self.execute_send_midi(&port, &message_type, channel, &params, context.as_ref());
             }
             Action::Plugin { plugin, params } => {
@@ -324,7 +341,10 @@ impl ActionExecutor {
                 });
 
                 // Execute plugin
-                match self.plugin_manager.execute_plugin(&plugin, params, plugin_context) {
+                match self
+                    .plugin_manager
+                    .execute_plugin(&plugin, params, plugin_context)
+                {
                     Ok(()) => {
                         // Plugin executed successfully
                     }
@@ -470,29 +490,41 @@ impl ActionExecutor {
     ) {
         // Build MIDI message bytes based on message type
         let message_bytes = match (message_type, params) {
-            (MidiMessageType::NoteOn, MidiMessageParams::Note { note, velocity_mapping }) => {
+            (
+                MidiMessageType::NoteOn,
+                MidiMessageParams::Note {
+                    note,
+                    velocity_mapping,
+                },
+            ) => {
                 // v2.2: Calculate velocity from mapping using actual trigger velocity
                 // Default to 100 if no context provided (for backward compatibility)
-                let trigger_velocity = context
-                    .and_then(|ctx| ctx.velocity)
-                    .unwrap_or(100);
-                let calculated_velocity = midimon_core::velocity::calculate_velocity(
-                    trigger_velocity,
-                    velocity_mapping
-                );
-                vec![0x90 | (channel & 0x0F), *note & 0x7F, calculated_velocity & 0x7F]
+                let trigger_velocity = context.and_then(|ctx| ctx.velocity).unwrap_or(100);
+                let calculated_velocity =
+                    midimon_core::velocity::calculate_velocity(trigger_velocity, velocity_mapping);
+                vec![
+                    0x90 | (channel & 0x0F),
+                    *note & 0x7F,
+                    calculated_velocity & 0x7F,
+                ]
             }
-            (MidiMessageType::NoteOff, MidiMessageParams::Note { note, velocity_mapping }) => {
+            (
+                MidiMessageType::NoteOff,
+                MidiMessageParams::Note {
+                    note,
+                    velocity_mapping,
+                },
+            ) => {
                 // NoteOff typically uses velocity 64 (MIDI standard release velocity)
                 // Use actual trigger velocity if provided, otherwise default to 64
-                let trigger_velocity = context
-                    .and_then(|ctx| ctx.velocity)
-                    .unwrap_or(64);
-                let calculated_velocity = midimon_core::velocity::calculate_velocity(
-                    trigger_velocity,
-                    velocity_mapping
-                );
-                vec![0x80 | (channel & 0x0F), *note & 0x7F, calculated_velocity & 0x7F]
+                let trigger_velocity = context.and_then(|ctx| ctx.velocity).unwrap_or(64);
+                let calculated_velocity =
+                    midimon_core::velocity::calculate_velocity(trigger_velocity, velocity_mapping);
+                vec![
+                    0x80 | (channel & 0x0F),
+                    *note & 0x7F,
+                    calculated_velocity & 0x7F,
+                ]
             }
             (MidiMessageType::ControlChange, MidiMessageParams::CC { controller, value }) => {
                 vec![0xB0 | (channel & 0x0F), *controller & 0x7F, *value & 0x7F]
@@ -609,12 +641,15 @@ pub fn parse_command_line(cmd: &str) -> Vec<String> {
 /// - Linux: Uses amixer (ALSA) or pactl (PulseAudio)
 /// - Windows: Not implemented
 fn execute_volume_control(operation: &VolumeOperation, value: &Option<u8>) {
-
     #[cfg(target_os = "macos")]
     {
         let script = match operation {
-            VolumeOperation::Up => "set volume output volume ((output volume of (get volume settings)) + 10)",
-            VolumeOperation::Down => "set volume output volume ((output volume of (get volume settings)) - 10)",
+            VolumeOperation::Up => {
+                "set volume output volume ((output volume of (get volume settings)) + 10)"
+            }
+            VolumeOperation::Down => {
+                "set volume output volume ((output volume of (get volume settings)) - 10)"
+            }
             VolumeOperation::Mute => "set volume output muted true",
             VolumeOperation::Unmute => "set volume output muted false",
             VolumeOperation::Set => {
@@ -626,11 +661,7 @@ fn execute_volume_control(operation: &VolumeOperation, value: &Option<u8>) {
             }
         };
 
-        Command::new("osascript")
-            .arg("-e")
-            .arg(script)
-            .spawn()
-            .ok();
+        Command::new("osascript").arg("-e").arg(script).spawn().ok();
     }
 
     #[cfg(target_os = "linux")]
@@ -643,17 +674,19 @@ fn execute_volume_control(operation: &VolumeOperation, value: &Option<u8>) {
             VolumeOperation::Unmute => vec!["pactl", "set-sink-mute", "@DEFAULT_SINK@", "0"],
             VolumeOperation::Set => {
                 if let Some(vol) = value {
-                    vec!["pactl", "set-sink-volume", "@DEFAULT_SINK@", &format!("{}%", vol)]
+                    vec![
+                        "pactl",
+                        "set-sink-volume",
+                        "@DEFAULT_SINK@",
+                        &format!("{}%", vol),
+                    ]
                 } else {
                     vec!["pactl", "set-sink-volume", "@DEFAULT_SINK@", "50%"]
                 }
             }
         };
 
-        Command::new(cmd[0])
-            .args(&cmd[1..])
-            .spawn()
-            .ok();
+        Command::new(cmd[0]).args(&cmd[1..]).spawn().ok();
     }
 
     #[cfg(target_os = "windows")]
@@ -675,10 +708,7 @@ mod tests {
 
     #[test]
     fn test_parse_command_with_args() {
-        assert_eq!(
-            parse_command_line("ls -la /tmp"),
-            vec!["ls", "-la", "/tmp"]
-        );
+        assert_eq!(parse_command_line("ls -la /tmp"), vec!["ls", "-la", "/tmp"]);
     }
 
     #[test]
@@ -741,25 +771,23 @@ mod tests {
 
     #[test]
     fn test_parse_trailing_spaces() {
-        assert_eq!(
-            parse_command_line("git status  "),
-            vec!["git", "status"]
-        );
+        assert_eq!(parse_command_line("git status  "), vec!["git", "status"]);
     }
 
     #[test]
     fn test_parse_leading_spaces() {
-        assert_eq!(
-            parse_command_line("  git status"),
-            vec!["git", "status"]
-        );
+        assert_eq!(parse_command_line("  git status"), vec!["git", "status"]);
     }
 
     #[test]
     fn test_parse_notification_command() {
         assert_eq!(
             parse_command_line("osascript -e 'display notification \"MIDI triggered!\"'"),
-            vec!["osascript", "-e", "display notification \"MIDI triggered!\""]
+            vec![
+                "osascript",
+                "-e",
+                "display notification \"MIDI triggered!\""
+            ]
         );
     }
 
@@ -784,19 +812,13 @@ mod tests {
     #[test]
     fn test_parse_does_not_expand_variables() {
         // Variables should be passed as literals, not expanded
-        assert_eq!(
-            parse_command_line("echo $HOME"),
-            vec!["echo", "$HOME"]
-        );
+        assert_eq!(parse_command_line("echo $HOME"), vec!["echo", "$HOME"]);
     }
 
     #[test]
     fn test_parse_does_not_expand_globs() {
         // Globs should be passed as literals, not expanded
-        assert_eq!(
-            parse_command_line("ls *.txt"),
-            vec!["ls", "*.txt"]
-        );
+        assert_eq!(parse_command_line("ls *.txt"), vec!["ls", "*.txt"]);
     }
 
     // ========== SendMidi Action Tests ==========
@@ -814,7 +836,10 @@ mod tests {
             port: "Virtual Test Port".to_string(),
             message_type: MidiMessageType::NoteOn,
             channel: 0,
-            params: MidiMessageParams::Note { note: 60, velocity_mapping: midimon_core::VelocityMapping::Fixed { velocity: 100 } },
+            params: MidiMessageParams::Note {
+                note: 60,
+                velocity_mapping: midimon_core::VelocityMapping::Fixed { velocity: 100 },
+            },
         };
 
         // Execute shouldn't panic (though send will fail without a port)
@@ -831,7 +856,10 @@ mod tests {
             port: "Virtual Test Port".to_string(),
             message_type: MidiMessageType::NoteOff,
             channel: 1,
-            params: MidiMessageParams::Note { note: 64, velocity_mapping: midimon_core::VelocityMapping::Fixed { velocity: 0 } },
+            params: MidiMessageParams::Note {
+                note: 64,
+                velocity_mapping: midimon_core::VelocityMapping::Fixed { velocity: 0 },
+            },
         };
 
         executor.execute(action, None);
@@ -847,7 +875,10 @@ mod tests {
             port: "Virtual Test Port".to_string(),
             message_type: MidiMessageType::ControlChange,
             channel: 2,
-            params: MidiMessageParams::CC { controller: 7, value: 127 },
+            params: MidiMessageParams::CC {
+                controller: 7,
+                value: 127,
+            },
         };
 
         executor.execute(action, None);
@@ -939,7 +970,10 @@ mod tests {
                 port: "Virtual Test Port".to_string(),
                 message_type: MidiMessageType::NoteOn,
                 channel,
-                params: MidiMessageParams::Note { note: 60, velocity_mapping: midimon_core::VelocityMapping::Fixed { velocity: 100 } },
+                params: MidiMessageParams::Note {
+                    note: 60,
+                    velocity_mapping: midimon_core::VelocityMapping::Fixed { velocity: 100 },
+                },
             };
 
             executor.execute(action, None);
@@ -1043,7 +1077,10 @@ mod tests {
                 port: "Virtual Test Port".to_string(),
                 message_type: MidiMessageType::ControlChange,
                 channel: 0,
-                params: MidiMessageParams::CC { controller: 1, value: 64 },
+                params: MidiMessageParams::CC {
+                    controller: 1,
+                    value: 64,
+                },
             }),
             count: 3,
             delay_ms: Some(50),

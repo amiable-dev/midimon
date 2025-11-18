@@ -69,7 +69,6 @@ enum Commands {
     // ============================================================================
     // Service Management Commands
     // ============================================================================
-
     /// Install MIDIMon as a system service (LaunchAgent)
     Install {
         /// Install daemon binary to /usr/local/bin
@@ -154,10 +153,16 @@ async fn main() -> Result<()> {
 async fn execute_command(cli: &Cli) -> Result<()> {
     // Service management commands don't need IPC client
     match &cli.command {
-        Commands::Install { install_binary, force } => {
+        Commands::Install {
+            install_binary,
+            force,
+        } => {
             return handle_install(*install_binary, *force, cli.json);
         }
-        Commands::Uninstall { remove_binary, remove_logs } => {
+        Commands::Uninstall {
+            remove_binary,
+            remove_logs,
+        } => {
             return handle_uninstall(*remove_binary, *remove_logs, cli.json);
         }
         Commands::Start { wait } => {
@@ -434,7 +439,10 @@ async fn handle_list_devices(client: &mut IpcClient, json: bool) -> Result<()> {
                 println!("No MIDI devices found");
             } else {
                 for device in devices {
-                    let port = device.get("port_index").and_then(|v| v.as_u64()).unwrap_or(0);
+                    let port = device
+                        .get("port_index")
+                        .and_then(|v| v.as_u64())
+                        .unwrap_or(0);
                     let name = device
                         .get("port_name")
                         .and_then(|v| v.as_str())
@@ -474,7 +482,10 @@ async fn handle_set_device(client: &mut IpcClient, port: usize, json: bool) -> R
         if let Some(message) = data.get("message").and_then(|v| v.as_str()) {
             println!("{}", message.green());
         } else {
-            println!("{}", format!("✓ Switched to device at port {}", port).green());
+            println!(
+                "{}",
+                format!("✓ Switched to device at port {}", port).green()
+            );
         }
     }
 
@@ -494,7 +505,10 @@ async fn handle_get_device(client: &mut IpcClient, json: bool) -> Result<()> {
             println!("{}", "Current MIDI Device".bold().cyan());
             println!("{}", "─".repeat(50));
 
-            let connected = device.get("connected").and_then(|v| v.as_bool()).unwrap_or(false);
+            let connected = device
+                .get("connected")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
             let status = if connected {
                 "Connected".green()
             } else {
@@ -620,8 +634,12 @@ fn is_service_installed() -> bool {
 async fn is_daemon_running() -> bool {
     match get_socket_path() {
         Ok(socket_path) => {
-            if let Ok(mut client) = IpcClient::new(socket_path.to_string_lossy().to_string()).await {
-                client.send_command(IpcCommand::Ping, Value::Null).await.is_ok()
+            if let Ok(mut client) = IpcClient::new(socket_path.to_string_lossy().to_string()).await
+            {
+                client
+                    .send_command(IpcCommand::Ping, Value::Null)
+                    .await
+                    .is_ok()
             } else {
                 false
             }
@@ -647,7 +665,10 @@ fn handle_install(install_binary: bool, force: bool, json: bool) -> Result<()> {
             });
             println!("{}", serde_json::to_string_pretty(&result)?);
         } else {
-            eprintln!("{}", "Service already installed. Use --force to reinstall.".yellow());
+            eprintln!(
+                "{}",
+                "Service already installed. Use --force to reinstall.".yellow()
+            );
         }
         return Ok(());
     }
@@ -665,7 +686,8 @@ fn handle_install(install_binary: bool, force: bool, json: bool) -> Result<()> {
     };
 
     // Step 2: Create LaunchAgents directory
-    let launch_agents_dir = plist_path.parent()
+    let launch_agents_dir = plist_path
+        .parent()
         .ok_or_else(|| anyhow!("Invalid plist path"))?;
 
     if !launch_agents_dir.exists() {
@@ -680,23 +702,29 @@ fn handle_install(install_binary: bool, force: bool, json: bool) -> Result<()> {
     // Step 3: Create log directory
     let log_dir = service::get_log_dir();
     if !log_dir.exists() {
-        std::fs::create_dir_all(&log_dir)
-            .context("Failed to create log directory")?;
+        std::fs::create_dir_all(&log_dir).context("Failed to create log directory")?;
     }
 
     if !json {
-        println!("  {} Created log directory: {}", "✓".green(), log_dir.display());
+        println!(
+            "  {} Created log directory: {}",
+            "✓".green(),
+            log_dir.display()
+        );
     }
 
     // Step 4: Generate plist from template
     let plist_content = generate_plist(&binary_path)?;
 
     // Step 5: Write plist file
-    std::fs::write(&plist_path, plist_content)
-        .context("Failed to write plist file")?;
+    std::fs::write(&plist_path, plist_content).context("Failed to write plist file")?;
 
     if !json {
-        println!("  {} Installed service plist: {}", "✓".green(), plist_path.display());
+        println!(
+            "  {} Installed service plist: {}",
+            "✓".green(),
+            plist_path.display()
+        );
     }
 
     // Step 6: Load the service (this enables it)
@@ -719,7 +747,10 @@ fn handle_install(install_binary: bool, force: bool, json: bool) -> Result<()> {
         });
         println!("{}", serde_json::to_string_pretty(&result)?);
     } else {
-        println!("\n{}", "✓ MIDIMon service installed successfully".green().bold());
+        println!(
+            "\n{}",
+            "✓ MIDIMon service installed successfully".green().bold()
+        );
         println!("  Binary:  {}", binary_path.display());
         println!("  Plist:   {}", plist_path.display());
         println!("  Status:  {}", "Enabled (will start on login)".green());
@@ -732,8 +763,8 @@ fn handle_install(install_binary: bool, force: bool, json: bool) -> Result<()> {
 /// Install daemon binary to /usr/local/bin
 fn install_daemon_binary(json: bool) -> Result<PathBuf> {
     // Find the source binary (prefer release, fallback to debug)
-    let cargo_target_dir = std::env::var("CARGO_TARGET_DIR")
-        .unwrap_or_else(|_| "target".to_string());
+    let cargo_target_dir =
+        std::env::var("CARGO_TARGET_DIR").unwrap_or_else(|_| "target".to_string());
 
     let source_binary = [
         PathBuf::from(&cargo_target_dir).join("release").join(service::DAEMON_BINARY_NAME),
@@ -761,7 +792,11 @@ fn install_daemon_binary(json: bool) -> Result<PathBuf> {
     }
 
     if !json {
-        println!("  {} Installed binary: {}", "✓".green(), dest_binary.display());
+        println!(
+            "  {} Installed binary: {}",
+            "✓".green(),
+            dest_binary.display()
+        );
     }
 
     Ok(dest_binary)
@@ -784,13 +819,11 @@ fn find_daemon_binary() -> Result<PathBuf> {
 
 /// Generate plist content from template
 fn generate_plist(binary_path: &PathBuf) -> Result<String> {
-    let username = std::env::var("USER")
-        .context("Could not determine current username")?;
+    let username = std::env::var("USER").context("Could not determine current username")?;
 
     // Load template or use embedded default
     let template = if let Some(template_path) = service::get_template_plist_path() {
-        std::fs::read_to_string(&template_path)
-            .context("Failed to read plist template")?
+        std::fs::read_to_string(&template_path).context("Failed to read plist template")?
     } else {
         // Embedded template
         include_str!("../../../midimon-daemon/launchd/com.amiable.midimon.plist").to_string()
@@ -848,8 +881,7 @@ fn handle_uninstall(remove_binary: bool, remove_logs: bool, json: bool) -> Resul
     }
 
     // Step 2: Remove plist
-    std::fs::remove_file(&plist_path)
-        .context("Failed to remove plist file")?;
+    std::fs::remove_file(&plist_path).context("Failed to remove plist file")?;
 
     if !json {
         println!("  {} Removed plist: {}", "✓".green(), plist_path.display());
@@ -863,7 +895,11 @@ fn handle_uninstall(remove_binary: bool, remove_logs: bool, json: bool) -> Resul
                 .context("Failed to remove binary. You may need sudo permissions.")?;
 
             if !json {
-                println!("  {} Removed binary: {}", "✓".green(), binary_path.display());
+                println!(
+                    "  {} Removed binary: {}",
+                    "✓".green(),
+                    binary_path.display()
+                );
             }
         }
     }
@@ -874,8 +910,7 @@ fn handle_uninstall(remove_binary: bool, remove_logs: bool, json: bool) -> Resul
         for log_file in ["midimon.log", "midimon.error.log"] {
             let log_path = log_dir.join(log_file);
             if log_path.exists() {
-                std::fs::remove_file(&log_path)
-                    .context("Failed to remove log file")?;
+                std::fs::remove_file(&log_path).context("Failed to remove log file")?;
             }
         }
 
@@ -893,7 +928,10 @@ fn handle_uninstall(remove_binary: bool, remove_logs: bool, json: bool) -> Resul
         });
         println!("{}", serde_json::to_string_pretty(&result)?);
     } else {
-        println!("\n{}", "✓ MIDIMon service uninstalled successfully".green().bold());
+        println!(
+            "\n{}",
+            "✓ MIDIMon service uninstalled successfully".green().bold()
+        );
     }
 
     Ok(())
@@ -972,7 +1010,10 @@ async fn handle_start(wait_secs: u64, json: bool) -> Result<()> {
             if !json {
                 println!(" {}", "✗".red());
             }
-            bail!("Daemon did not start within {} seconds. Check logs for errors.", wait_secs);
+            bail!(
+                "Daemon did not start within {} seconds. Check logs for errors.",
+                wait_secs
+            );
         }
     }
 
@@ -1010,7 +1051,8 @@ async fn handle_stop_service(force: bool, json: bool) -> Result<()> {
         }
 
         if let Ok(socket_path) = get_socket_path() {
-            if let Ok(mut client) = IpcClient::new(socket_path.to_string_lossy().to_string()).await {
+            if let Ok(mut client) = IpcClient::new(socket_path.to_string_lossy().to_string()).await
+            {
                 let _ = client.send_command(IpcCommand::Stop, Value::Null).await;
 
                 // Wait briefly for graceful shutdown
@@ -1101,7 +1143,10 @@ fn handle_enable(json: bool) -> Result<()> {
         });
         println!("{}", serde_json::to_string_pretty(&result)?);
     } else {
-        println!("{}", "✓ Service enabled (will start on login)".green().bold());
+        println!(
+            "{}",
+            "✓ Service enabled (will start on login)".green().bold()
+        );
     }
 
     Ok(())
@@ -1139,7 +1184,12 @@ fn handle_disable(json: bool) -> Result<()> {
         });
         println!("{}", serde_json::to_string_pretty(&result)?);
     } else {
-        println!("{}", "✓ Service disabled (will not start on login)".green().bold());
+        println!(
+            "{}",
+            "✓ Service disabled (will not start on login)"
+                .green()
+                .bold()
+        );
     }
 
     Ok(())
@@ -1188,21 +1238,37 @@ fn handle_service_status(json: bool) -> Result<()> {
 
         println!("Status:          {}", status);
         println!("Service Label:   {}", service::SERVICE_LABEL);
-        println!("Plist:           {} {}",
+        println!(
+            "Plist:           {} {}",
             plist_path.display(),
-            if installed { "✓".green() } else { "✗".red() }
+            if installed {
+                "✓".green()
+            } else {
+                "✗".red()
+            }
         );
-        println!("Binary:          {} {}",
+        println!(
+            "Binary:          {} {}",
             binary_path.display(),
-            if binary_exists { "✓".green() } else { "✗".red() }
+            if binary_exists {
+                "✓".green()
+            } else {
+                "✗".red()
+            }
         );
 
         if loaded {
             println!("\n{}", "Service is loaded (enabled)".green());
         } else if installed {
-            println!("\n{}", "Service is not loaded. Use 'midimonctl enable' or 'midimonctl start'.".yellow());
+            println!(
+                "\n{}",
+                "Service is not loaded. Use 'midimonctl enable' or 'midimonctl start'.".yellow()
+            );
         } else {
-            println!("\n{}", "Service is not installed. Use 'midimonctl install'.".yellow());
+            println!(
+                "\n{}",
+                "Service is not installed. Use 'midimonctl install'.".yellow()
+            );
         }
     }
 

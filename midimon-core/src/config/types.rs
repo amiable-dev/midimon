@@ -6,9 +6,9 @@
 //! This module defines the data structures used to represent MIDI mappings,
 //! triggers, and actions in the configuration file.
 
+use crate::Condition;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use crate::Condition;
 
 /// Top-level configuration structure
 ///
