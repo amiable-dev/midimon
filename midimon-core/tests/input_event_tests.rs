@@ -79,6 +79,31 @@ fn test_encoder_turned_conversion() {
 }
 
 #[test]
+fn test_poly_pressure_conversion() {
+    let time = Instant::now();
+    let midi = MidiEvent::PolyPressure {
+        note: 60,
+        pressure: 90,
+        time,
+    };
+
+    let input: InputEvent = midi.into();
+
+    match input {
+        InputEvent::PolyPressure {
+            pad,
+            pressure,
+            time: event_time,
+        } => {
+            assert_eq!(pad, 60, "Pad number should match MIDI note");
+            assert_eq!(pressure, 90, "Pressure should be preserved");
+            assert_eq!(event_time, time, "Timestamp should be preserved");
+        }
+        _ => panic!("Expected PolyPressure variant"),
+    }
+}
+
+#[test]
 fn test_aftertouch_conversion() {
     let time = Instant::now();
     let midi = MidiEvent::Aftertouch { pressure: 80, time };
@@ -227,6 +252,11 @@ fn test_timestamp_accessor() {
             value: 64,
             time,
         },
+        InputEvent::PolyPressure {
+            pad: 60,
+            pressure: 90,
+            time,
+        },
         InputEvent::Aftertouch { pressure: 50, time },
         InputEvent::PitchBend { value: 8192, time },
         InputEvent::ProgramChange { program: 1, time },
@@ -268,6 +298,14 @@ fn test_event_type_strings() {
                 time,
             },
             "EncoderTurned",
+        ),
+        (
+            InputEvent::PolyPressure {
+                pad: 60,
+                pressure: 90,
+                time,
+            },
+            "PolyPressure",
         ),
         (InputEvent::Aftertouch { pressure: 50, time }, "Aftertouch"),
         (InputEvent::PitchBend { value: 8192, time }, "PitchBend"),

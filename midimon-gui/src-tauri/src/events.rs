@@ -3,6 +3,7 @@
 
 //! Event types for communication between backend and frontend
 
+use midi_msg::{ChannelVoiceMsg, MidiMsg};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::Emitter;
@@ -71,181 +72,233 @@ impl MidiEventInfo {
             };
         }
 
-        let status = bytes[0];
-        let message_type = status & 0xF0;
-        let channel = Some(status & 0x0F);
+        // Parse MIDI message using midi-msg library
+        match MidiMsg::from_midi(bytes) {
+            Ok((msg, _len)) => match msg {
+                MidiMsg::ChannelVoice { channel, msg } => {
+                    let channel_num = channel as u8;
 
-        match message_type {
-            0x80 => {
-                // Note Off
-                let note = bytes.get(1).copied();
-                let velocity = bytes.get(2).copied();
-                Self {
-                    timestamp,
-                    event_type: "NoteOff".to_string(),
-                    channel,
-                    note,
-                    velocity,
-                    cc_number: None,
-                    cc_value: None,
-                    pitch_bend: None,
-                    aftertouch: None,
-                    raw_bytes: bytes.to_vec(),
-                    description: format!(
-                        "Note Off: Note {} Velocity {} Channel {}",
-                        note.unwrap_or(0),
-                        velocity.unwrap_or(0),
-                        channel.unwrap_or(0)
-                    ),
+                    match msg {
+                        ChannelVoiceMsg::NoteOff { note, velocity } => Self {
+                            timestamp,
+                            event_type: "NoteOff".to_string(),
+                            channel: Some(channel_num),
+                            note: Some(note.into()),
+                            velocity: Some(velocity.into()),
+                            cc_number: None,
+                            cc_value: None,
+                            pitch_bend: None,
+                            aftertouch: None,
+                            raw_bytes: bytes.to_vec(),
+                            description: format!(
+                                "Note Off: Note {} Velocity {} Channel {}",
+                                u8::from(note),
+                                u8::from(velocity),
+                                channel_num
+                            ),
+                        },
+                        ChannelVoiceMsg::NoteOn { note, velocity } => Self {
+                            timestamp,
+                            event_type: "NoteOn".to_string(),
+                            channel: Some(channel_num),
+                            note: Some(note.into()),
+                            velocity: Some(velocity.into()),
+                            cc_number: None,
+                            cc_value: None,
+                            pitch_bend: None,
+                            aftertouch: None,
+                            raw_bytes: bytes.to_vec(),
+                            description: format!(
+                                "Note On: Note {} Velocity {} Channel {}",
+                                u8::from(note),
+                                u8::from(velocity),
+                                channel_num
+                            ),
+                        },
+                        ChannelVoiceMsg::PolyPressure { note, pressure } => Self {
+                            timestamp,
+                            event_type: "PolyAftertouch".to_string(),
+                            channel: Some(channel_num),
+                            note: Some(note.into()),
+                            velocity: None,
+                            cc_number: None,
+                            cc_value: None,
+                            pitch_bend: None,
+                            aftertouch: Some(pressure.into()),
+                            raw_bytes: bytes.to_vec(),
+                            description: format!(
+                                "Poly Aftertouch: Note {} Pressure {} Channel {}",
+                                u8::from(note),
+                                u8::from(pressure),
+                                channel_num
+                            ),
+                        },
+                        ChannelVoiceMsg::ControlChange { control } => {
+                            // Extract CC number and value from ControlChange enum
+                            use midi_msg::ControlChange;
+                            if let ControlChange::CC { control: cc, value } = control {
+                                Self {
+                                    timestamp,
+                                    event_type: "ControlChange".to_string(),
+                                    channel: Some(channel_num),
+                                    note: None,
+                                    velocity: None,
+                                    cc_number: Some(cc),
+                                    cc_value: Some(value),
+                                    pitch_bend: None,
+                                    aftertouch: None,
+                                    raw_bytes: bytes.to_vec(),
+                                    description: format!(
+                                        "CC: #{} Value {} Channel {}",
+                                        cc,
+                                        value,
+                                        channel_num
+                                    ),
+                                }
+                            } else {
+                                // For other ControlChange variants (e.g., Bank Select MSB/LSB, etc.)
+                                Self {
+                                    timestamp,
+                                    event_type: "ControlChange".to_string(),
+                                    channel: Some(channel_num),
+                                    note: None,
+                                    velocity: None,
+                                    cc_number: None,
+                                    cc_value: None,
+                                    pitch_bend: None,
+                                    aftertouch: None,
+                                    raw_bytes: bytes.to_vec(),
+                                    description: format!("CC (special): {:02X?}", bytes),
+                                }
+                            }
+                        }
+                        ChannelVoiceMsg::ProgramChange { program } => Self {
+                            timestamp,
+                            event_type: "ProgramChange".to_string(),
+                            channel: Some(channel_num),
+                            note: None,
+                            velocity: None,
+                            cc_number: None,
+                            cc_value: Some(program.into()),
+                            pitch_bend: None,
+                            aftertouch: None,
+                            raw_bytes: bytes.to_vec(),
+                            description: format!(
+                                "Program Change: {} Channel {}",
+                                u8::from(program),
+                                channel_num
+                            ),
+                        },
+                        ChannelVoiceMsg::ChannelPressure { pressure } => Self {
+                            timestamp,
+                            event_type: "ChannelAftertouch".to_string(),
+                            channel: Some(channel_num),
+                            note: None,
+                            velocity: None,
+                            cc_number: None,
+                            cc_value: None,
+                            pitch_bend: None,
+                            aftertouch: Some(pressure.into()),
+                            raw_bytes: bytes.to_vec(),
+                            description: format!(
+                                "Channel Aftertouch: Pressure {} Channel {}",
+                                u8::from(pressure),
+                                channel_num
+                            ),
+                        },
+                        ChannelVoiceMsg::PitchBend { bend } => {
+                            // midi-msg uses u16 for pitch bend (0-16383, center=8192)
+                            // Store as i16 for compatibility with existing code
+                            let bend_value = bend as i16;
+                            Self {
+                                timestamp,
+                                event_type: "PitchBend".to_string(),
+                                channel: Some(channel_num),
+                                note: None,
+                                velocity: None,
+                                cc_number: None,
+                                cc_value: None,
+                                pitch_bend: Some(bend_value),
+                                aftertouch: None,
+                                raw_bytes: bytes.to_vec(),
+                                description: format!(
+                                    "Pitch Bend: {} Channel {}",
+                                    bend_value, channel_num
+                                ),
+                            }
+                        }
+                        // High-resolution variants (CA-031)
+                        ChannelVoiceMsg::HighResNoteOn { note, velocity } => Self {
+                            timestamp,
+                            event_type: "NoteOn".to_string(),
+                            channel: Some(channel_num),
+                            note: Some(note),
+                            velocity: Some((velocity >> 9) as u8), // Convert 16-bit to 7-bit
+                            cc_number: None,
+                            cc_value: None,
+                            pitch_bend: None,
+                            aftertouch: None,
+                            raw_bytes: bytes.to_vec(),
+                            description: format!(
+                                "Note On (High-Res): Note {} Velocity {} Channel {}",
+                                note,
+                                velocity >> 9,
+                                channel_num
+                            ),
+                        },
+                        ChannelVoiceMsg::HighResNoteOff { note, velocity } => Self {
+                            timestamp,
+                            event_type: "NoteOff".to_string(),
+                            channel: Some(channel_num),
+                            note: Some(note),
+                            velocity: Some((velocity >> 9) as u8), // Convert 16-bit to 7-bit
+                            cc_number: None,
+                            cc_value: None,
+                            pitch_bend: None,
+                            aftertouch: None,
+                            raw_bytes: bytes.to_vec(),
+                            description: format!(
+                                "Note Off (High-Res): Note {} Velocity {} Channel {}",
+                                note,
+                                velocity >> 9,
+                                channel_num
+                            ),
+                        },
+                    }
                 }
-            }
-            0x90 => {
-                // Note On
-                let note = bytes.get(1).copied();
-                let velocity = bytes.get(2).copied();
-                Self {
-                    timestamp,
-                    event_type: "NoteOn".to_string(),
-                    channel,
-                    note,
-                    velocity,
-                    cc_number: None,
-                    cc_value: None,
-                    pitch_bend: None,
-                    aftertouch: None,
-                    raw_bytes: bytes.to_vec(),
-                    description: format!(
-                        "Note On: Note {} Velocity {} Channel {}",
-                        note.unwrap_or(0),
-                        velocity.unwrap_or(0),
-                        channel.unwrap_or(0)
-                    ),
+                _ => {
+                    // Handle non-channel-voice messages (System Common, System Real-Time, etc.)
+                    Self {
+                        timestamp,
+                        event_type: "Unknown".to_string(),
+                        channel: None,
+                        note: None,
+                        velocity: None,
+                        cc_number: None,
+                        cc_value: None,
+                        pitch_bend: None,
+                        aftertouch: None,
+                        raw_bytes: bytes.to_vec(),
+                        description: format!("Non-channel-voice MIDI message: {:02X?}", bytes),
+                    }
                 }
-            }
-            0xA0 => {
-                // Polyphonic Aftertouch
-                let note = bytes.get(1).copied();
-                let aftertouch = bytes.get(2).copied();
-                Self {
-                    timestamp,
-                    event_type: "PolyAftertouch".to_string(),
-                    channel,
-                    note,
-                    velocity: None,
-                    cc_number: None,
-                    cc_value: None,
-                    pitch_bend: None,
-                    aftertouch,
-                    raw_bytes: bytes.to_vec(),
-                    description: format!(
-                        "Poly Aftertouch: Note {} Pressure {} Channel {}",
-                        note.unwrap_or(0),
-                        aftertouch.unwrap_or(0),
-                        channel.unwrap_or(0)
-                    ),
-                }
-            }
-            0xB0 => {
-                // Control Change
-                let cc_number = bytes.get(1).copied();
-                let cc_value = bytes.get(2).copied();
-                Self {
-                    timestamp,
-                    event_type: "ControlChange".to_string(),
-                    channel,
-                    note: None,
-                    velocity: None,
-                    cc_number,
-                    cc_value,
-                    pitch_bend: None,
-                    aftertouch: None,
-                    raw_bytes: bytes.to_vec(),
-                    description: format!(
-                        "CC: #{} Value {} Channel {}",
-                        cc_number.unwrap_or(0),
-                        cc_value.unwrap_or(0),
-                        channel.unwrap_or(0)
-                    ),
-                }
-            }
-            0xC0 => {
-                // Program Change
-                let program = bytes.get(1).copied();
-                Self {
-                    timestamp,
-                    event_type: "ProgramChange".to_string(),
-                    channel,
-                    note: None,
-                    velocity: None,
-                    cc_number: None,
-                    cc_value: program,
-                    pitch_bend: None,
-                    aftertouch: None,
-                    raw_bytes: bytes.to_vec(),
-                    description: format!(
-                        "Program Change: {} Channel {}",
-                        program.unwrap_or(0),
-                        channel.unwrap_or(0)
-                    ),
-                }
-            }
-            0xD0 => {
-                // Channel Aftertouch
-                let aftertouch = bytes.get(1).copied();
-                Self {
-                    timestamp,
-                    event_type: "ChannelAftertouch".to_string(),
-                    channel,
-                    note: None,
-                    velocity: None,
-                    cc_number: None,
-                    cc_value: None,
-                    pitch_bend: None,
-                    aftertouch,
-                    raw_bytes: bytes.to_vec(),
-                    description: format!(
-                        "Channel Aftertouch: Pressure {} Channel {}",
-                        aftertouch.unwrap_or(0),
-                        channel.unwrap_or(0)
-                    ),
-                }
-            }
-            0xE0 => {
-                // Pitch Bend
-                let lsb = bytes.get(1).copied().unwrap_or(0) as i16;
-                let msb = bytes.get(2).copied().unwrap_or(0) as i16;
-                let pitch_bend = Some((msb << 7) | lsb);
-                Self {
-                    timestamp,
-                    event_type: "PitchBend".to_string(),
-                    channel,
-                    note: None,
-                    velocity: None,
-                    cc_number: None,
-                    cc_value: None,
-                    pitch_bend,
-                    aftertouch: None,
-                    raw_bytes: bytes.to_vec(),
-                    description: format!(
-                        "Pitch Bend: {} Channel {}",
-                        pitch_bend.unwrap_or(0),
-                        channel.unwrap_or(0)
-                    ),
-                }
-            }
-            _ => Self {
-                timestamp,
-                event_type: "Unknown".to_string(),
-                channel,
-                note: None,
-                velocity: None,
-                cc_number: None,
-                cc_value: None,
-                pitch_bend: None,
-                aftertouch: None,
-                raw_bytes: bytes.to_vec(),
-                description: format!("Unknown MIDI message: {:02X?}", bytes),
             },
+            Err(_) => {
+                // Failed to parse MIDI message
+                Self {
+                    timestamp,
+                    event_type: "Unknown".to_string(),
+                    channel: None,
+                    note: None,
+                    velocity: None,
+                    cc_number: None,
+                    cc_value: None,
+                    pitch_bend: None,
+                    aftertouch: None,
+                    raw_bytes: bytes.to_vec(),
+                    description: format!("Invalid MIDI message: {:02X?}", bytes),
+                }
+            }
         }
     }
 

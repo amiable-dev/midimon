@@ -257,6 +257,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bstr"
+version = "1.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63044e1ae8e69f3b5a92c736ca6269b8d12fa7efe39bf34ddb06d102cf0e2cab"
+dependencies = [
+ "memchr",
+ "serde",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2404,6 +2414,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "micromath"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc4010833aea396656c2f91ee704d51a6f1329ec2ab56ffd00bfd56f7481ea94"
+
+[[package]]
+name = "midi-msg"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fe29685c3cf12aea6d08c8500d9cb76c823ca152fb628f4c1054052495e8341"
+dependencies = [
+ "bstr",
+ "log",
+ "micromath",
+ "strum",
+]
+
+[[package]]
 name = "midimon"
 version = "2.0.0"
 dependencies = [
@@ -2420,10 +2448,13 @@ dependencies = [
 name = "midimon-core"
 version = "2.0.0"
 dependencies = [
+ "alsa",
+ "coremidi",
  "criterion",
  "crossbeam-channel",
  "dirs 5.0.1",
  "hidapi",
+ "midi-msg",
  "midimon-daemon",
  "midir",
  "proptest",
@@ -2455,6 +2486,7 @@ dependencies = [
  "hidapi",
  "interprocess",
  "libc",
+ "midi-msg",
  "midimon-core",
  "midir",
  "notify",
@@ -2481,6 +2513,7 @@ dependencies = [
  "anyhow",
  "cocoa 0.26.1",
  "dirs 5.0.1",
+ "midi-msg",
  "midimon-core",
  "midimon-daemon",
  "midir",
@@ -4320,6 +4353,28 @@ name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
+
+[[package]]
+name = "strum"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "063e6045c0e62079840579a7e47a355ae92f60eb74daaf156fb1e84ba164e63f"
+dependencies = [
+ "strum_macros",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.24.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e385be0d24f186b4ce2f9982191e7101bb737312ad61c1f2f984f34bcf85d59"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 1.0.109",
+]
 
 [[package]]
 name = "swift-rs"

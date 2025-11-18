@@ -63,7 +63,13 @@ pub enum InputEvent {
         value: u8,
         time: Instant,
     },
-    /// Aftertouch/pressure applied
+    /// Polyphonic aftertouch/pressure applied to specific pad
+    PolyPressure {
+        pad: u8,
+        pressure: u8,
+        time: Instant,
+    },
+    /// Aftertouch/pressure applied (channel-wide)
     Aftertouch { pressure: u8, time: Instant },
     /// Pitch bend/touch strip moved
     PitchBend { value: u16, time: Instant },
@@ -95,6 +101,7 @@ impl InputEvent {
             InputEvent::PadPressed { time, .. }
             | InputEvent::PadReleased { time, .. }
             | InputEvent::EncoderTurned { time, .. }
+            | InputEvent::PolyPressure { time, .. }
             | InputEvent::Aftertouch { time, .. }
             | InputEvent::PitchBend { time, .. }
             | InputEvent::ProgramChange { time, .. }
@@ -124,6 +131,7 @@ impl InputEvent {
             InputEvent::PadPressed { .. } => "PadPressed",
             InputEvent::PadReleased { .. } => "PadReleased",
             InputEvent::EncoderTurned { .. } => "EncoderTurned",
+            InputEvent::PolyPressure { .. } => "PolyPressure",
             InputEvent::Aftertouch { .. } => "Aftertouch",
             InputEvent::PitchBend { .. } => "PitchBend",
             InputEvent::ProgramChange { .. } => "ProgramChange",
@@ -140,6 +148,7 @@ impl InputEvent {
 /// - NoteOn → PadPressed (note → pad)
 /// - NoteOff → PadReleased (note → pad)
 /// - ControlChange → EncoderTurned (cc → encoder)
+/// - PolyPressure → PolyPressure (note → pad, pressure preserved)
 /// - Aftertouch → Aftertouch (pressure preserved)
 /// - PitchBend → PitchBend (value preserved)
 /// - ProgramChange → ProgramChange (program preserved)
@@ -159,6 +168,15 @@ impl From<MidiEvent> for InputEvent {
             MidiEvent::ControlChange { cc, value, time } => InputEvent::EncoderTurned {
                 encoder: cc,
                 value,
+                time,
+            },
+            MidiEvent::PolyPressure {
+                note,
+                pressure,
+                time,
+            } => InputEvent::PolyPressure {
+                pad: note,
+                pressure,
                 time,
             },
             MidiEvent::Aftertouch { pressure, time } => InputEvent::Aftertouch { pressure, time },

@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tracing::{debug, trace};
+use midi_msg::{MidiMsg, ChannelVoiceMsg, ControlChange};
 
 #[derive(Debug, Clone)]
 pub enum MidiEvent {
@@ -21,6 +22,11 @@ pub enum MidiEvent {
         value: u8,
         time: Instant,
     },
+    PolyPressure {
+        note: u8,
+        pressure: u8,
+        time: Instant,
+    },
     Aftertouch {
         pressure: u8,
         time: Instant,
@@ -33,6 +39,114 @@ pub enum MidiEvent {
         program: u8,
         time: Instant,
     },
+}
+
+impl MidiEvent {
+    /// Parse raw MIDI bytes into a MidiEvent using the midi-msg library.
+    ///
+    /// This centralizes MIDI message parsing across the codebase, ensuring
+    /// consistent handling of MIDI messages and providing better error messages.
+    ///
+    /// # Arguments
+    /// * `msg` - Raw MIDI message bytes (typically 1-3 bytes)
+    ///
+    /// # Returns
+    /// * `Ok(MidiEvent)` - Successfully parsed MIDI event with current timestamp
+    /// * `Err(String)` - Error message describing why parsing failed
+    ///
+    /// # Example
+    /// ```rust
+    /// use midimon_core::event_processor::MidiEvent;
+    ///
+    /// // Note On: C4 (60) with velocity 100
+    /// let note_on = MidiEvent::from_midi_msg(&[0x90, 60, 100]).unwrap();
+    ///
+    /// // Control Change: CC 7 (volume) with value 127
+    /// let cc = MidiEvent::from_midi_msg(&[0xB0, 7, 127]).unwrap();
+    /// ```
+    pub fn from_midi_msg(msg: &[u8]) -> Result<Self, String> {
+        let now = Instant::now();
+
+        match MidiMsg::from_midi(msg) {
+            Ok((MidiMsg::ChannelVoice { msg: voice_msg, .. }, _))
+            | Ok((MidiMsg::RunningChannelVoice { msg: voice_msg, .. }, _)) => {
+                match voice_msg {
+                    ChannelVoiceMsg::NoteOn { note, velocity } => {
+                        if velocity > 0 {
+                            Ok(MidiEvent::NoteOn {
+                                note,
+                                velocity,
+                                time: now,
+                            })
+                        } else {
+                            // Note On with velocity 0 is treated as Note Off
+                            Ok(MidiEvent::NoteOff { note, time: now })
+                        }
+                    }
+
+                    ChannelVoiceMsg::NoteOff { note, .. } => {
+                        Ok(MidiEvent::NoteOff { note, time: now })
+                    }
+
+                    ChannelVoiceMsg::ControlChange { control } => {
+                        // Extract CC number and value from ControlChange enum
+                        if let ControlChange::CC { control: cc, value } = control {
+                            Ok(MidiEvent::ControlChange {
+                                cc,
+                                value,
+                                time: now,
+                            })
+                        } else {
+                            Err(format!(
+                                "Unsupported ControlChange variant: {:?}",
+                                control
+                            ))
+                        }
+                    }
+
+                    ChannelVoiceMsg::PolyPressure { note, pressure } => {
+                        Ok(MidiEvent::PolyPressure {
+                            note,
+                            pressure,
+                            time: now,
+                        })
+                    }
+
+                    ChannelVoiceMsg::ChannelPressure { pressure } => {
+                        Ok(MidiEvent::Aftertouch { pressure, time: now })
+                    }
+
+                    ChannelVoiceMsg::PitchBend { bend } => {
+                        Ok(MidiEvent::PitchBend {
+                            value: bend,
+                            time: now,
+                        })
+                    }
+
+                    ChannelVoiceMsg::ProgramChange { program } => {
+                        Ok(MidiEvent::ProgramChange { program, time: now })
+                    }
+
+                    _ => Err(format!(
+                        "Unsupported MIDI voice message type: {:?}",
+                        voice_msg
+                    )),
+                }
+            }
+
+            Ok((MidiMsg::SystemCommon { .. }, _)) => {
+                Err("System Common messages not supported".to_string())
+            }
+
+            Ok((MidiMsg::SystemRealTime { .. }, _)) => {
+                Err("System Real-Time messages not supported".to_string())
+            }
+
+            Err(e) => Err(format!("Failed to parse MIDI message: {:?}", e)),
+
+            _ => Err(format!("Unknown MIDI message type: {:02X?}", msg)),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -221,6 +335,11 @@ impl EventProcessor {
                     });
                 }
                 self.last_cc_values.insert(cc, value);
+            }
+
+            MidiEvent::PolyPressure { .. } => {
+                // Polyphonic aftertouch is received but not currently processed
+                // into high-level events. This is a placeholder for future support.
             }
 
             MidiEvent::Aftertouch { pressure, .. } => {

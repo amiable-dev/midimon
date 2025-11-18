@@ -7,10 +7,35 @@ use crate::config_helpers::{config_to_json, generate_mapping_toml, suggestion_to
 use crate::device_templates::{DeviceTemplate, DeviceTemplateRegistry};
 use crate::midi_learn::{LearnSessionState, MidiLearnResult, MidiLearnSession, TriggerSuggestion};
 use crate::state::AppState;
+use midi_msg::{Channel, ChannelVoiceMsg, ControlChange, MidiMsg};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::State;
 use uuid::Uuid;
+
+/// SendMIDI action configuration (mirrors ActionConfig::SendMidi variant)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SendMidiConfig {
+    pub port: String,
+    pub message_type: String,
+    pub channel: u8,
+    #[serde(default)]
+    pub note: Option<u8>,
+    #[serde(default)]
+    pub velocity: Option<u8>,
+    #[serde(default)]
+    pub velocity_mapping: Option<serde_json::Value>,
+    #[serde(default)]
+    pub cc_number: Option<u8>,
+    #[serde(default)]
+    pub cc_value: Option<u8>,
+    #[serde(default)]
+    pub program: Option<u8>,
+    #[serde(default)]
+    pub pitch_bend: Option<i16>,
+    #[serde(default)]
+    pub aftertouch: Option<u8>,
+}
 
 // Import daemon types (we'll re-export these from daemon crate)
 use midimon_daemon::daemon::{IpcClient, IpcCommand, IpcRequest, ResponseStatus};
@@ -671,4 +696,275 @@ pub async fn stop_event_monitoring(state: State<'_, AppState>) -> Result<(), Str
 #[tauri::command]
 pub async fn is_event_monitoring_active(state: State<'_, AppState>) -> Result<bool, String> {
     Ok(state.is_event_monitoring_active().await)
+}
+
+// ============================================================================
+// MIDI Output Commands (v2.1)
+// ============================================================================
+
+/// MIDI output port information
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MidiOutputPort {
+    pub index: usize,
+    pub name: String,
+    pub is_virtual: bool,
+    pub platform: String,
+}
+
+/// Get platform name for display
+fn get_platform_name() -> String {
+    #[cfg(target_os = "macos")]
+    return "macOS".to_string();
+
+    #[cfg(target_os = "linux")]
+    return "Linux".to_string();
+
+    #[cfg(target_os = "windows")]
+    return "Windows".to_string();
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+    return "Unknown".to_string();
+}
+
+/// List all available MIDI output ports
+#[tauri::command]
+pub async fn list_midi_output_ports(
+    state: State<'_, AppState>,
+) -> Result<Vec<MidiOutputPort>, String> {
+    let manager = state.get_midi_output_manager().await;
+    let manager_guard = manager.read().await;
+
+    let ports = manager_guard.list_output_ports();
+
+    let output_ports: Vec<MidiOutputPort> = ports
+        .into_iter()
+        .enumerate()
+        .map(|(index, name)| {
+            // Detect virtual ports by common naming patterns
+            let is_virtual = name.contains("IAC")      // macOS Inter-Application Communication
+                || name.contains("Virtual")
+                || name.contains("Bus")
+                || name.contains("MIDIMon")
+                || name.contains("loopMIDI");      // Windows loopMIDI driver
+
+            MidiOutputPort {
+                index,
+                name,
+                is_virtual,
+                platform: get_platform_name(),
+            }
+        })
+        .collect();
+
+    Ok(output_ports)
+}
+
+/// Test MIDI output by sending a test message
+#[tauri::command]
+pub async fn test_midi_output(
+    state: State<'_, AppState>,
+    port_name: String,
+    message_type: String,
+    channel: u8,
+    note: Option<u8>,
+    velocity: Option<u8>,
+    cc_number: Option<u8>,
+    cc_value: Option<u8>,
+) -> Result<String, String> {
+    let manager = state.get_midi_output_manager().await;
+    let mut manager_guard = manager.write().await;
+
+    // Find the port index by name
+    let ports = manager_guard.list_output_ports();
+    let port_index = ports
+        .iter()
+        .position(|p| p == &port_name)
+        .ok_or_else(|| format!("MIDI port '{}' not found", port_name))?;
+
+    // Connect to the specified port by index
+    manager_guard
+        .connect_to_port(port_index)
+        .map_err(|e| format!("Failed to connect to port: {}", e))?;
+
+    // Build the MIDI message based on type using midi-msg
+    // Validate channel (0-15)
+    if channel > 15 {
+        return Err(format!("Invalid MIDI channel: {} (must be 0-15)", channel));
+    }
+    let channel = Channel::from_u8(channel); // Safe after validation
+
+    let midi_msg = match message_type.as_str() {
+        "note_on" => {
+            let note_num = note.unwrap_or(60);
+            let vel_num = velocity.unwrap_or(100);
+
+            // Validate note and velocity
+            if note_num > 127 {
+                return Err(format!("Invalid note number: {} (must be 0-127)", note_num));
+            }
+            if vel_num > 127 {
+                return Err(format!("Invalid velocity: {} (must be 0-127)", vel_num));
+            }
+
+            MidiMsg::ChannelVoice {
+                channel,
+                msg: ChannelVoiceMsg::NoteOn {
+                    note: note_num,
+                    velocity: vel_num,
+                },
+            }
+        }
+        "note_off" => {
+            let note_num = note.unwrap_or(60);
+
+            // Validate note
+            if note_num > 127 {
+                return Err(format!("Invalid note number: {} (must be 0-127)", note_num));
+            }
+
+            MidiMsg::ChannelVoice {
+                channel,
+                msg: ChannelVoiceMsg::NoteOff {
+                    note: note_num,
+                    velocity: 0,
+                },
+            }
+        }
+        "cc" => {
+            let cc_num = cc_number.unwrap_or(1);
+            let val_num = cc_value.unwrap_or(64);
+
+            // Validate CC number and value
+            if cc_num > 127 {
+                return Err(format!("Invalid CC number: {} (must be 0-127)", cc_num));
+            }
+            if val_num > 127 {
+                return Err(format!("Invalid CC value: {} (must be 0-127)", val_num));
+            }
+
+            MidiMsg::ChannelVoice {
+                channel,
+                msg: ChannelVoiceMsg::ControlChange {
+                    control: ControlChange::CC {
+                        control: cc_num,
+                        value: val_num,
+                    },
+                },
+            }
+        }
+        _ => return Err(format!("Unknown message type: {}", message_type)),
+    };
+
+    // Convert the MIDI message to bytes
+    let message = midi_msg.to_midi();
+
+    // Send the message
+    manager_guard
+        .send_message(&port_name, &message)
+        .map_err(|e| format!("Failed to send MIDI message: {}", e))?;
+
+    Ok(format!(
+        "Successfully sent {} message to {} (channel {})",
+        message_type, port_name, (channel as u8) + 1
+    ))
+}
+
+/// Validate a SendMIDI action configuration
+#[tauri::command]
+pub fn validate_send_midi_action(config: SendMidiConfig) -> Result<ValidationResult, String> {
+    let mut errors = Vec::new();
+    let mut warnings = Vec::new();
+
+    // Validate channel (0-15)
+    if config.channel > 15 {
+        errors.push(format!("MIDI channel must be 0-15, got {}", config.channel));
+    }
+
+    // Validate message type parameters
+    match config.message_type.as_str() {
+        "note_on" | "note_off" => {
+            if let Some(note) = config.note {
+                if note > 127 {
+                    errors.push(format!("Note number must be 0-127, got {}", note));
+                }
+            } else {
+                warnings.push("Note number not specified, will use default (60)".to_string());
+            }
+
+            if let Some(velocity) = config.velocity {
+                if velocity > 127 {
+                    errors.push(format!("Velocity must be 0-127, got {}", velocity));
+                }
+            }
+        }
+        "cc" => {
+            if let Some(cc_number) = config.cc_number {
+                if cc_number > 127 {
+                    errors.push(format!("CC number must be 0-127, got {}", cc_number));
+                }
+            } else {
+                errors.push("CC number is required for CC messages".to_string());
+            }
+
+            if let Some(cc_value) = config.cc_value {
+                if cc_value > 127 {
+                    errors.push(format!("CC value must be 0-127, got {}", cc_value));
+                }
+            } else {
+                warnings.push("CC value not specified, will use default (64)".to_string());
+            }
+        }
+        "program_change" => {
+            if let Some(program) = config.program {
+                if program > 127 {
+                    errors.push(format!("Program number must be 0-127, got {}", program));
+                }
+            } else {
+                errors.push("Program number is required for program change messages".to_string());
+            }
+        }
+        "pitch_bend" => {
+            if let Some(value) = config.pitch_bend {
+                if value < -8192 || value > 8191 {
+                    errors.push(format!(
+                        "Pitch bend value must be -8192 to 8191, got {}",
+                        value
+                    ));
+                }
+            } else {
+                warnings.push("Pitch bend value not specified, will use default (0)".to_string());
+            }
+        }
+        "aftertouch" => {
+            if let Some(pressure) = config.aftertouch {
+                if pressure > 127 {
+                    errors.push(format!("Aftertouch pressure must be 0-127, got {}", pressure));
+                }
+            } else {
+                warnings.push("Aftertouch pressure not specified, will use default (64)".to_string());
+            }
+        }
+        _ => {
+            errors.push(format!("Unknown message type: {}", config.message_type));
+        }
+    }
+
+    // Validate port
+    if config.port.is_empty() {
+        errors.push("MIDI output port cannot be empty".to_string());
+    }
+
+    Ok(ValidationResult {
+        valid: errors.is_empty(),
+        errors,
+        warnings,
+    })
+}
+
+/// Validation result for SendMIDI actions
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ValidationResult {
+    pub valid: bool,
+    pub errors: Vec<String>,
+    pub warnings: Vec<String>,
 }
