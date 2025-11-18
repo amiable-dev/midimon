@@ -29,6 +29,15 @@ sha2.workspace = true  # Checksum verification (v2.3)
 reqwest = { version = "0.12", features = ["json"], optional = true }  # Plugin registry (v2.4)
 tokio = { version = "1.40", features = ["fs"], optional = true }  # Async runtime for registry (v2.4)
 
+# WASM plugin runtime (v2.5 - sandboxed execution)
+[dependencies.wasmtime]
+workspace = true
+optional = true
+
+[dependencies.wasmtime-wasi]
+workspace = true
+optional = true
+
 # Structured logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
@@ -66,5 +75,6 @@ harness = false
 default = ["virtual-midi"]
 test-mocks = []
 virtual-midi = ["dep:coremidi", "dep:alsa"]
-plugin = []  # Enable plugin support
+plugin = []  # Enable plugin support (native .dylib/.so/.dll)
 plugin-registry = ["dep:reqwest", "dep:tokio"]  # Enable plugin registry client (v2.4)
+plugin-wasm = ["dep:wasmtime", "dep:wasmtime-wasi"]  # Enable WASM plugin support (v2.5)

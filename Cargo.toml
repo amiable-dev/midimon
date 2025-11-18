@@ -58,8 +58,12 @@ thiserror = "2.0"
 rand = "0.8"
 regex = "1.10"  # Security validation
 dirs = "5.0"  # Path handling
-libloading = "0.8"  # Plugin loading (v2.3)
+libloading = "0.8"  # Plugin loading - native .dylib/.so/.dll (v2.3)
 sha2 = "0.10"  # Checksum verification (v2.3)
+
+# WASM plugin runtime (v2.5 - sandboxed plugin execution)
+wasmtime = "26.0"
+wasmtime-wasi = "26.0"
 
 # Platform-specific MIDI output (optional, for virtual port creation)
 coremidi = "0.8"  # macOS virtual MIDI ports (0.9 not available on crates.io)

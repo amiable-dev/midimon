@@ -1,0 +1,366 @@
+// Copyright 2025 Amiable
+// SPDX-License-Identifier: MIT
+
+//! WASM plugin runtime for sandboxed plugin execution (v2.5)
+//!
+//! This module provides a secure, isolated runtime for executing plugins compiled
+//! to WebAssembly. WASM plugins run in a sandboxed environment with:
+//! - Memory isolation (cannot access daemon memory)
+//! - Resource limits (CPU, memory, execution time)
+//! - Capability-based permissions (WASI)
+//! - Platform independence (same .wasm runs on macOS/Linux/Windows)
+//!
+//! ## Architecture
+//!
+//! ```text
+//! ┌─────────────────────────────────────┐
+//! │  MIDIMon Daemon (Rust)              │
+//! │  ┌───────────────────────────────┐  │
+//! │  │  WASM Runtime (wasmtime)      │  │
+//! │  │  ┌─────────────────────────┐  │  │
+//! │  │  │  Plugin.wasm            │  │  │
+//! │  │  │  - Sandboxed execution  │  │  │
+//! │  │  │  - Resource limits      │  │  │
+//! │  │  │  - Capability system    │  │  │
+//! │  │  └─────────────────────────┘  │  │
+//! │  └───────────────────────────────┘  │
+//! └─────────────────────────────────────┘
+//! ```
+//!
+//! ## Security Features
+//!
+//! 1. **Process Isolation**: Plugin runs in separate memory space
+//! 2. **Resource Limits**: Configurable limits on memory, CPU, execution time
+//! 3. **Capability System**: Fine-grained permission control via WASI
+//! 4. **Timeout Protection**: Plugins cannot run indefinitely
+//! 5. **Crash Isolation**: Plugin crash doesn't affect daemon
+//!
+//! ## Example Usage
+//!
+//! ```rust,no_run
+//! use midimon_core::plugin::wasm_runtime::{WasmPlugin, WasmConfig};
+//! use midimon_core::plugin::types::Capability;
+//! use std::path::Path;
+//!
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! let config = WasmConfig {
+//!     max_memory_bytes: 128 * 1024 * 1024, // 128 MB
+//!     max_execution_time: std::time::Duration::from_secs(5),
+//!     capabilities: vec![Capability::Network],
+//! };
+//!
+//! let mut plugin = WasmPlugin::load(
+//!     Path::new("plugins/spotify/plugin.wasm"),
+//!     config,
+//! ).await?;
+//!
+//! plugin.execute("play", &context).await?;
+//! # Ok(())
+//! # }
+//! ```
+
+#![cfg(feature = "plugin-wasm")]
+
+use std::path::Path;
+use std::time::Duration;
+use wasmtime::*;
+use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, Dir, ambient_authority};
+use serde::{Serialize, Deserialize};
+
+use crate::error::EngineError;
+use crate::plugin::{Capability, PluginMetadata, TriggerContext};
+use crate::events::ProcessedEvent;
+
+/// Configuration for WASM plugin runtime
+#[derive(Debug, Clone)]
+pub struct WasmConfig {
+    /// Maximum memory in bytes (default: 128 MB)
+    pub max_memory_bytes: u64,
+
+    /// Maximum execution time per call (default: 5 seconds)
+    pub max_execution_time: Duration,
+
+    /// Capabilities granted to this plugin
+    pub capabilities: Vec<Capability>,
+}
+
+impl Default for WasmConfig {
+    fn default() -> Self {
+        Self {
+            max_memory_bytes: 128 * 1024 * 1024, // 128 MB
+            max_execution_time: Duration::from_secs(5),
+            capabilities: Vec::new(),
+        }
+    }
+}
+
+/// Resource limiter for WASM instances
+struct PluginResourceLimiter {
+    memory_limit: u64,
+}
+
+impl ResourceLimiter for PluginResourceLimiter {
+    fn memory_growing(&mut self, current: usize, desired: usize, _maximum: Option<usize>)
+        -> Result<bool>
+    {
+        if desired as u64 > self.memory_limit {
+            Ok(false) // Deny allocation
+        } else {
+            Ok(true)  // Allow allocation
+        }
+    }
+
+    fn table_growing(&mut self, _current: u32, desired: u32, _maximum: Option<u32>)
+        -> Result<bool>
+    {
+        // Limit table size to prevent DoS
+        Ok(desired <= 10000)
+    }
+}
+
+/// WASM plugin instance with sandboxed execution
+pub struct WasmPlugin {
+    engine: Engine,
+    module: Module,
+    linker: Linker<WasiCtx>,
+    config: WasmConfig,
+    metadata: Option<PluginMetadata>,
+}
+
+impl WasmPlugin {
+    /// Load a WASM plugin from file
+    ///
+    /// This initializes the WASM runtime, loads the module, and sets up
+    /// the sandboxed environment with configured resource limits and capabilities.
+    pub async fn load(path: &Path, config: WasmConfig) -> Result<Self, EngineError> {
+        // Configure WASM engine
+        let mut engine_config = Config::new();
+        engine_config.async_support(true);      // Enable async execution
+        engine_config.wasm_component_model(false); // Use core WASM for now
+        engine_config.consume_fuel(true);       // Enable execution metering
+
+        let engine = Engine::new(&engine_config)
+            .map_err(|e| EngineError::PluginLoadFailed(e.to_string()))?;
+
+        // Load WASM module
+        let module = Module::from_file(&engine, path)
+            .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to load WASM module: {}", e)))?;
+
+        // Create linker for WASI functions
+        let mut linker = Linker::new(&engine);
+        wasmtime_wasi::add_to_linker(&mut linker, |cx: &mut WasiCtx| cx)
+            .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to setup WASI: {}", e)))?;
+
+        Ok(WasmPlugin {
+            engine,
+            module,
+            linker,
+            config,
+            metadata: None,
+        })
+    }
+
+    /// Initialize plugin and retrieve metadata
+    ///
+    /// This calls the `init` export to get plugin metadata (name, version, etc.)
+    pub async fn init(&mut self) -> Result<PluginMetadata, EngineError> {
+        let mut store = self.create_store()?;
+
+        // Instantiate module
+        let instance = self.linker.instantiate_async(&mut store, &self.module).await
+            .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to instantiate: {}", e)))?;
+
+        // Call init() to get metadata
+        let init_func = instance
+            .get_typed_func::<(), (u32, u32)>(&mut store, "init")
+            .map_err(|e| EngineError::PluginLoadFailed(format!("Missing init export: {}", e)))?;
+
+        let (ptr, len) = init_func.call_async(&mut store, ()).await
+            .map_err(|e| EngineError::PluginLoadFailed(format!("init() failed: {}", e)))?;
+
+        // Read metadata from WASM memory
+        let metadata_json = self.read_string_from_memory(&instance, &mut store, ptr, len)?;
+
+        let metadata: PluginMetadata = serde_json::from_str(&metadata_json)
+            .map_err(|e| EngineError::PluginLoadFailed(format!("Invalid metadata: {}", e)))?;
+
+        self.metadata = Some(metadata.clone());
+        Ok(metadata)
+    }
+
+    /// Execute plugin action
+    ///
+    /// This calls the `execute` export with the action name and trigger context,
+    /// enforcing timeout and resource limits.
+    pub async fn execute(&self, action: &str, context: &TriggerContext)
+        -> Result<(), EngineError>
+    {
+        let mut store = self.create_store()?;
+
+        // Instantiate module
+        let instance = self.linker.instantiate_async(&mut store, &self.module).await
+            .map_err(|e| EngineError::ActionExecutionFailed(format!("Failed to instantiate: {}", e)))?;
+
+        // Serialize request
+        let request = ActionRequest {
+            action: action.to_string(),
+            context: context.clone(),
+        };
+        let request_json = serde_json::to_string(&request)
+            .map_err(|e| EngineError::ActionExecutionFailed(format!("Serialization failed: {}", e)))?;
+
+        // Write request to WASM memory
+        let (ptr, len) = self.write_string_to_memory(&instance, &mut store, &request_json)?;
+
+        // Call execute(ptr, len) -> result_code
+        let execute_func = instance
+            .get_typed_func::<(u32, u32), i32>(&mut store, "execute")
+            .map_err(|e| EngineError::ActionExecutionFailed(format!("Missing execute export: {}", e)))?;
+
+        // Execute with timeout
+        let timeout = self.config.max_execution_time;
+        let result = tokio::time::timeout(
+            timeout,
+            execute_func.call_async(&mut store, (ptr, len))
+        ).await
+            .map_err(|_| EngineError::ActionExecutionFailed(format!("Execution timeout ({}s)", timeout.as_secs())))?
+            .map_err(|e| EngineError::ActionExecutionFailed(format!("Execution failed: {}", e)))?;
+
+        if result != 0 {
+            return Err(EngineError::ActionExecutionFailed(format!("Plugin returned error code: {}", result)));
+        }
+
+        Ok(())
+    }
+
+    /// Get plugin metadata
+    pub fn metadata(&self) -> Option<&PluginMetadata> {
+        self.metadata.as_ref()
+    }
+
+    // --- Private helper methods ---
+
+    /// Create a new store with WASI context and resource limits
+    fn create_store(&self) -> Result<Store<WasiCtx>, EngineError> {
+        // Build WASI context with capabilities
+        let mut wasi_builder = WasiCtxBuilder::new()
+            .inherit_stdio()
+            .inherit_args()
+            .map_err(|e| EngineError::PluginLoadFailed(format!("WASI setup failed: {}", e)))?;
+
+        // Grant filesystem access if capability is present
+        if self.config.capabilities.contains(&Capability::Filesystem) {
+            let plugin_data_dir = dirs::data_dir()
+                .ok_or_else(|| EngineError::PluginLoadFailed("No data directory".to_string()))?
+                .join("midimon")
+                .join("plugin-data");
+
+            std::fs::create_dir_all(&plugin_data_dir)
+                .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to create plugin data dir: {}", e)))?;
+
+            wasi_builder = wasi_builder.preopened_dir(
+                Dir::open_ambient_dir(&plugin_data_dir, ambient_authority())
+                    .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to open data dir: {}", e)))?,
+                "/"
+            ).map_err(|e| EngineError::PluginLoadFailed(format!("Failed to preopen dir: {}", e)))?;
+        }
+
+        // Network capability is implicit in WASI (TCP/UDP sockets)
+        // We don't need to explicitly enable it
+
+        let wasi_ctx = wasi_builder.build();
+        let mut store = Store::new(&self.engine, wasi_ctx);
+
+        // Set resource limiter
+        store.limiter(|_ctx| PluginResourceLimiter {
+            memory_limit: self.config.max_memory_bytes,
+        });
+
+        // Set fuel limit (instruction count limit)
+        // 1 fuel ≈ 1 WASM instruction, so 100M fuel ≈ 100M instructions
+        store.add_fuel(100_000_000)
+            .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to add fuel: {}", e)))?;
+
+        Ok(store)
+    }
+
+    /// Write string to WASM linear memory
+    fn write_string_to_memory(
+        &self,
+        instance: &Instance,
+        store: &mut Store<WasiCtx>,
+        data: &str,
+    ) -> Result<(u32, u32), EngineError> {
+        let memory = instance
+            .get_memory(store, "memory")
+            .ok_or_else(|| EngineError::ActionExecutionFailed("No memory export".to_string()))?;
+
+        // Allocate memory in WASM
+        let alloc_func = instance
+            .get_typed_func::<u32, u32>(store, "alloc")
+            .map_err(|_| EngineError::ActionExecutionFailed("No alloc export".to_string()))?;
+
+        let len = data.len() as u32;
+        let ptr = alloc_func.call(store, len)
+            .map_err(|e| EngineError::ActionExecutionFailed(format!("Allocation failed: {}", e)))?;
+
+        // Write data to memory
+        memory.write(store, ptr as usize, data.as_bytes())
+            .map_err(|e| EngineError::ActionExecutionFailed(format!("Memory write failed: {}", e)))?;
+
+        Ok((ptr, len))
+    }
+
+    /// Read string from WASM linear memory
+    fn read_string_from_memory(
+        &self,
+        instance: &Instance,
+        store: &mut Store<WasiCtx>,
+        ptr: u32,
+        len: u32,
+    ) -> Result<String, EngineError> {
+        let memory = instance
+            .get_memory(store, "memory")
+            .ok_or_else(|| EngineError::ActionExecutionFailed("No memory export".to_string()))?;
+
+        let mut buffer = vec![0u8; len as usize];
+        memory.read(store, ptr as usize, &mut buffer)
+            .map_err(|e| EngineError::ActionExecutionFailed(format!("Memory read failed: {}", e)))?;
+
+        String::from_utf8(buffer)
+            .map_err(|e| EngineError::ActionExecutionFailed(format!("Invalid UTF-8: {}", e)))
+    }
+}
+
+/// Request structure for plugin execution
+#[derive(Debug, Serialize, Deserialize)]
+struct ActionRequest {
+    pub action: String,
+    pub context: TriggerContext,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_wasm_config_default() {
+        let config = WasmConfig::default();
+        assert_eq!(config.max_memory_bytes, 128 * 1024 * 1024);
+        assert_eq!(config.max_execution_time, Duration::from_secs(5));
+        assert!(config.capabilities.is_empty());
+    }
+
+    #[test]
+    fn test_resource_limiter() {
+        let mut limiter = PluginResourceLimiter {
+            memory_limit: 1024 * 1024, // 1 MB
+        };
+
+        // Should allow allocations under limit
+        assert!(limiter.memory_growing(0, 512 * 1024, None).unwrap());
+
+        // Should deny allocations over limit
+        assert!(!limiter.memory_growing(0, 2 * 1024 * 1024, None).unwrap());
+    }
+}

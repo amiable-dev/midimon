@@ -45,6 +45,10 @@ mod loader;
 mod metadata;
 mod trigger_plugin;
 
+// WASM plugin runtime (v2.5 - sandboxed execution)
+#[cfg(feature = "plugin-wasm")]
+pub mod wasm_runtime;
+
 pub use action_plugin::{ActionPlugin, TriggerContext};
 pub use capability::{Capability, RiskLevel};
 pub use discovery::{
