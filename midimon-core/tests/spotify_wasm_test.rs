@@ -48,9 +48,14 @@ async fn test_spotify_plugin_metadata() {
     let metadata = plugin.init().await
         .expect("Failed to initialize plugin");
 
-    assert_eq!(metadata.name, "spotify_wasm");
-    assert_eq!(metadata.version, "0.1.0");
+    assert_eq!(metadata.name, "spotify_control");
+    assert_eq!(metadata.version, "0.2.0");
+    assert_eq!(metadata.author, "Amiable Team");
+    assert_eq!(metadata.license, "MIT");
     assert!(metadata.description.contains("Spotify"));
+
+    // Verify capabilities (Network capability required for Spotify Web API)
+    assert!(!metadata.capabilities.is_empty(), "Spotify plugin should request Network capability");
 }
 
 #[tokio::test]
@@ -91,13 +96,17 @@ async fn test_spotify_all_actions() {
 
     let context = TriggerContext::with_velocity(100);
 
-    // Test all supported actions
+    // Test all 10 supported actions
     let actions = vec![
         "play_pause",
+        "play",
+        "pause",
         "next_track",
         "previous_track",
         "volume_up",
         "volume_down",
+        "shuffle",
+        "repeat",
     ];
 
     for action in actions {
