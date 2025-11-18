@@ -4,6 +4,10 @@ members = [
     "midimon-daemon",
     "midimon-gui/src-tauri",
 ]
+exclude = [
+    "plugins/midimon-spotify-plugin",
+    "plugins/midimon-obs-plugin",
+]
 resolver = "2"
 
 [workspace.package]

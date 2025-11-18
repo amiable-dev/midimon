@@ -26,6 +26,8 @@ dirs.workspace = true  # Path handling
 midi-msg.workspace = true  # MIDI message parsing
 libloading.workspace = true  # Plugin loading (v2.3)
 sha2.workspace = true  # Checksum verification (v2.3)
+reqwest = { version = "0.12", features = ["json"], optional = true }  # Plugin registry (v2.4)
+tokio = { version = "1.40", features = ["fs"], optional = true }  # Async runtime for registry (v2.4)
 
 # Structured logging
 tracing = "0.1"
@@ -64,3 +66,5 @@ harness = false
 default = ["virtual-midi"]
 test-mocks = []
 virtual-midi = ["dep:coremidi", "dep:alsa"]
+plugin = []  # Enable plugin support
+plugin-registry = ["dep:reqwest", "dep:tokio"]  # Enable plugin registry client (v2.4)
