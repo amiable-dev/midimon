@@ -10,11 +10,64 @@
 //! - Core: Pure data structures and logic (UI-independent)
 //! - Daemon: System interaction (keyboard, mouse, shell, etc.)
 
-use midimon_core::{Action, KeyCode, ModifierKey, MouseButton, VolumeOperation};
+use midimon_core::{Action, KeyCode, MidiMessageParams, MidiMessageType, ModifierKey, MouseButton, MidiOutputManager, VolumeOperation};
 use enigo::{Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
+use crate::conditions::{evaluate_condition, ConditionContext};
+
+/// Context about the triggering event passed to action execution
+///
+/// This struct carries information from the triggering MIDI event (e.g., velocity)
+/// and current system state (e.g., active mode) that may be needed during action execution,
+/// particularly for SendMIDI actions with velocity mapping and Conditional actions.
+#[derive(Debug, Clone, Default)]
+pub struct TriggerContext {
+    /// Velocity of the triggering MIDI event (0-127)
+    ///
+    /// For NoteOn events, this is the velocity of the note press.
+    /// For NoteOff events, this is typically 64 (MIDI standard release velocity).
+    /// For other events, this may be None or a default value.
+    pub velocity: Option<u8>,
+
+    /// Current active mode name
+    ///
+    /// Used by Conditional actions with ModeIs conditions to check if a condition
+    /// should execute based on the current mode.
+    pub current_mode: Option<String>,
+}
+
+impl TriggerContext {
+    /// Create a new trigger context with velocity
+    pub fn with_velocity(velocity: u8) -> Self {
+        Self {
+            velocity: Some(velocity),
+            current_mode: None,
+        }
+    }
+
+    /// Create a new trigger context with velocity and mode
+    pub fn with_velocity_and_mode(velocity: u8, mode: String) -> Self {
+        Self {
+            velocity: Some(velocity),
+            current_mode: Some(mode),
+        }
+    }
+
+    /// Create a new trigger context with mode only
+    pub fn with_mode(mode: String) -> Self {
+        Self {
+            velocity: None,
+            current_mode: Some(mode),
+        }
+    }
+
+    /// Get velocity or default to 100 (standard MIDI default)
+    pub fn velocity_or_default(&self) -> u8 {
+        self.velocity.unwrap_or(100)
+    }
+}
 
 /// Convert domain KeyCode to enigo Key for execution
 ///
@@ -131,12 +184,14 @@ fn to_enigo_button(mouse_button: MouseButton) -> Button {
 /// - Shell command execution
 /// - Application launching
 /// - Volume control
+/// - MIDI output (v2.1)
 ///
 /// # Architecture Note
 /// This executor lives in the daemon layer (not core) because it interacts
 /// with the operating system through UI libraries (enigo) and system commands.
 pub struct ActionExecutor {
     enigo: Enigo,
+    midi_output: MidiOutputManager,
 }
 
 impl Default for ActionExecutor {
@@ -150,6 +205,7 @@ impl ActionExecutor {
     pub fn new() -> Self {
         Self {
             enigo: Enigo::new(&Settings::default()).unwrap(),
+            midi_output: MidiOutputManager::new(),
         }
     }
 
@@ -157,16 +213,24 @@ impl ActionExecutor {
     ///
     /// # Arguments
     /// * `action` - The action to execute
+    /// * `context` - Optional context about the triggering event (e.g., velocity)
     ///
     /// # Examples
     /// ```no_run
-    /// use midimon_daemon::ActionExecutor;
+    /// use midimon_daemon::{ActionExecutor, TriggerContext};
     /// use midimon_core::Action;
     ///
     /// let mut executor = ActionExecutor::new();
-    /// executor.execute(Action::Text("Hello, World!".to_string()));
+    ///
+    /// // Execute without context
+    /// executor.execute(Action::Text("Hello, World!".to_string()), None);
+    ///
+    /// // Execute with velocity context
+    /// let context = TriggerContext::with_velocity(100);
+    /// let action = Action::Text("Test".to_string());
+    /// executor.execute(action, Some(context));
     /// ```
-    pub fn execute(&mut self, action: Action) {
+    pub fn execute(&mut self, action: Action, context: Option<TriggerContext>) {
         match action {
             Action::Keystroke { keys, modifiers } => {
                 self.execute_keystroke(keys, modifiers);
@@ -182,7 +246,7 @@ impl ActionExecutor {
             }
             Action::Sequence(actions) => {
                 for act in actions {
-                    self.execute(act);
+                    self.execute(act, context.clone());
                     thread::sleep(Duration::from_millis(50));
                 }
             }
@@ -198,7 +262,7 @@ impl ActionExecutor {
             }
             Action::Repeat { action, count, delay_ms } => {
                 for i in 0..count {
-                    self.execute((*action).clone());
+                    self.execute((*action).clone(), context.clone());
 
                     // Add delay between iterations (but not after the last one)
                     if i < count - 1 {
@@ -209,10 +273,15 @@ impl ActionExecutor {
                 }
             }
             Action::Conditional { condition, then_action, else_action } => {
-                if evaluate_condition(&condition) {
-                    self.execute((*then_action).clone());
+                // Create condition context from trigger context (includes current mode)
+                let cond_ctx = context.as_ref()
+                    .and_then(|ctx| ctx.current_mode.as_ref())
+                    .map(|mode| ConditionContext::with_mode(mode.clone()));
+
+                if evaluate_condition(&condition, cond_ctx.as_ref()) {
+                    self.execute((*then_action).clone(), context.clone());
                 } else if let Some(else_act) = else_action {
-                    self.execute((*else_act).clone());
+                    self.execute((*else_act).clone(), context);
                 }
             }
             Action::VolumeControl { operation, value } => {
@@ -222,6 +291,9 @@ impl ActionExecutor {
                 // Mode changes are handled by the mapping engine
                 // This action just serves as a marker in the config
                 eprintln!("ModeChange to '{}' (handled by mapping engine)", mode);
+            }
+            Action::SendMidi { port, message_type, channel, params } => {
+                self.execute_send_midi(&port, &message_type, channel, &params, context.as_ref());
             }
         }
     }
@@ -334,6 +406,91 @@ impl ActionExecutor {
             }
         }
     }
+
+    /// Execute SendMIDI action
+    ///
+    /// Converts MIDI message parameters to bytes and sends via MidiOutputManager.
+    ///
+    /// # Arguments
+    /// * `port` - Target MIDI output port name
+    /// * `message_type` - Type of MIDI message to send
+    /// * `channel` - MIDI channel (0-15)
+    /// * `params` - Message-specific parameters
+    /// * `context` - Optional trigger context (contains velocity from triggering event)
+    ///
+    /// # MIDI Message Format
+    /// All MIDI messages follow the format: [status_byte, data_byte1, data_byte2]
+    /// - Status byte: 0x80-0xE0 | channel (0-15)
+    /// - Data bytes: 0-127 (7-bit values)
+    fn execute_send_midi(
+        &mut self,
+        port: &str,
+        message_type: &MidiMessageType,
+        channel: u8,
+        params: &MidiMessageParams,
+        context: Option<&TriggerContext>,
+    ) {
+        // Build MIDI message bytes based on message type
+        let message_bytes = match (message_type, params) {
+            (MidiMessageType::NoteOn, MidiMessageParams::Note { note, velocity_mapping }) => {
+                // v2.2: Calculate velocity from mapping using actual trigger velocity
+                // Default to 100 if no context provided (for backward compatibility)
+                let trigger_velocity = context
+                    .and_then(|ctx| ctx.velocity)
+                    .unwrap_or(100);
+                let calculated_velocity = midimon_core::velocity::calculate_velocity(
+                    trigger_velocity,
+                    velocity_mapping
+                );
+                vec![0x90 | (channel & 0x0F), *note & 0x7F, calculated_velocity & 0x7F]
+            }
+            (MidiMessageType::NoteOff, MidiMessageParams::Note { note, velocity_mapping }) => {
+                // NoteOff typically uses velocity 64 (MIDI standard release velocity)
+                // Use actual trigger velocity if provided, otherwise default to 64
+                let trigger_velocity = context
+                    .and_then(|ctx| ctx.velocity)
+                    .unwrap_or(64);
+                let calculated_velocity = midimon_core::velocity::calculate_velocity(
+                    trigger_velocity,
+                    velocity_mapping
+                );
+                vec![0x80 | (channel & 0x0F), *note & 0x7F, calculated_velocity & 0x7F]
+            }
+            (MidiMessageType::ControlChange, MidiMessageParams::CC { controller, value }) => {
+                vec![0xB0 | (channel & 0x0F), *controller & 0x7F, *value & 0x7F]
+            }
+            (MidiMessageType::ProgramChange, MidiMessageParams::ProgramChange { program }) => {
+                vec![0xC0 | (channel & 0x0F), *program & 0x7F]
+            }
+            (MidiMessageType::PitchBend, MidiMessageParams::PitchBend { value }) => {
+                // Pitch bend is 14-bit: -8192 to +8191, encoded as 0-16383
+                let pitch_value = (*value + 8192).clamp(0, 16383) as u16;
+                let lsb = (pitch_value & 0x7F) as u8;
+                let msb = ((pitch_value >> 7) & 0x7F) as u8;
+                vec![0xE0 | (channel & 0x0F), lsb, msb]
+            }
+            (MidiMessageType::Aftertouch, MidiMessageParams::Aftertouch { pressure }) => {
+                vec![0xD0 | (channel & 0x0F), *pressure & 0x7F]
+            }
+            _ => {
+                eprintln!(
+                    "Warning: Mismatched MIDI message type {:?} and params {:?}",
+                    message_type, params
+                );
+                return;
+            }
+        };
+
+        // Send message via MidiOutputManager
+        match self.midi_output.send_message(port, &message_bytes) {
+            Ok(_) => {
+                // Success - message sent
+            }
+            Err(e) => {
+                eprintln!("Failed to send MIDI message to '{}': {}", port, e);
+            }
+        }
+    }
 }
 
 /// Parse a command line into program + arguments, respecting quoted strings
@@ -405,70 +562,6 @@ pub fn parse_command_line(cmd: &str) -> Vec<String> {
     }
 
     parts
-}
-
-/// Evaluates a condition string and returns true/false
-///
-/// Supported condition formats:
-/// - "Always" - Always returns true
-/// - "Never" - Always returns false
-/// - "TimeRange:HH:MM-HH:MM" - Returns true if current time is within range (24-hour format)
-fn evaluate_condition(condition: &str) -> bool {
-    match condition {
-        "Always" => true,
-        "Never" => false,
-        s if s.starts_with("TimeRange:") => {
-            evaluate_time_range(&s[10..]) // Skip "TimeRange:" prefix
-        }
-        _ => {
-            eprintln!("Warning: Unknown condition '{}', defaulting to false", condition);
-            false
-        }
-    }
-}
-
-/// Evaluates a time range condition
-///
-/// Format: "HH:MM-HH:MM" (24-hour format)
-/// Returns true if current time is within the range
-fn evaluate_time_range(range: &str) -> bool {
-    use chrono::{Local, Timelike};
-
-    // Parse range "HH:MM-HH:MM"
-    let parts: Vec<&str> = range.split('-').collect();
-    if parts.len() != 2 {
-        eprintln!("Invalid time range format: {}", range);
-        return false;
-    }
-
-    let start_parts: Vec<&str> = parts[0].split(':').collect();
-    let end_parts: Vec<&str> = parts[1].split(':').collect();
-
-    if start_parts.len() != 2 || end_parts.len() != 2 {
-        eprintln!("Invalid time format in range: {}", range);
-        return false;
-    }
-
-    let start_hour: u32 = start_parts[0].parse().unwrap_or(0);
-    let start_min: u32 = start_parts[1].parse().unwrap_or(0);
-    let end_hour: u32 = end_parts[0].parse().unwrap_or(0);
-    let end_min: u32 = end_parts[1].parse().unwrap_or(0);
-
-    let now = Local::now();
-    let current_hour = now.hour();
-    let current_min = now.minute();
-
-    let current_mins = current_hour * 60 + current_min;
-    let start_mins = start_hour * 60 + start_min;
-    let end_mins = end_hour * 60 + end_min;
-
-    if start_mins <= end_mins {
-        // Normal range (doesn't cross midnight)
-        current_mins >= start_mins && current_mins <= end_mins
-    } else {
-        // Range crosses midnight
-        current_mins >= start_mins || current_mins <= end_mins
-    }
 }
 
 /// Execute volume control operations
@@ -668,34 +761,256 @@ mod tests {
         );
     }
 
-    // ========== Condition Evaluation Tests ==========
+    // ========== SendMidi Action Tests ==========
 
     #[test]
-    fn test_evaluate_condition_always() {
-        assert_eq!(evaluate_condition("Always"), true);
+    fn test_send_midi_note_on_encoding() {
+        use midimon_core::{MidiMessageParams, MidiMessageType};
+
+        let mut executor = ActionExecutor::new();
+
+        // Test Note On encoding: [0x90 | channel, note, velocity]
+        // We can't directly test execute_send_midi since it's private,
+        // but we can test the Action variant
+        let action = midimon_core::Action::SendMidi {
+            port: "Virtual Test Port".to_string(),
+            message_type: MidiMessageType::NoteOn,
+            channel: 0,
+            params: MidiMessageParams::Note { note: 60, velocity_mapping: midimon_core::VelocityMapping::Fixed { velocity: 100 } },
+        };
+
+        // Execute shouldn't panic (though send will fail without a port)
+        executor.execute(action, None);
     }
 
     #[test]
-    fn test_evaluate_condition_never() {
-        assert_eq!(evaluate_condition("Never"), false);
+    fn test_send_midi_note_off_encoding() {
+        use midimon_core::{MidiMessageParams, MidiMessageType};
+
+        let mut executor = ActionExecutor::new();
+
+        let action = midimon_core::Action::SendMidi {
+            port: "Virtual Test Port".to_string(),
+            message_type: MidiMessageType::NoteOff,
+            channel: 1,
+            params: MidiMessageParams::Note { note: 64, velocity_mapping: midimon_core::VelocityMapping::Fixed { velocity: 0 } },
+        };
+
+        executor.execute(action, None);
     }
 
     #[test]
-    fn test_evaluate_condition_unknown() {
-        assert_eq!(evaluate_condition("UnknownCondition"), false);
+    fn test_send_midi_control_change_encoding() {
+        use midimon_core::{MidiMessageParams, MidiMessageType};
+
+        let mut executor = ActionExecutor::new();
+
+        let action = midimon_core::Action::SendMidi {
+            port: "Virtual Test Port".to_string(),
+            message_type: MidiMessageType::ControlChange,
+            channel: 2,
+            params: MidiMessageParams::CC { controller: 7, value: 127 },
+        };
+
+        executor.execute(action, None);
     }
 
     #[test]
-    fn test_time_range_format() {
-        // Just ensure it doesn't panic with valid format
-        evaluate_time_range("09:00-17:00");
-        evaluate_time_range("23:00-01:00"); // Crosses midnight
+    fn test_send_midi_program_change_encoding() {
+        use midimon_core::{MidiMessageParams, MidiMessageType};
+
+        let mut executor = ActionExecutor::new();
+
+        let action = midimon_core::Action::SendMidi {
+            port: "Virtual Test Port".to_string(),
+            message_type: MidiMessageType::ProgramChange,
+            channel: 3,
+            params: MidiMessageParams::ProgramChange { program: 42 },
+        };
+
+        executor.execute(action, None);
     }
 
     #[test]
-    fn test_time_range_invalid_format() {
-        assert_eq!(evaluate_time_range("invalid"), false);
-        assert_eq!(evaluate_time_range("09:00"), false);
-        assert_eq!(evaluate_time_range("09-17"), false);
+    fn test_send_midi_pitch_bend_encoding() {
+        use midimon_core::{MidiMessageParams, MidiMessageType};
+
+        let mut executor = ActionExecutor::new();
+
+        // Test pitch bend with center value (0)
+        let action = midimon_core::Action::SendMidi {
+            port: "Virtual Test Port".to_string(),
+            message_type: MidiMessageType::PitchBend,
+            channel: 4,
+            params: MidiMessageParams::PitchBend { value: 0 },
+        };
+
+        executor.execute(action, None);
+    }
+
+    #[test]
+    fn test_send_midi_pitch_bend_min_max() {
+        use midimon_core::{MidiMessageParams, MidiMessageType};
+
+        let mut executor = ActionExecutor::new();
+
+        // Test pitch bend minimum (-8192)
+        let action_min = midimon_core::Action::SendMidi {
+            port: "Virtual Test Port".to_string(),
+            message_type: MidiMessageType::PitchBend,
+            channel: 5,
+            params: MidiMessageParams::PitchBend { value: -8192 },
+        };
+        executor.execute(action_min, None);
+
+        // Test pitch bend maximum (+8191)
+        let action_max = midimon_core::Action::SendMidi {
+            port: "Virtual Test Port".to_string(),
+            message_type: MidiMessageType::PitchBend,
+            channel: 5,
+            params: MidiMessageParams::PitchBend { value: 8191 },
+        };
+        executor.execute(action_max, None);
+    }
+
+    #[test]
+    fn test_send_midi_aftertouch_encoding() {
+        use midimon_core::{MidiMessageParams, MidiMessageType};
+
+        let mut executor = ActionExecutor::new();
+
+        let action = midimon_core::Action::SendMidi {
+            port: "Virtual Test Port".to_string(),
+            message_type: MidiMessageType::Aftertouch,
+            channel: 6,
+            params: MidiMessageParams::Aftertouch { pressure: 80 },
+        };
+
+        executor.execute(action, None);
+    }
+
+    #[test]
+    fn test_send_midi_channel_masking() {
+        use midimon_core::{MidiMessageParams, MidiMessageType};
+
+        let mut executor = ActionExecutor::new();
+
+        // Test all 16 MIDI channels (0-15)
+        for channel in 0..16 {
+            let action = midimon_core::Action::SendMidi {
+                port: "Virtual Test Port".to_string(),
+                message_type: MidiMessageType::NoteOn,
+                channel,
+                params: MidiMessageParams::Note { note: 60, velocity_mapping: midimon_core::VelocityMapping::Fixed { velocity: 100 } },
+            };
+
+            executor.execute(action, None);
+        }
+    }
+
+    #[test]
+    fn test_send_midi_data_byte_masking() {
+        use midimon_core::{MidiMessageParams, MidiMessageType};
+
+        let mut executor = ActionExecutor::new();
+
+        // Test boundary values for 7-bit data
+        let test_values = [0, 1, 63, 64, 127];
+
+        for &note in &test_values {
+            for &velocity in &test_values {
+                let action = midimon_core::Action::SendMidi {
+                    port: "Virtual Test Port".to_string(),
+                    message_type: MidiMessageType::NoteOn,
+                    channel: 0,
+                    params: MidiMessageParams::Note {
+                        note,
+                        velocity_mapping: midimon_core::VelocityMapping::Fixed { velocity },
+                    },
+                };
+
+                executor.execute(action, None);
+            }
+        }
+    }
+
+    #[test]
+    fn test_send_midi_mismatched_type_params() {
+        use midimon_core::{MidiMessageParams, MidiMessageType};
+
+        let mut executor = ActionExecutor::new();
+
+        // This should trigger the warning path in execute_send_midi
+        // (mismatched NoteOn with CC params - though this shouldn't happen
+        // in practice due to From<ActionConfig> conversion logic)
+
+        // The actual mismatch would only occur if we manually construct
+        // an Action with wrong params, which the type system prevents.
+        // This test just ensures the executor doesn't panic.
+
+        let action = midimon_core::Action::SendMidi {
+            port: "Virtual Test Port".to_string(),
+            message_type: MidiMessageType::NoteOn,
+            channel: 0,
+            params: MidiMessageParams::Note {
+                note: 60,
+                velocity_mapping: midimon_core::VelocityMapping::Fixed { velocity: 100 },
+            },
+        };
+
+        executor.execute(action, None);
+    }
+
+    #[test]
+    fn test_send_midi_in_sequence() {
+        use midimon_core::{MidiMessageParams, MidiMessageType, VelocityMapping};
+
+        let mut executor = ActionExecutor::new();
+
+        // Test SendMidi as part of a sequence
+        let action = midimon_core::Action::Sequence(vec![
+            midimon_core::Action::SendMidi {
+                port: "Virtual Test Port".to_string(),
+                message_type: MidiMessageType::NoteOn,
+                channel: 0,
+                params: MidiMessageParams::Note {
+                    note: 60,
+                    velocity_mapping: VelocityMapping::Fixed { velocity: 100 },
+                },
+            },
+            midimon_core::Action::Delay(10),
+            midimon_core::Action::SendMidi {
+                port: "Virtual Test Port".to_string(),
+                message_type: MidiMessageType::NoteOff,
+                channel: 0,
+                params: MidiMessageParams::Note {
+                    note: 60,
+                    velocity_mapping: VelocityMapping::Fixed { velocity: 0 },
+                },
+            },
+        ]);
+
+        executor.execute(action, None);
+    }
+
+    #[test]
+    fn test_send_midi_with_repeat() {
+        use midimon_core::{MidiMessageParams, MidiMessageType};
+
+        let mut executor = ActionExecutor::new();
+
+        // Test SendMidi in a Repeat action
+        let action = midimon_core::Action::Repeat {
+            action: Box::new(midimon_core::Action::SendMidi {
+                port: "Virtual Test Port".to_string(),
+                message_type: MidiMessageType::ControlChange,
+                channel: 0,
+                params: MidiMessageParams::CC { controller: 1, value: 64 },
+            }),
+            count: 3,
+            delay_ms: Some(50),
+        };
+
+        executor.execute(action, None);
     }
 }

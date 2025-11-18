@@ -166,6 +166,7 @@
 
 pub mod daemon;
 pub mod action_executor;
+pub mod conditions;
 
 // Re-export core types for convenience
 pub use daemon::{
@@ -177,5 +178,8 @@ pub use daemon::{
     run_daemon_with_config,
 };
 
-// Re-export ActionExecutor and helpers for daemon use
-pub use action_executor::{ActionExecutor, parse_command_line};
+// Re-export ActionExecutor, TriggerContext, and helpers for daemon use
+pub use action_executor::{ActionExecutor, TriggerContext, parse_command_line};
+
+// Re-export condition evaluation for daemon use
+pub use conditions::{ConditionContext, evaluate_condition};
