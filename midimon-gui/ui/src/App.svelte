@@ -5,6 +5,7 @@
   import DevicesView from './lib/views/DevicesView.svelte';
   import ModesView from './lib/views/ModesView.svelte';
   import MappingsView from './lib/views/MappingsView.svelte';
+  import PluginsView from './lib/views/PluginsView.svelte';
   import SettingsView from './lib/views/SettingsView.svelte';
   import { currentSection, restoreNavigationState, SECTIONS } from './lib/stores/navigation.js';
 
@@ -27,6 +28,8 @@
         <ModesView />
       {:else if $currentSection === SECTIONS.MAPPINGS}
         <MappingsView />
+      {:else if $currentSection === SECTIONS.PLUGINS}
+        <PluginsView />
       {:else if $currentSection === SECTIONS.SETTINGS}
         <SettingsView />
       {/if}

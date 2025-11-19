@@ -15,6 +15,7 @@ export const SECTIONS = {
   DEVICES: 'devices',
   MODES: 'modes',
   MAPPINGS: 'mappings',
+  PLUGINS: 'plugins',
   SETTINGS: 'settings',
 };
 

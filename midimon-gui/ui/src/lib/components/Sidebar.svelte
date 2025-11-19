@@ -5,6 +5,7 @@
     { id: SECTIONS.DEVICES, label: 'Devices', icon: '🎹' },
     { id: SECTIONS.MODES, label: 'Modes', icon: '🎨' },
     { id: SECTIONS.MAPPINGS, label: 'Mappings', icon: '🔗' },
+    { id: SECTIONS.PLUGINS, label: 'Plugins', icon: '🧩' },
     { id: SECTIONS.SETTINGS, label: 'Settings', icon: '⚙️' },
   ];
 
