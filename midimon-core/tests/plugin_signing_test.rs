@@ -13,13 +13,13 @@
 
 #![cfg(all(test, feature = "plugin-wasm", feature = "plugin-signing"))]
 
-use std::path::PathBuf;
-use midimon_core::plugin::{
-    wasm_runtime::{WasmConfig, WasmPlugin},
-    signing::{sign_plugin, verify_plugin_signature, SignatureMetadata},
-};
 use ed25519_dalek::SigningKey;
+use midimon_core::plugin::{
+    signing::{SignatureMetadata, sign_plugin, verify_plugin_signature},
+    wasm_runtime::{WasmConfig, WasmPlugin},
+};
 use rand::rngs::OsRng;
+use std::path::PathBuf;
 
 /// Get path to a test plugin
 fn get_test_plugin_path() -> PathBuf {
@@ -60,8 +60,7 @@ async fn test_sign_and_verify_workflow() {
     let test_sig_path = temp_dir.path().join("test_plugin.wasm.sig");
 
     // Copy plugin to temp directory
-    std::fs::copy(&plugin_path, &test_plugin_path)
-        .expect("Failed to copy plugin");
+    std::fs::copy(&plugin_path, &test_plugin_path).expect("Failed to copy plugin");
 
     // Sign the plugin
     let result = sign_plugin(
@@ -76,12 +75,11 @@ async fn test_sign_and_verify_workflow() {
     assert!(test_sig_path.exists(), "Signature file should be created");
 
     // Verify signature with the public key
-    let verify_result = verify_plugin_signature(
-        &test_plugin_path,
-        &test_sig_path,
-        &[public_key],
+    let verify_result = verify_plugin_signature(&test_plugin_path, &test_sig_path, &[public_key]);
+    assert!(
+        verify_result.is_ok(),
+        "Signature verification should succeed"
     );
-    assert!(verify_result.is_ok(), "Signature verification should succeed");
 }
 
 #[tokio::test]
@@ -102,8 +100,7 @@ async fn test_load_signed_plugin_with_self_signed_mode() {
     let test_plugin_path = temp_dir.path().join("test_plugin.wasm");
 
     // Copy plugin to temp directory
-    std::fs::copy(&plugin_path, &test_plugin_path)
-        .expect("Failed to copy plugin");
+    std::fs::copy(&plugin_path, &test_plugin_path).expect("Failed to copy plugin");
 
     // Sign the plugin
     sign_plugin(
@@ -111,14 +108,19 @@ async fn test_load_signed_plugin_with_self_signed_mode() {
         &private_key,
         "Test Developer",
         "test@example.com",
-    ).expect("Failed to sign plugin");
+    )
+    .expect("Failed to sign plugin");
 
     // Load plugin with self-signed mode enabled
     let mut config = WasmConfig::default();
     config.allow_self_signed = true;
 
     let result = WasmPlugin::load(&test_plugin_path, config).await;
-    assert!(result.is_ok(), "Should load self-signed plugin: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should load self-signed plugin: {:?}",
+        result.err()
+    );
 }
 
 #[tokio::test]
@@ -135,15 +137,17 @@ async fn test_reject_unsigned_plugin_when_required() {
     let test_plugin_path = temp_dir.path().join("test_plugin.wasm");
 
     // Copy plugin to temp directory (without signing)
-    std::fs::copy(&plugin_path, &test_plugin_path)
-        .expect("Failed to copy plugin");
+    std::fs::copy(&plugin_path, &test_plugin_path).expect("Failed to copy plugin");
 
     // Try to load with require_signature = true
     let mut config = WasmConfig::default();
     config.require_signature = true;
 
     let result = WasmPlugin::load(&test_plugin_path, config).await;
-    assert!(result.is_err(), "Should reject unsigned plugin when signature required");
+    assert!(
+        result.is_err(),
+        "Should reject unsigned plugin when signature required"
+    );
     if let Err(e) = result {
         assert!(e.to_string().contains("signature required"));
     }
@@ -169,8 +173,7 @@ async fn test_reject_tampered_plugin() {
     let test_sig_path = temp_dir.path().join("test_plugin.wasm.sig");
 
     // Copy plugin to temp directory
-    std::fs::copy(&plugin_path, &test_plugin_path)
-        .expect("Failed to copy plugin");
+    std::fs::copy(&plugin_path, &test_plugin_path).expect("Failed to copy plugin");
 
     // Sign the plugin
     sign_plugin(
@@ -178,7 +181,8 @@ async fn test_reject_tampered_plugin() {
         &private_key,
         "Test Developer",
         "test@example.com",
-    ).expect("Failed to sign plugin");
+    )
+    .expect("Failed to sign plugin");
 
     // Tamper with the plugin (append a byte)
     let mut plugin_bytes = std::fs::read(&test_plugin_path).unwrap();
@@ -186,13 +190,14 @@ async fn test_reject_tampered_plugin() {
     std::fs::write(&test_plugin_path, plugin_bytes).unwrap();
 
     // Verify should fail
-    let verify_result = verify_plugin_signature(
-        &test_plugin_path,
-        &test_sig_path,
-        &[public_key],
-    );
+    let verify_result = verify_plugin_signature(&test_plugin_path, &test_sig_path, &[public_key]);
     assert!(verify_result.is_err(), "Should reject tampered plugin");
-    assert!(verify_result.unwrap_err().to_string().contains("size mismatch"));
+    assert!(
+        verify_result
+            .unwrap_err()
+            .to_string()
+            .contains("size mismatch")
+    );
 }
 
 #[tokio::test]
@@ -217,8 +222,7 @@ async fn test_reject_invalid_signature() {
     let test_sig_path = temp_dir.path().join("test_plugin.wasm.sig");
 
     // Copy plugin to temp directory
-    std::fs::copy(&plugin_path, &test_plugin_path)
-        .expect("Failed to copy plugin");
+    std::fs::copy(&plugin_path, &test_plugin_path).expect("Failed to copy plugin");
 
     // Sign with key1
     sign_plugin(
@@ -226,19 +230,20 @@ async fn test_reject_invalid_signature() {
         &private_key1,
         "Test Developer",
         "test@example.com",
-    ).expect("Failed to sign plugin");
+    )
+    .expect("Failed to sign plugin");
 
     // Try to verify with key2 (wrong key)
-    let verify_result = verify_plugin_signature(
-        &test_plugin_path,
-        &test_sig_path,
-        &[public_key2],
+    let verify_result = verify_plugin_signature(&test_plugin_path, &test_sig_path, &[public_key2]);
+    assert!(
+        verify_result.is_err(),
+        "Should reject signature from wrong key"
     );
-    assert!(verify_result.is_err(), "Should reject signature from wrong key");
     let err_msg = verify_result.unwrap_err().to_string();
     assert!(
         err_msg.contains("Signature verification failed") || err_msg.contains("untrusted key"),
-        "Expected signature verification error, got: {}", err_msg
+        "Expected signature verification error, got: {}",
+        err_msg
     );
 }
 
@@ -261,8 +266,7 @@ async fn test_signature_metadata_format() {
     let test_sig_path = temp_dir.path().join("test_plugin.wasm.sig");
 
     // Copy plugin to temp directory
-    std::fs::copy(&plugin_path, &test_plugin_path)
-        .expect("Failed to copy plugin");
+    std::fs::copy(&plugin_path, &test_plugin_path).expect("Failed to copy plugin");
 
     // Sign the plugin
     sign_plugin(
@@ -270,14 +274,14 @@ async fn test_signature_metadata_format() {
         &private_key,
         "Test Developer",
         "test@example.com",
-    ).expect("Failed to sign plugin");
+    )
+    .expect("Failed to sign plugin");
 
     // Read and parse signature metadata
-    let sig_json = std::fs::read_to_string(&test_sig_path)
-        .expect("Failed to read signature file");
+    let sig_json = std::fs::read_to_string(&test_sig_path).expect("Failed to read signature file");
 
-    let metadata: SignatureMetadata = serde_json::from_str(&sig_json)
-        .expect("Failed to parse signature metadata");
+    let metadata: SignatureMetadata =
+        serde_json::from_str(&sig_json).expect("Failed to parse signature metadata");
 
     // Verify metadata fields
     assert_eq!(metadata.version, 1);
@@ -303,15 +307,21 @@ async fn test_load_unsigned_plugin_when_not_required() {
     let test_plugin_path = temp_dir.path().join("test_plugin.wasm");
 
     // Copy plugin to temp directory (without signing)
-    std::fs::copy(&plugin_path, &test_plugin_path)
-        .expect("Failed to copy plugin");
+    std::fs::copy(&plugin_path, &test_plugin_path).expect("Failed to copy plugin");
 
     // Load plugin with default config (signatures not required)
     let config = WasmConfig::default();
-    assert!(!config.require_signature, "Default config should not require signatures");
+    assert!(
+        !config.require_signature,
+        "Default config should not require signatures"
+    );
 
     let result = WasmPlugin::load(&test_plugin_path, config).await;
-    assert!(result.is_ok(), "Should load unsigned plugin when not required: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should load unsigned plugin when not required: {:?}",
+        result.err()
+    );
 }
 
 #[tokio::test]
@@ -332,8 +342,7 @@ async fn test_multiple_executions_with_signed_plugin() {
     let test_plugin_path = temp_dir.path().join("test_plugin.wasm");
 
     // Copy plugin to temp directory
-    std::fs::copy(&plugin_path, &test_plugin_path)
-        .expect("Failed to copy plugin");
+    std::fs::copy(&plugin_path, &test_plugin_path).expect("Failed to copy plugin");
 
     // Sign the plugin
     sign_plugin(
@@ -341,13 +350,15 @@ async fn test_multiple_executions_with_signed_plugin() {
         &private_key,
         "Test Developer",
         "test@example.com",
-    ).expect("Failed to sign plugin");
+    )
+    .expect("Failed to sign plugin");
 
     // Load plugin with self-signed mode
     let mut config = WasmConfig::default();
     config.allow_self_signed = true;
 
-    let mut plugin = WasmPlugin::load(&test_plugin_path, config).await
+    let mut plugin = WasmPlugin::load(&test_plugin_path, config)
+        .await
         .expect("Failed to load signed plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -374,11 +385,10 @@ fn test_key_size_validation() {
     let test_plugin_path = temp_dir.path().join("test_plugin.wasm");
 
     // Copy plugin to temp directory
-    std::fs::copy(&plugin_path, &test_plugin_path)
-        .expect("Failed to copy plugin");
+    std::fs::copy(&plugin_path, &test_plugin_path).expect("Failed to copy plugin");
 
     // Try to sign with wrong key size
-    let wrong_size_key = vec![0u8; 64];  // Wrong size (should be 32)
+    let wrong_size_key = vec![0u8; 64]; // Wrong size (should be 32)
     let result = sign_plugin(
         &test_plugin_path,
         &wrong_size_key,
@@ -387,7 +397,12 @@ fn test_key_size_validation() {
     );
 
     assert!(result.is_err(), "Should reject wrong key size");
-    assert!(result.unwrap_err().to_string().contains("Invalid private key size"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid private key size")
+    );
 }
 
 #[tokio::test]
@@ -411,10 +426,8 @@ async fn test_signature_deterministic() {
     let test_sig_path2 = temp_dir.path().join("test_plugin2.wasm.sig");
 
     // Copy same plugin twice
-    std::fs::copy(&plugin_path, &test_plugin_path1)
-        .expect("Failed to copy plugin 1");
-    std::fs::copy(&plugin_path, &test_plugin_path2)
-        .expect("Failed to copy plugin 2");
+    std::fs::copy(&plugin_path, &test_plugin_path1).expect("Failed to copy plugin 1");
+    std::fs::copy(&plugin_path, &test_plugin_path2).expect("Failed to copy plugin 2");
 
     // Sign both copies with same key
     sign_plugin(&test_plugin_path1, &private_key, "Dev", "dev@example.com")

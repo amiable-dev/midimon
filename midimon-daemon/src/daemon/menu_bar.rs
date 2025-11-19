@@ -171,14 +171,11 @@ impl MenuBar {
         }
 
         // Check tray icon events (clicks)
-        if let Ok(event) = self.tray_event_receiver.try_recv() {
-            match event {
-                TrayIconEvent::Click { .. } => {
-                    // Icon clicked - menu will show automatically
-                    return None;
-                }
-                _ => {}
-            }
+        if let Ok(event) = self.tray_event_receiver.try_recv()
+            && let TrayIconEvent::Click { .. } = event
+        {
+            // Icon clicked - menu will show automatically
+            return None;
         }
 
         None

@@ -21,35 +21,37 @@
 //! ## Example Usage
 //!
 //! ```rust,no_run
+//! # #[cfg(feature = "plugin-signing")]
+//! # fn example() {
 //! use midimon_core::plugin::signing::{sign_plugin, verify_plugin_signature};
 //! use std::path::Path;
 //!
-//! # fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! // Generate a 32-byte Ed25519 private key
+//! let private_key = [0u8; 32]; // In practice, use proper key generation
+//!
 //! // Sign a plugin
-//! let private_key = load_private_key("signing.key")?;
 //! sign_plugin(
 //!     Path::new("plugin.wasm"),
 //!     &private_key,
 //!     "Developer Name",
 //!     "dev@example.com",
-//! )?;
+//! ).expect("Failed to sign plugin");
 //!
-//! // Verify signature
+//! // Verify signature (with empty trusted keys - accepts any signature)
 //! verify_plugin_signature(
 //!     Path::new("plugin.wasm"),
 //!     Path::new("plugin.wasm.sig"),
-//!     &load_trusted_keys()?,
-//! )?;
-//! # Ok(())
+//!     &Vec::new(), // Empty trusted keys list
+//! ).expect("Failed to verify signature");
 //! # }
 //! ```
 
 #![cfg(feature = "plugin-signing")]
 
-use std::path::Path;
-use serde::{Serialize, Deserialize};
-use sha2::{Sha256, Digest};
 use crate::error::EngineError;
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::path::Path;
 
 /// Signature metadata stored in `.wasm.sig` files
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -159,9 +161,10 @@ pub fn sign_plugin(
 
     // Load signing key (Ed25519 private keys are 32 bytes)
     if private_key_bytes.len() != 32 {
-        return Err(EngineError::PluginLoadFailed(
-            format!("Invalid private key size: {} bytes (expected 32)", private_key_bytes.len())
-        ));
+        return Err(EngineError::PluginLoadFailed(format!(
+            "Invalid private key size: {} bytes (expected 32)",
+            private_key_bytes.len()
+        )));
     }
 
     let mut key_bytes = [0u8; 32];
@@ -192,11 +195,13 @@ pub fn sign_plugin(
 
     // Write signature file
     let sig_path = plugin_path.with_extension("wasm.sig");
-    let sig_json = serde_json::to_string_pretty(&sig_metadata)
-        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to serialize signature: {}", e)))?;
+    let sig_json = serde_json::to_string_pretty(&sig_metadata).map_err(|e| {
+        EngineError::PluginLoadFailed(format!("Failed to serialize signature: {}", e))
+    })?;
 
-    std::fs::write(&sig_path, sig_json)
-        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to write signature file: {}", e)))?;
+    std::fs::write(&sig_path, sig_json).map_err(|e| {
+        EngineError::PluginLoadFailed(format!("Failed to write signature file: {}", e))
+    })?;
 
     Ok(())
 }
@@ -255,15 +260,17 @@ pub fn verify_plugin_signature(
 
     // Verify signature version and algorithm
     if sig_metadata.version != 1 {
-        return Err(EngineError::PluginLoadFailed(
-            format!("Unsupported signature version: {}", sig_metadata.version)
-        ));
+        return Err(EngineError::PluginLoadFailed(format!(
+            "Unsupported signature version: {}",
+            sig_metadata.version
+        )));
     }
 
     if sig_metadata.algorithm != "Ed25519" {
-        return Err(EngineError::PluginLoadFailed(
-            format!("Unsupported signature algorithm: {}", sig_metadata.algorithm)
-        ));
+        return Err(EngineError::PluginLoadFailed(format!(
+            "Unsupported signature algorithm: {}",
+            sig_metadata.algorithm
+        )));
     }
 
     // Read plugin binary
@@ -272,10 +279,11 @@ pub fn verify_plugin_signature(
 
     // Verify file size matches
     if plugin_bytes.len() as u64 != sig_metadata.plugin_size {
-        return Err(EngineError::PluginLoadFailed(
-            format!("Plugin size mismatch: expected {} bytes, got {} bytes",
-                sig_metadata.plugin_size, plugin_bytes.len())
-        ));
+        return Err(EngineError::PluginLoadFailed(format!(
+            "Plugin size mismatch: expected {} bytes, got {} bytes",
+            sig_metadata.plugin_size,
+            plugin_bytes.len()
+        )));
     }
 
     // Compute hash
@@ -286,28 +294,31 @@ pub fn verify_plugin_signature(
     // Verify hash matches
     if computed_hash != sig_metadata.plugin_hash {
         return Err(EngineError::PluginLoadFailed(
-            "Plugin hash mismatch - binary may have been tampered with".to_string()
+            "Plugin hash mismatch - binary may have been tampered with".to_string(),
         ));
     }
 
     // Decode public key and signature
-    let public_key_bytes = hex::decode(&sig_metadata.public_key)
-        .map_err(|e| EngineError::PluginLoadFailed(format!("Invalid public key encoding: {}", e)))?;
+    let public_key_bytes = hex::decode(&sig_metadata.public_key).map_err(|e| {
+        EngineError::PluginLoadFailed(format!("Invalid public key encoding: {}", e))
+    })?;
 
     let signature_bytes = hex::decode(&sig_metadata.signature)
         .map_err(|e| EngineError::PluginLoadFailed(format!("Invalid signature encoding: {}", e)))?;
 
     // Verify key and signature sizes
     if public_key_bytes.len() != 32 {
-        return Err(EngineError::PluginLoadFailed(
-            format!("Invalid public key size: {} bytes (expected 32)", public_key_bytes.len())
-        ));
+        return Err(EngineError::PluginLoadFailed(format!(
+            "Invalid public key size: {} bytes (expected 32)",
+            public_key_bytes.len()
+        )));
     }
 
     if signature_bytes.len() != 64 {
-        return Err(EngineError::PluginLoadFailed(
-            format!("Invalid signature size: {} bytes (expected 64)", signature_bytes.len())
-        ));
+        return Err(EngineError::PluginLoadFailed(format!(
+            "Invalid signature size: {} bytes (expected 64)",
+            signature_bytes.len()
+        )));
     }
 
     // Convert to Ed25519 types
@@ -326,18 +337,19 @@ pub fn verify_plugin_signature(
     let hash_bytes = hex::decode(&computed_hash)
         .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to decode hash: {}", e)))?;
 
-    verifying_key.verify(&hash_bytes, &signature)
-        .map_err(|_| EngineError::PluginLoadFailed(
-            "Signature verification failed - invalid signature for this plugin".to_string()
-        ))?;
+    verifying_key.verify(&hash_bytes, &signature).map_err(|_| {
+        EngineError::PluginLoadFailed(
+            "Signature verification failed - invalid signature for this plugin".to_string(),
+        )
+    })?;
 
     // Check if public key is trusted
     if !trusted_keys.contains(&sig_metadata.public_key) {
-        return Err(EngineError::PluginLoadFailed(
-            format!("Plugin signed by untrusted key. Developer: {} <{}>. \
+        return Err(EngineError::PluginLoadFailed(format!(
+            "Plugin signed by untrusted key. Developer: {} <{}>. \
                      Add this key to trusted_keys.toml to allow this plugin.",
-                sig_metadata.developer.name, sig_metadata.developer.email)
-        ));
+            sig_metadata.developer.name, sig_metadata.developer.email
+        )));
     }
 
     Ok(())
@@ -368,18 +380,24 @@ pub fn load_trusted_keys() -> Result<Vec<String>, EngineError> {
         return Ok(Vec::new());
     }
 
-    let keys_toml = std::fs::read_to_string(&keys_path)
-        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to read trusted keys: {}", e)))?;
+    let keys_toml = std::fs::read_to_string(&keys_path).map_err(|e| {
+        EngineError::PluginLoadFailed(format!("Failed to read trusted keys: {}", e))
+    })?;
 
     #[derive(Deserialize)]
     struct TrustedKeysFile {
         keys: Vec<TrustedKey>,
     }
 
-    let keys_file: TrustedKeysFile = toml::from_str(&keys_toml)
-        .map_err(|e| EngineError::PluginLoadFailed(format!("Invalid trusted keys format: {}", e)))?;
+    let keys_file: TrustedKeysFile = toml::from_str(&keys_toml).map_err(|e| {
+        EngineError::PluginLoadFailed(format!("Invalid trusted keys format: {}", e))
+    })?;
 
-    Ok(keys_file.keys.iter().map(|k| k.public_key.clone()).collect())
+    Ok(keys_file
+        .keys
+        .iter()
+        .map(|k| k.public_key.clone())
+        .collect())
 }
 
 /// Add a public key to the trusted keys list
@@ -389,17 +407,14 @@ pub fn load_trusted_keys() -> Result<Vec<String>, EngineError> {
 /// * `public_key` - Hex-encoded public key (32 bytes)
 /// * `name` - Developer or organization name
 /// * `email` - Contact email address
-pub fn add_trusted_key(
-    public_key: &str,
-    name: &str,
-    email: &str,
-) -> Result<(), EngineError> {
+pub fn add_trusted_key(public_key: &str, name: &str, email: &str) -> Result<(), EngineError> {
     let config_dir = dirs::config_dir()
         .ok_or_else(|| EngineError::PluginLoadFailed("No config directory found".to_string()))?
         .join("midimon");
 
-    std::fs::create_dir_all(&config_dir)
-        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to create config directory: {}", e)))?;
+    std::fs::create_dir_all(&config_dir).map_err(|e| {
+        EngineError::PluginLoadFailed(format!("Failed to create config directory: {}", e))
+    })?;
 
     let keys_path = config_dir.join("trusted_keys.toml");
 
@@ -410,20 +425,23 @@ pub fn add_trusted_key(
 
     // Load existing keys or create new file
     let mut keys_file = if keys_path.exists() {
-        let keys_toml = std::fs::read_to_string(&keys_path)
-            .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to read trusted keys: {}", e)))?;
+        let keys_toml = std::fs::read_to_string(&keys_path).map_err(|e| {
+            EngineError::PluginLoadFailed(format!("Failed to read trusted keys: {}", e))
+        })?;
 
-        toml::from_str(&keys_toml)
-            .map_err(|e| EngineError::PluginLoadFailed(format!("Invalid trusted keys format: {}", e)))?
+        toml::from_str(&keys_toml).map_err(|e| {
+            EngineError::PluginLoadFailed(format!("Invalid trusted keys format: {}", e))
+        })?
     } else {
         TrustedKeysFile { keys: Vec::new() }
     };
 
     // Check if key already exists
     if keys_file.keys.iter().any(|k| k.public_key == public_key) {
-        return Err(EngineError::PluginLoadFailed(
-            format!("Public key already trusted: {}", public_key)
-        ));
+        return Err(EngineError::PluginLoadFailed(format!(
+            "Public key already trusted: {}",
+            public_key
+        )));
     }
 
     // Add new key
@@ -435,11 +453,13 @@ pub fn add_trusted_key(
     });
 
     // Save updated file
-    let keys_toml = toml::to_string_pretty(&keys_file)
-        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to serialize trusted keys: {}", e)))?;
+    let keys_toml = toml::to_string_pretty(&keys_file).map_err(|e| {
+        EngineError::PluginLoadFailed(format!("Failed to serialize trusted keys: {}", e))
+    })?;
 
-    std::fs::write(&keys_path, keys_toml)
-        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to write trusted keys: {}", e)))?;
+    std::fs::write(&keys_path, keys_toml).map_err(|e| {
+        EngineError::PluginLoadFailed(format!("Failed to write trusted keys: {}", e))
+    })?;
 
     Ok(())
 }
@@ -460,8 +480,9 @@ pub fn save_trusted_keys(public_keys: &[String]) -> Result<(), EngineError> {
         .ok_or_else(|| EngineError::PluginLoadFailed("No config directory found".to_string()))?
         .join("midimon");
 
-    std::fs::create_dir_all(&config_dir)
-        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to create config directory: {}", e)))?;
+    std::fs::create_dir_all(&config_dir).map_err(|e| {
+        EngineError::PluginLoadFailed(format!("Failed to create config directory: {}", e))
+    })?;
 
     let keys_path = config_dir.join("trusted_keys.toml");
 
@@ -472,20 +493,25 @@ pub fn save_trusted_keys(public_keys: &[String]) -> Result<(), EngineError> {
 
     // Convert public key strings to TrustedKey structs
     let keys_file = TrustedKeysFile {
-        keys: public_keys.iter().map(|k| TrustedKey {
-            name: String::new(),  // Name not preserved when just saving keys
-            email: String::new(),
-            public_key: k.clone(),
-            added_at: chrono::Utc::now().to_rfc3339(),
-        }).collect(),
+        keys: public_keys
+            .iter()
+            .map(|k| TrustedKey {
+                name: String::new(), // Name not preserved when just saving keys
+                email: String::new(),
+                public_key: k.clone(),
+                added_at: chrono::Utc::now().to_rfc3339(),
+            })
+            .collect(),
     };
 
     // Save file
-    let keys_toml = toml::to_string_pretty(&keys_file)
-        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to serialize trusted keys: {}", e)))?;
+    let keys_toml = toml::to_string_pretty(&keys_file).map_err(|e| {
+        EngineError::PluginLoadFailed(format!("Failed to serialize trusted keys: {}", e))
+    })?;
 
-    std::fs::write(&keys_path, keys_toml)
-        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to write trusted keys: {}", e)))?;
+    std::fs::write(&keys_path, keys_toml).map_err(|e| {
+        EngineError::PluginLoadFailed(format!("Failed to write trusted keys: {}", e))
+    })?;
 
     Ok(())
 }
@@ -525,7 +551,7 @@ mod tests {
         let signing_key = SigningKey::generate(&mut OsRng);
         let verifying_key = signing_key.verifying_key();
 
-        assert_eq!(signing_key.to_bytes().len(), 32);  // Ed25519 secret key is 32 bytes
-        assert_eq!(verifying_key.to_bytes().len(), 32);  // Ed25519 public key is 32 bytes
+        assert_eq!(signing_key.to_bytes().len(), 32); // Ed25519 secret key is 32 bytes
+        assert_eq!(verifying_key.to_bytes().len(), 32); // Ed25519 public key is 32 bytes
     }
 }

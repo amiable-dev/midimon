@@ -111,7 +111,10 @@ impl PluginRegistryClient {
     }
 
     /// Cache registry to disk
-    async fn cache_registry(&self, registry: &PluginRegistry) -> Result<(), Box<dyn std::error::Error>> {
+    async fn cache_registry(
+        &self,
+        registry: &PluginRegistry,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         tokio::fs::create_dir_all(&self.cache_dir).await?;
         let cache_file = self.cache_dir.join("registry.json");
         let json = serde_json::to_string_pretty(registry)?;
@@ -120,12 +123,20 @@ impl PluginRegistryClient {
     }
 
     /// Get plugin by ID
-    pub fn find_plugin<'a>(&self, registry: &'a PluginRegistry, plugin_id: &str) -> Option<&'a PluginRegistryEntry> {
+    pub fn find_plugin<'a>(
+        &self,
+        registry: &'a PluginRegistry,
+        plugin_id: &str,
+    ) -> Option<&'a PluginRegistryEntry> {
         registry.plugins.iter().find(|p| p.id == plugin_id)
     }
 
     /// Search plugins by query
-    pub fn search_plugins<'a>(&self, registry: &'a PluginRegistry, query: &str) -> Vec<&'a PluginRegistryEntry> {
+    pub fn search_plugins<'a>(
+        &self,
+        registry: &'a PluginRegistry,
+        query: &str,
+    ) -> Vec<&'a PluginRegistryEntry> {
         let query_lower = query.to_lowercase();
         registry
             .plugins
@@ -133,13 +144,19 @@ impl PluginRegistryClient {
             .filter(|p| {
                 p.name.to_lowercase().contains(&query_lower)
                     || p.description.to_lowercase().contains(&query_lower)
-                    || p.tags.iter().any(|tag| tag.to_lowercase().contains(&query_lower))
+                    || p.tags
+                        .iter()
+                        .any(|tag| tag.to_lowercase().contains(&query_lower))
             })
             .collect()
     }
 
     /// Filter plugins by category
-    pub fn filter_by_category<'a>(&self, registry: &'a PluginRegistry, category: &str) -> Vec<&'a PluginRegistryEntry> {
+    pub fn filter_by_category<'a>(
+        &self,
+        registry: &'a PluginRegistry,
+        category: &str,
+    ) -> Vec<&'a PluginRegistryEntry> {
         registry
             .plugins
             .iter()
@@ -274,33 +291,31 @@ mod tests {
         let registry = PluginRegistry {
             version: "1.0.0".to_string(),
             last_updated: "2025-01-18T00:00:00Z".to_string(),
-            plugins: vec![
-                PluginRegistryEntry {
-                    id: "spotify".to_string(),
-                    name: "Spotify Control".to_string(),
-                    description: "Control Spotify playback".to_string(),
-                    author: "Test".to_string(),
-                    version: "0.1.0".to_string(),
-                    homepage: None,
-                    repository: None,
-                    license: "MIT".to_string(),
-                    categories: vec!["media".to_string()],
-                    tags: vec!["spotify".to_string(), "music".to_string()],
-                    capabilities: vec!["network".to_string()],
-                    platforms: vec!["macos".to_string()],
-                    min_midimon_version: "2.3.0".to_string(),
-                    downloads: HashMap::new(),
-                    checksums: HashMap::new(),
-                    file_size: HashMap::new(),
-                    setup_instructions: None,
-                    example_config: None,
-                    screenshots: vec![],
-                    video_demo: None,
-                    install_count: 0,
-                    rating: 0.0,
-                    reviews_count: 0,
-                },
-            ],
+            plugins: vec![PluginRegistryEntry {
+                id: "spotify".to_string(),
+                name: "Spotify Control".to_string(),
+                description: "Control Spotify playback".to_string(),
+                author: "Test".to_string(),
+                version: "0.1.0".to_string(),
+                homepage: None,
+                repository: None,
+                license: "MIT".to_string(),
+                categories: vec!["media".to_string()],
+                tags: vec!["spotify".to_string(), "music".to_string()],
+                capabilities: vec!["network".to_string()],
+                platforms: vec!["macos".to_string()],
+                min_midimon_version: "2.3.0".to_string(),
+                downloads: HashMap::new(),
+                checksums: HashMap::new(),
+                file_size: HashMap::new(),
+                setup_instructions: None,
+                example_config: None,
+                screenshots: vec![],
+                video_demo: None,
+                install_count: 0,
+                rating: 0.0,
+                reviews_count: 0,
+            }],
             featured_plugins: vec![],
             categories: vec![],
         };

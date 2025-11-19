@@ -9,8 +9,8 @@
 #![cfg(all(test, feature = "plugin-wasm"))]
 
 use midimon_core::plugin::{
-    wasm_runtime::{WasmConfig, WasmPlugin},
     Capability, TriggerContext,
+    wasm_runtime::{WasmConfig, WasmPlugin},
 };
 use std::path::PathBuf;
 use std::time::Duration;
@@ -37,7 +37,11 @@ async fn test_load_wasm_plugin() {
 
     // Load the WASM plugin
     let result = WasmPlugin::load(&wasm_path, config).await;
-    assert!(result.is_ok(), "Failed to load WASM plugin: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Failed to load WASM plugin: {:?}",
+        result.err()
+    );
 }
 
 #[tokio::test]
@@ -50,12 +54,12 @@ async fn test_wasm_plugin_init() {
     }
 
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin");
 
     // Initialize plugin and get metadata
-    let metadata = plugin.init().await
-        .expect("Failed to initialize plugin");
+    let metadata = plugin.init().await.expect("Failed to initialize plugin");
 
     assert_eq!(metadata.name, "minimal_wasm_plugin");
     assert_eq!(metadata.version, "0.1.0");
@@ -72,7 +76,8 @@ async fn test_wasm_plugin_execute() {
     }
 
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -82,7 +87,11 @@ async fn test_wasm_plugin_execute() {
 
     // Execute the plugin
     let result = plugin.execute("test_action", &context).await;
-    assert!(result.is_ok(), "Plugin execution failed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Plugin execution failed: {:?}",
+        result.err()
+    );
 }
 
 #[tokio::test]
@@ -99,11 +108,11 @@ async fn test_wasm_plugin_with_capabilities() {
     config.max_execution_time = Duration::from_secs(3);
     config.capabilities = vec![Capability::Network];
 
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin with Network capability");
 
-    let metadata = plugin.init().await
-        .expect("Failed to initialize plugin");
+    let metadata = plugin.init().await.expect("Failed to initialize plugin");
 
     assert_eq!(metadata.name, "minimal_wasm_plugin");
 }
@@ -121,7 +130,8 @@ async fn test_wasm_plugin_execution_timeout() {
     let mut config = WasmConfig::default();
     config.max_execution_time = Duration::from_millis(1); // 1ms timeout
 
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -161,7 +171,8 @@ async fn test_wasm_plugin_with_velocity_context() {
     }
 
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -170,7 +181,12 @@ async fn test_wasm_plugin_with_velocity_context() {
     for velocity in [1, 64, 127] {
         let context = TriggerContext::with_velocity(velocity);
         let result = plugin.execute("test_action", &context).await;
-        assert!(result.is_ok(), "Plugin execution failed with velocity {}: {:?}", velocity, result.err());
+        assert!(
+            result.is_ok(),
+            "Plugin execution failed with velocity {}: {:?}",
+            velocity,
+            result.err()
+        );
     }
 }
 
@@ -184,7 +200,8 @@ async fn test_wasm_plugin_metadata_retrieval() {
     }
 
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin");
 
     // Metadata should be None before init

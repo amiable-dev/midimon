@@ -7,7 +7,6 @@
 /// 4. list_installed_plugins - verify plugin appears
 /// 5. uninstall_plugin - remove plugin
 /// 6. list_installed_plugins - verify plugin removed
-
 use midimon_gui::plugin_commands;
 
 #[tokio::test]
@@ -29,19 +28,25 @@ async fn test_fetch_plugin_registry() {
 
     match result {
         Ok(registry) => {
-            println!("✅ Fetched registry with {} plugins", registry.plugins.len());
-            assert!(!registry.plugins.is_empty(), "Registry should contain plugins");
+            println!(
+                "✅ Fetched registry with {} plugins",
+                registry.plugins.len()
+            );
+            assert!(
+                !registry.plugins.is_empty(),
+                "Registry should contain plugins"
+            );
 
             // Verify expected plugins exist
-            let plugin_ids: Vec<String> = registry.plugins.iter()
-                .map(|p| p.id.clone())
-                .collect();
+            let plugin_ids: Vec<String> = registry.plugins.iter().map(|p| p.id.clone()).collect();
             println!("Available plugins: {:?}", plugin_ids);
 
             // Should have spotify and obs plugins at minimum
-            assert!(plugin_ids.contains(&"spotify".to_string()) ||
-                    plugin_ids.contains(&"obs".to_string()),
-                    "Registry should contain spotify or obs plugin");
+            assert!(
+                plugin_ids.contains(&"spotify".to_string())
+                    || plugin_ids.contains(&"obs".to_string()),
+                "Registry should contain spotify or obs plugin"
+            );
         }
         Err(e) => {
             println!("⚠️  Failed to fetch registry: {}", e);

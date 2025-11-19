@@ -41,12 +41,20 @@
 //! use midimon_core::plugin::wasm_runtime::{WasmPlugin, WasmConfig};
 //! use midimon_core::plugin::types::Capability;
 //! use std::path::Path;
+//! # use std::collections::HashMap;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let config = WasmConfig {
 //!     max_memory_bytes: 128 * 1024 * 1024, // 128 MB
 //!     max_execution_time: std::time::Duration::from_secs(5),
+//!     max_fuel: 100_000_000, // 100M instructions
 //!     capabilities: vec![Capability::Network],
+//!     #[cfg(feature = "plugin-signing")]
+//!     require_signature: false,
+//!     #[cfg(feature = "plugin-signing")]
+//!     allow_self_signed: true,
+//!     #[cfg(feature = "plugin-signing")]
+//!     trusted_keys_path: None,
 //! };
 //!
 //! let mut plugin = WasmPlugin::load(
@@ -54,23 +62,25 @@
 //!     config,
 //! ).await?;
 //!
-//! plugin.execute("play", &context).await?;
+//! // Execute plugin with parameters
+//! let params = HashMap::from([("action".to_string(), "play".to_string())]);
+//! plugin.execute(serde_json::to_string(&params)?.as_str()).await?;
 //! # Ok(())
 //! # }
 //! ```
 
 #![cfg(feature = "plugin-wasm")]
 
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::time::Duration;
 use wasmtime::*;
 use wasmtime_wasi::WasiCtxBuilder;
 use wasmtime_wasi::preview1::WasiP1Ctx;
-use serde::{Serialize, Deserialize};
 
 use crate::error::EngineError;
-use crate::plugin::{Capability, PluginMetadata, TriggerContext};
 use crate::events::ProcessedEvent;
+use crate::plugin::{Capability, PluginMetadata, TriggerContext};
 
 /// Configuration for WASM plugin runtime
 #[derive(Debug, Clone)]
@@ -109,11 +119,11 @@ impl Default for WasmConfig {
             max_fuel: 100_000_000, // 100M instructions
             capabilities: Vec::new(),
             #[cfg(feature = "plugin-signing")]
-            require_signature: false,  // Backward compatible: signatures optional by default
+            require_signature: false, // Backward compatible: signatures optional by default
             #[cfg(feature = "plugin-signing")]
-            allow_self_signed: false,  // Require trusted keys by default
+            allow_self_signed: false, // Require trusted keys by default
             #[cfg(feature = "plugin-signing")]
-            trusted_keys_path: None,  // Use default ~/.config/midimon/trusted_keys.toml
+            trusted_keys_path: None, // Use default ~/.config/midimon/trusted_keys.toml
         }
     }
 }
@@ -124,19 +134,25 @@ struct PluginResourceLimiter {
 }
 
 impl ResourceLimiter for PluginResourceLimiter {
-    fn memory_growing(&mut self, _current: usize, desired: usize, _maximum: Option<usize>)
-        -> Result<bool>
-    {
+    fn memory_growing(
+        &mut self,
+        _current: usize,
+        desired: usize,
+        _maximum: Option<usize>,
+    ) -> Result<bool> {
         if desired as u64 > self.memory_limit {
             Ok(false) // Deny allocation
         } else {
-            Ok(true)  // Allow allocation
+            Ok(true) // Allow allocation
         }
     }
 
-    fn table_growing(&mut self, _current: usize, desired: usize, _maximum: Option<usize>)
-        -> anyhow::Result<bool>
-    {
+    fn table_growing(
+        &mut self,
+        _current: usize,
+        desired: usize,
+        _maximum: Option<usize>,
+    ) -> anyhow::Result<bool> {
         // Limit table size to prevent DoS
         Ok(desired <= 10000)
     }
@@ -169,7 +185,7 @@ impl WasmPlugin {
         // Verify plugin signature if signing feature is enabled
         #[cfg(feature = "plugin-signing")]
         {
-            use crate::plugin::signing::{verify_plugin_signature, load_trusted_keys};
+            use crate::plugin::signing::{load_trusted_keys, verify_plugin_signature};
 
             let sig_path = path.with_extension("wasm.sig");
 
@@ -177,7 +193,7 @@ impl WasmPlugin {
                 // Signature file exists - verify it
                 let trusted_keys = if config.allow_self_signed {
                     // Allow any key (self-signed)
-                    vec![]  // Empty list means skip trust check in verify_plugin_signature
+                    vec![] // Empty list means skip trust check in verify_plugin_signature
                 } else {
                     // Load trusted keys from config or default location
                     load_trusted_keys()?
@@ -187,10 +203,16 @@ impl WasmPlugin {
                 if config.allow_self_signed {
                     // For self-signed mode, we still verify the signature is valid,
                     // but we extract the public key from the signature and trust it
-                    let sig_json = std::fs::read_to_string(&sig_path)
-                        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to read signature: {}", e)))?;
-                    let sig_metadata: crate::plugin::signing::SignatureMetadata = serde_json::from_str(&sig_json)
-                        .map_err(|e| EngineError::PluginLoadFailed(format!("Invalid signature format: {}", e)))?;
+                    let sig_json = std::fs::read_to_string(&sig_path).map_err(|e| {
+                        EngineError::PluginLoadFailed(format!("Failed to read signature: {}", e))
+                    })?;
+                    let sig_metadata: crate::plugin::signing::SignatureMetadata =
+                        serde_json::from_str(&sig_json).map_err(|e| {
+                            EngineError::PluginLoadFailed(format!(
+                                "Invalid signature format: {}",
+                                e
+                            ))
+                        })?;
 
                     // Trust the key from the signature itself
                     verify_plugin_signature(path, &sig_path, &[sig_metadata.public_key])?;
@@ -200,30 +222,34 @@ impl WasmPlugin {
                 }
             } else if config.require_signature {
                 // Signature required but not found
-                return Err(EngineError::PluginLoadFailed(
-                    format!("Plugin signature required but not found: {:?}.sig", path)
-                ));
+                return Err(EngineError::PluginLoadFailed(format!(
+                    "Plugin signature required but not found: {:?}.sig",
+                    path
+                )));
             }
             // If signature file doesn't exist and not required, continue loading without verification
         }
 
         // Configure WASM engine
         let mut engine_config = Config::new();
-        engine_config.async_support(true);      // Enable async execution
+        engine_config.async_support(true); // Enable async execution
         engine_config.wasm_component_model(false); // Use core WASM for now
-        engine_config.consume_fuel(true);       // Enable execution metering
+        engine_config.consume_fuel(true); // Enable execution metering
 
         let engine = Engine::new(&engine_config)
             .map_err(|e| EngineError::PluginLoadFailed(e.to_string()))?;
 
         // Load WASM module
-        let module = Module::from_file(&engine, path)
-            .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to load WASM module: {}", e)))?;
+        let module = Module::from_file(&engine, path).map_err(|e| {
+            EngineError::PluginLoadFailed(format!("Failed to load WASM module: {}", e))
+        })?;
 
         // Create linker for WASI functions (using preview1 for core modules)
         let mut linker = Linker::new(&engine);
-        wasmtime_wasi::preview1::add_to_linker_async(&mut linker, |state: &mut PluginHostState| &mut state.wasi)
-            .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to setup WASI: {}", e)))?;
+        wasmtime_wasi::preview1::add_to_linker_async(&mut linker, |state: &mut PluginHostState| {
+            &mut state.wasi
+        })
+        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to setup WASI: {}", e)))?;
 
         Ok(WasmPlugin {
             engine,
@@ -241,7 +267,10 @@ impl WasmPlugin {
         let mut store = self.create_store()?;
 
         // Instantiate module
-        let instance = self.linker.instantiate_async(&mut store, &self.module).await
+        let instance = self
+            .linker
+            .instantiate_async(&mut store, &self.module)
+            .await
             .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to instantiate: {}", e)))?;
 
         // Call init() to get metadata
@@ -250,7 +279,9 @@ impl WasmPlugin {
             .get_typed_func::<(), u64>(&mut store, "init")
             .map_err(|e| EngineError::PluginLoadFailed(format!("Missing init export: {}", e)))?;
 
-        let packed = init_func.call_async(&mut store, ()).await
+        let packed = init_func
+            .call_async(&mut store, ())
+            .await
             .map_err(|e| EngineError::PluginLoadFailed(format!("init() failed: {}", e)))?;
 
         // Unpack ptr and len from u64
@@ -271,42 +302,56 @@ impl WasmPlugin {
     ///
     /// This calls the `execute` export with the action name and trigger context,
     /// enforcing timeout and resource limits.
-    pub async fn execute(&self, action: &str, context: &TriggerContext)
-        -> Result<(), EngineError>
-    {
+    pub async fn execute(&self, action: &str, context: &TriggerContext) -> Result<(), EngineError> {
         let mut store = self.create_store()?;
 
         // Instantiate module
-        let instance = self.linker.instantiate_async(&mut store, &self.module).await
-            .map_err(|e| EngineError::PluginExecutionFailed(format!("Failed to instantiate: {}", e)))?;
+        let instance = self
+            .linker
+            .instantiate_async(&mut store, &self.module)
+            .await
+            .map_err(|e| {
+                EngineError::PluginExecutionFailed(format!("Failed to instantiate: {}", e))
+            })?;
 
         // Serialize request
         let request = ActionRequest {
             action: action.to_string(),
             context: context.clone(),
         };
-        let request_json = serde_json::to_string(&request)
-            .map_err(|e| EngineError::PluginExecutionFailed(format!("Serialization failed: {}", e)))?;
+        let request_json = serde_json::to_string(&request).map_err(|e| {
+            EngineError::PluginExecutionFailed(format!("Serialization failed: {}", e))
+        })?;
 
         // Write request to WASM memory
-        let (ptr, len) = self.write_string_to_memory(&instance, &mut store, &request_json).await?;
+        let (ptr, len) = self
+            .write_string_to_memory(&instance, &mut store, &request_json)
+            .await?;
 
         // Call execute(ptr, len) -> result_code
         let execute_func = instance
             .get_typed_func::<(u32, u32), i32>(&mut store, "execute")
-            .map_err(|e| EngineError::PluginExecutionFailed(format!("Missing execute export: {}", e)))?;
+            .map_err(|e| {
+                EngineError::PluginExecutionFailed(format!("Missing execute export: {}", e))
+            })?;
 
         // Execute with timeout
         let timeout = self.config.max_execution_time;
-        let result = tokio::time::timeout(
-            timeout,
-            execute_func.call_async(&mut store, (ptr, len))
-        ).await
-            .map_err(|_| EngineError::PluginExecutionFailed(format!("Execution timeout ({}s)", timeout.as_secs())))?
+        let result = tokio::time::timeout(timeout, execute_func.call_async(&mut store, (ptr, len)))
+            .await
+            .map_err(|_| {
+                EngineError::PluginExecutionFailed(format!(
+                    "Execution timeout ({}s)",
+                    timeout.as_secs()
+                ))
+            })?
             .map_err(|e| EngineError::PluginExecutionFailed(format!("Execution failed: {}", e)))?;
 
         if result != 0 {
-            return Err(EngineError::PluginExecutionFailed(format!("Plugin returned error code: {}", result)));
+            return Err(EngineError::PluginExecutionFailed(format!(
+                "Plugin returned error code: {}",
+                result
+            )));
         }
 
         Ok(())
@@ -334,8 +379,9 @@ impl WasmPlugin {
                 .join("midimon")
                 .join("plugin-data");
 
-            std::fs::create_dir_all(&plugin_data_dir)
-                .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to create plugin data dir: {}", e)))?;
+            std::fs::create_dir_all(&plugin_data_dir).map_err(|e| {
+                EngineError::PluginLoadFailed(format!("Failed to create plugin data dir: {}", e))
+            })?;
 
             // Preopen directory with read/write access (wasmtime v26 API)
             // This allows the plugin to access only this specific directory
@@ -345,13 +391,16 @@ impl WasmPlugin {
             let dir_perms = DirPerms::all();
             let file_perms = FilePerms::all();
 
-            wasi_builder.preopened_dir(
-                plugin_data_dir,
-                "/",  // Mount at root of WASI filesystem
-                dir_perms,
-                file_perms,
-            )
-            .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to preopen directory: {}", e)))?;
+            wasi_builder
+                .preopened_dir(
+                    plugin_data_dir,
+                    "/", // Mount at root of WASI filesystem
+                    dir_perms,
+                    file_perms,
+                )
+                .map_err(|e| {
+                    EngineError::PluginLoadFailed(format!("Failed to preopen directory: {}", e))
+                })?;
         }
 
         // Network capability is implicit in WASI (TCP/UDP sockets)
@@ -374,7 +423,8 @@ impl WasmPlugin {
         // Set fuel limit (instruction count limit from config)
         // 1 fuel ≈ 1 WASM instruction
         // NOTE: Fuel must be enabled in Config before creating engine (done in load())
-        store.set_fuel(self.config.max_fuel)
+        store
+            .set_fuel(self.config.max_fuel)
             .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to set fuel: {}", e)))?;
 
         Ok(store)
@@ -397,12 +447,17 @@ impl WasmPlugin {
             .map_err(|_| EngineError::PluginExecutionFailed("No alloc export".to_string()))?;
 
         let len = data.len() as u32;
-        let ptr = alloc_func.call_async(&mut *store, len).await
+        let ptr = alloc_func
+            .call_async(&mut *store, len)
+            .await
             .map_err(|e| EngineError::PluginExecutionFailed(format!("Allocation failed: {}", e)))?;
 
         // Write data to memory
-        memory.write(&mut *store, ptr as usize, data.as_bytes())
-            .map_err(|e| EngineError::PluginExecutionFailed(format!("Memory write failed: {}", e)))?;
+        memory
+            .write(&mut *store, ptr as usize, data.as_bytes())
+            .map_err(|e| {
+                EngineError::PluginExecutionFailed(format!("Memory write failed: {}", e))
+            })?;
 
         Ok((ptr, len))
     }
@@ -420,8 +475,11 @@ impl WasmPlugin {
             .ok_or_else(|| EngineError::PluginExecutionFailed("No memory export".to_string()))?;
 
         let mut buffer = vec![0u8; len as usize];
-        memory.read(&*store, ptr as usize, &mut buffer)
-            .map_err(|e| EngineError::PluginExecutionFailed(format!("Memory read failed: {}", e)))?;
+        memory
+            .read(&*store, ptr as usize, &mut buffer)
+            .map_err(|e| {
+                EngineError::PluginExecutionFailed(format!("Memory read failed: {}", e))
+            })?;
 
         String::from_utf8(buffer)
             .map_err(|e| EngineError::PluginExecutionFailed(format!("Invalid UTF-8: {}", e)))

@@ -71,7 +71,9 @@ fn test_plugin_loading() {
     println!("✅ Loaded Spotify plugin");
 
     // Verify it's in loaded list
-    let loaded = manager.list_loaded().expect("Failed to list loaded plugins");
+    let loaded = manager
+        .list_loaded()
+        .expect("Failed to list loaded plugins");
     assert!(
         loaded.contains(&"spotify".to_string()),
         "Spotify plugin not in loaded list"
@@ -330,7 +332,9 @@ fn test_plugin_unload() {
     println!("✅ Loaded Spotify plugin");
 
     // Verify it's loaded
-    let loaded = manager.list_loaded().expect("Failed to list loaded plugins");
+    let loaded = manager
+        .list_loaded()
+        .expect("Failed to list loaded plugins");
     assert!(loaded.contains(&"spotify".to_string()));
 
     // Unload the plugin
@@ -341,7 +345,9 @@ fn test_plugin_unload() {
     println!("✅ Unloaded Spotify plugin");
 
     // Verify it's no longer in loaded list
-    let loaded = manager.list_loaded().expect("Failed to list loaded plugins");
+    let loaded = manager
+        .list_loaded()
+        .expect("Failed to list loaded plugins");
     assert!(!loaded.contains(&"spotify".to_string()));
 
     println!("✅ Plugin removed from loaded list");

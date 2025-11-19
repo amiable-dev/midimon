@@ -212,7 +212,7 @@ impl Config {
         };
 
         // Check if path is within allowed directories
-        if canonical_path.exists() || canonical_path.parent().map_or(false, |p| p.exists()) {
+        if canonical_path.exists() || canonical_path.parent().is_some_and(|p| p.exists()) {
             Self::check_path_allowed(&canonical_path)?;
         }
 
@@ -238,13 +238,11 @@ impl Config {
         let tmp_dir = std::env::temp_dir().canonicalize().ok();
 
         // Check if path is within any allowed directory
-        let is_in_config_dir = config_dir
-            .as_ref()
-            .map_or(false, |dir| path.starts_with(dir));
+        let is_in_config_dir = config_dir.as_ref().is_some_and(|dir| path.starts_with(dir));
         let is_in_current_dir = current_dir
             .as_ref()
-            .map_or(false, |dir| path.starts_with(dir));
-        let is_in_tmp = tmp_dir.as_ref().map_or(false, |dir| path.starts_with(dir));
+            .is_some_and(|dir| path.starts_with(dir));
+        let is_in_tmp = tmp_dir.as_ref().is_some_and(|dir| path.starts_with(dir));
 
         if !is_in_config_dir && !is_in_current_dir && !is_in_tmp {
             return Err(format!(
@@ -698,66 +696,65 @@ fn validate_action(action: &ActionConfig) -> Result<(), ConfigError> {
             // Validate message-specific parameters
             let msg_type_lower = message_type.to_lowercase();
             if msg_type_lower.contains("note") {
-                if let Some(n) = note {
-                    if *n > 127 {
-                        return Err(ConfigError::InvalidAction(format!(
-                            "MIDI note must be 0-127, got {}",
-                            n
-                        )));
-                    }
+                if let Some(n) = note
+                    && *n > 127
+                {
+                    return Err(ConfigError::InvalidAction(format!(
+                        "MIDI note must be 0-127, got {}",
+                        n
+                    )));
                 }
-                if let Some(v) = velocity {
-                    if *v > 127 {
-                        return Err(ConfigError::InvalidAction(format!(
-                            "MIDI velocity must be 0-127, got {}",
-                            v
-                        )));
-                    }
+                if let Some(v) = velocity
+                    && *v > 127
+                {
+                    return Err(ConfigError::InvalidAction(format!(
+                        "MIDI velocity must be 0-127, got {}",
+                        v
+                    )));
                 }
             } else if msg_type_lower.contains("cc") || msg_type_lower.contains("control") {
-                if let Some(c) = controller {
-                    if *c > 127 {
-                        return Err(ConfigError::InvalidAction(format!(
-                            "MIDI controller must be 0-127, got {}",
-                            c
-                        )));
-                    }
+                if let Some(c) = controller
+                    && *c > 127
+                {
+                    return Err(ConfigError::InvalidAction(format!(
+                        "MIDI controller must be 0-127, got {}",
+                        c
+                    )));
                 }
-                if let Some(v) = value {
-                    if *v > 127 {
-                        return Err(ConfigError::InvalidAction(format!(
-                            "MIDI value must be 0-127, got {}",
-                            v
-                        )));
-                    }
+                if let Some(v) = value
+                    && *v > 127
+                {
+                    return Err(ConfigError::InvalidAction(format!(
+                        "MIDI value must be 0-127, got {}",
+                        v
+                    )));
                 }
             } else if msg_type_lower.contains("program") {
-                if let Some(p) = program {
-                    if *p > 127 {
-                        return Err(ConfigError::InvalidAction(format!(
-                            "MIDI program must be 0-127, got {}",
-                            p
-                        )));
-                    }
+                if let Some(p) = program
+                    && *p > 127
+                {
+                    return Err(ConfigError::InvalidAction(format!(
+                        "MIDI program must be 0-127, got {}",
+                        p
+                    )));
                 }
             } else if msg_type_lower.contains("pitch") {
-                if let Some(p) = pitch {
-                    if *p < -8192 || *p > 8191 {
-                        return Err(ConfigError::InvalidAction(format!(
-                            "MIDI pitch bend must be -8192 to +8191, got {}",
-                            p
-                        )));
-                    }
+                if let Some(p) = pitch
+                    && (*p < -8192 || *p > 8191)
+                {
+                    return Err(ConfigError::InvalidAction(format!(
+                        "MIDI pitch bend must be -8192 to +8191, got {}",
+                        p
+                    )));
                 }
-            } else if msg_type_lower.contains("aftertouch") {
-                if let Some(p) = pressure {
-                    if *p > 127 {
-                        return Err(ConfigError::InvalidAction(format!(
-                            "MIDI pressure must be 0-127, got {}",
-                            p
-                        )));
-                    }
-                }
+            } else if msg_type_lower.contains("aftertouch")
+                && let Some(p) = pressure
+                && *p > 127
+            {
+                return Err(ConfigError::InvalidAction(format!(
+                    "MIDI pressure must be 0-127, got {}",
+                    p
+                )));
             }
         }
     }

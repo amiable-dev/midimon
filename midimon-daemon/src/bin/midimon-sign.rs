@@ -126,17 +126,25 @@ fn sign_plugin(plugin_path: &str, key_path: &str, name: Option<&str>, email: Opt
         });
 
         if private_key.len() != 32 {
-            eprintln!("Error: Invalid private key size (expected 32 bytes, got {})", private_key.len());
+            eprintln!(
+                "Error: Invalid private key size (expected 32 bytes, got {})",
+                private_key.len()
+            );
             process::exit(1);
         }
 
         // Sign plugin
         let plugin_pathbuf = PathBuf::from(plugin_path);
-        sign_plugin(&plugin_pathbuf, &private_key, developer_name, developer_email)
-            .unwrap_or_else(|e| {
-                eprintln!("Error signing plugin: {}", e);
-                process::exit(1);
-            });
+        sign_plugin(
+            &plugin_pathbuf,
+            &private_key,
+            developer_name,
+            developer_email,
+        )
+        .unwrap_or_else(|e| {
+            eprintln!("Error signing plugin: {}", e);
+            process::exit(1);
+        });
 
         println!("✓ Plugin signed successfully!");
         println!("Signature file: {}.sig", plugin_path);
@@ -154,7 +162,7 @@ fn verify_plugin(plugin_path: &str) {
 
     #[cfg(feature = "plugin-signing")]
     {
-        use midimon_core::plugin::signing::{verify_plugin_signature, load_trusted_keys};
+        use midimon_core::plugin::signing::{load_trusted_keys, verify_plugin_signature};
         use std::path::Path;
 
         let plugin_pathbuf = PathBuf::from(plugin_path);
@@ -194,7 +202,10 @@ fn verify_plugin(plugin_path: &str) {
         println!("  Version:     {}", sig_metadata.version);
         println!("  Algorithm:   {}", sig_metadata.algorithm);
         println!("  Signed at:   {}", sig_metadata.signed_at);
-        println!("  Developer:   {} <{}>", sig_metadata.developer.name, sig_metadata.developer.email);
+        println!(
+            "  Developer:   {} <{}>",
+            sig_metadata.developer.name, sig_metadata.developer.email
+        );
         println!("  Public key:  {}", sig_metadata.public_key);
         println!();
 
@@ -210,8 +221,10 @@ fn verify_plugin(plugin_path: &str) {
                     println!("⚠️  Signature is valid but key is not trusted");
                     println!();
                     println!("To trust this key, run:");
-                    println!("  midimon-sign trust add {} \"{}\"",
-                        sig_metadata.public_key, sig_metadata.developer.name);
+                    println!(
+                        "  midimon-sign trust add {} \"{}\"",
+                        sig_metadata.public_key, sig_metadata.developer.name
+                    );
                 } else {
                     eprintln!("✗ Signature verification failed: {}", err_msg);
                     process::exit(1);

@@ -15,16 +15,10 @@ use std::process::Command;
 /// Context for condition evaluation
 ///
 /// Provides access to current mode and other runtime state needed for evaluation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ConditionContext {
     /// Current mode name (e.g., "Default", "Development")
     pub current_mode: Option<String>,
-}
-
-impl Default for ConditionContext {
-    fn default() -> Self {
-        Self { current_mode: None }
-    }
 }
 
 impl ConditionContext {

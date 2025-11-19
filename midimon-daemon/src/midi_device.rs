@@ -459,11 +459,11 @@ impl MidiDeviceManager {
 
         // Search for named device
         for (i, port) in ports.iter().enumerate() {
-            if let Ok(name) = midi_in.port_name(port) {
-                if name.contains(&self.device_name) {
-                    debug!("Found matching port: {} (index {})", name, i);
-                    return Ok((port.clone(), i));
-                }
+            if let Ok(name) = midi_in.port_name(port)
+                && name.contains(&self.device_name)
+            {
+                debug!("Found matching port: {} (index {})", name, i);
+                return Ok((port.clone(), i));
             }
         }
 
@@ -682,11 +682,11 @@ impl MidiDeviceManager {
             // Search for named device
             let mut found = None;
             for (i, p) in ports.iter().enumerate() {
-                if let Ok(name) = midi_in.port_name(p) {
-                    if name.contains(device_name) {
-                        found = Some((p.clone(), i));
-                        break;
-                    }
+                if let Ok(name) = midi_in.port_name(p)
+                    && name.contains(device_name)
+                {
+                    found = Some((p.clone(), i));
+                    break;
                 }
             }
 

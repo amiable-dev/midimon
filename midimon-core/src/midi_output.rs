@@ -97,7 +97,14 @@ impl MidiOutputManager {
     ///
     /// let manager = MidiOutputManager::new();
     /// ```
+    #[must_use]
     pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl Default for MidiOutputManager {
+    fn default() -> Self {
         Self {
             connections: HashMap::new(),
             #[cfg(not(target_os = "windows"))]
@@ -105,7 +112,9 @@ impl MidiOutputManager {
             message_queue: Arc::new(Mutex::new(VecDeque::new())),
         }
     }
+}
 
+impl MidiOutputManager {
     /// Create a virtual MIDI port (macOS/Linux only)
     ///
     /// Creates a virtual MIDI port that other applications can connect to.

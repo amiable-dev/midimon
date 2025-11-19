@@ -12,12 +12,12 @@
 
 #![cfg(all(test, feature = "plugin-wasm"))]
 
+use midimon_core::plugin::{
+    TriggerContext,
+    wasm_runtime::{WasmConfig, WasmPlugin},
+};
 use std::path::PathBuf;
 use std::time::Duration;
-use midimon_core::plugin::{
-    wasm_runtime::{WasmConfig, WasmPlugin},
-    TriggerContext,
-};
 
 /// Get path to a test plugin
 fn get_plugin_path(plugin_name: &str) -> PathBuf {
@@ -30,7 +30,10 @@ fn get_plugin_path(plugin_name: &str) -> PathBuf {
         .join("target")
         .join("wasm32-wasip1")
         .join("release")
-        .join(format!("midimon_wasm_{}.wasm", plugin_name.replace("-", "_")))
+        .join(format!(
+            "midimon_wasm_{}.wasm",
+            plugin_name.replace("-", "_")
+        ))
 }
 
 #[tokio::test]
@@ -48,7 +51,8 @@ async fn test_default_resource_limits() {
     assert_eq!(config.max_fuel, 100_000_000); // 100M instructions
     assert_eq!(config.max_execution_time, Duration::from_secs(5));
 
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin with default limits");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -56,7 +60,10 @@ async fn test_default_resource_limits() {
     // Execute action - should succeed within limits
     let context = TriggerContext::default();
     let result = plugin.execute("play", &context).await;
-    assert!(result.is_ok(), "Action should succeed within default limits");
+    assert!(
+        result.is_ok(),
+        "Action should succeed within default limits"
+    );
 }
 
 #[tokio::test]
@@ -72,7 +79,8 @@ async fn test_custom_fuel_limit() {
     let mut config = WasmConfig::default();
     config.max_fuel = 500_000_000; // 500M instructions
 
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin with custom fuel limit");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -95,14 +103,18 @@ async fn test_custom_memory_limit() {
     let mut config = WasmConfig::default();
     config.max_memory_bytes = 256 * 1024 * 1024; // 256 MB
 
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin with custom memory limit");
 
     plugin.init().await.expect("Failed to initialize plugin");
 
     let context = TriggerContext::default();
     let result = plugin.execute("play", &context).await;
-    assert!(result.is_ok(), "Action should succeed with higher memory limit");
+    assert!(
+        result.is_ok(),
+        "Action should succeed with higher memory limit"
+    );
 }
 
 #[tokio::test]
@@ -115,7 +127,8 @@ async fn test_obs_plugin_within_limits() {
     }
 
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load OBS plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -123,7 +136,10 @@ async fn test_obs_plugin_within_limits() {
     // OBS plugin should execute within default limits
     let context = TriggerContext::default();
     let result = plugin.execute("start_recording", &context).await;
-    assert!(result.is_ok(), "OBS plugin should work within default limits");
+    assert!(
+        result.is_ok(),
+        "OBS plugin should work within default limits"
+    );
 }
 
 #[tokio::test]
@@ -136,7 +152,8 @@ async fn test_multiple_executions_with_fuel_reset() {
     }
 
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -146,7 +163,11 @@ async fn test_multiple_executions_with_fuel_reset() {
     // Execute multiple times - fuel should reset between executions
     for i in 0..5 {
         let result = plugin.execute("play", &context).await;
-        assert!(result.is_ok(), "Execution {} should succeed (fuel resets)", i + 1);
+        assert!(
+            result.is_ok(),
+            "Execution {} should succeed (fuel resets)",
+            i + 1
+        );
     }
 }
 
@@ -163,7 +184,8 @@ async fn test_low_fuel_limit_still_works() {
     let mut config = WasmConfig::default();
     config.max_fuel = 10_000_000; // 10M instructions (lower but should work)
 
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin with low fuel limit");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -184,7 +206,8 @@ async fn test_system_utils_plugin_limits() {
     }
 
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load system utils plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -192,7 +215,10 @@ async fn test_system_utils_plugin_limits() {
     // System utils plugin should work within limits
     let context = TriggerContext::default();
     let result = plugin.execute("mute_system", &context).await;
-    assert!(result.is_ok(), "System utils plugin should work within limits");
+    assert!(
+        result.is_ok(),
+        "System utils plugin should work within limits"
+    );
 }
 
 #[tokio::test]
@@ -209,7 +235,8 @@ async fn test_config_limits_preserved_across_store_creations() {
     config.max_fuel = 200_000_000; // 200M instructions
     config.max_memory_bytes = 256 * 1024 * 1024; // 256 MB
 
-    let mut plugin = WasmPlugin::load(&wasm_path, config.clone()).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config.clone())
+        .await
         .expect("Failed to load plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -218,6 +245,9 @@ async fn test_config_limits_preserved_across_store_creations() {
     let context = TriggerContext::default();
     for _ in 0..3 {
         let result = plugin.execute("play", &context).await;
-        assert!(result.is_ok(), "Limits should be preserved across store creations");
+        assert!(
+            result.is_ok(),
+            "Limits should be preserved across store creations"
+        );
     }
 }

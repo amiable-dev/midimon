@@ -84,25 +84,36 @@ enum PluginInstance {
 
 impl PluginInstance {
     /// Execute the plugin action (async version for WASM)
-    #[allow(dead_code)]  // Only used when plugin-wasm feature is enabled
-    async fn execute_async(&mut self, params: Value, context: TriggerContext) -> Result<(), Box<dyn std::error::Error>> {
+    #[allow(dead_code)] // Only used when plugin-wasm feature is enabled
+    async fn execute_async(
+        &mut self,
+        params: Value,
+        context: TriggerContext,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         match self {
             PluginInstance::Native(plugin) => plugin.plugin.execute(params, context),
             #[cfg(feature = "plugin-wasm")]
             PluginInstance::Wasm(plugin) => {
                 // Extract action name from params
-                let action = params.get("action")
+                let action = params
+                    .get("action")
                     .and_then(|v| v.as_str())
                     .ok_or("Missing 'action' field in params")?;
 
-                plugin.execute(action, &context).await
+                plugin
+                    .execute(action, &context)
+                    .await
                     .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
             }
         }
     }
 
     /// Synchronous execute wrapper
-    fn execute_sync(&mut self, params: Value, context: TriggerContext) -> Result<(), Box<dyn std::error::Error>> {
+    fn execute_sync(
+        &mut self,
+        params: Value,
+        context: TriggerContext,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(feature = "plugin-wasm")]
         {
             // For WASM plugins, we need to use a runtime
@@ -289,10 +300,10 @@ impl PluginManager {
             .read()
             .map_err(|e| PluginManagerError::LockError(e.to_string()))?;
 
-        if let Some(registry) = reg.as_ref() {
-            if let Some(metadata) = registry.get(plugin_name) {
-                return Ok(metadata.clone());
-            }
+        if let Some(registry) = reg.as_ref()
+            && let Some(metadata) = registry.get(plugin_name)
+        {
+            return Ok(metadata.clone());
         }
 
         Err(PluginManagerError::PluginNotFound(plugin_name.to_string()))
@@ -348,17 +359,30 @@ impl PluginManager {
                 let config = WasmConfig {
                     max_memory_bytes: 128 * 1024 * 1024, // 128 MB
                     max_execution_time: std::time::Duration::from_secs(5),
+                    max_fuel: 100_000_000, // 100M instructions
                     capabilities: metadata.capabilities.clone(),
+                    #[cfg(feature = "plugin-signing")]
+                    require_signature: false, // Backward compatible - don't require signatures
+                    #[cfg(feature = "plugin-signing")]
+                    allow_self_signed: true, // Allow self-signed plugins
+                    #[cfg(feature = "plugin-signing")]
+                    trusted_keys_path: None, // Use default path
                 };
 
                 let mut wasm_plugin = tokio::runtime::Runtime::new()
-                    .map_err(|e| PluginManagerError::LoadError(PluginLoaderError::LoadError(e.to_string())))?
+                    .map_err(|e| {
+                        PluginManagerError::LoadError(PluginLoaderError::LoadError(e.to_string()))
+                    })?
                     .block_on(WasmPlugin::load(&binary_path, config))
-                    .map_err(|e| PluginManagerError::LoadError(PluginLoaderError::LoadError(e.to_string())))?;
+                    .map_err(|e| {
+                        PluginManagerError::LoadError(PluginLoaderError::LoadError(e.to_string()))
+                    })?;
 
                 // Initialize WASM plugin
                 tokio::runtime::Runtime::new()
-                    .map_err(|e| PluginManagerError::LoadError(PluginLoaderError::LoadError(e.to_string())))?
+                    .map_err(|e| {
+                        PluginManagerError::LoadError(PluginLoaderError::LoadError(e.to_string()))
+                    })?
                     .block_on(wasm_plugin.init())
                     .map_err(|e| PluginManagerError::ExecutionError {
                         plugin: plugin_name.to_string(),
@@ -369,11 +393,9 @@ impl PluginManager {
             }
             #[cfg(not(feature = "plugin-wasm"))]
             {
-                return Err(PluginManagerError::LoadError(
-                    PluginLoaderError::LoadError(
-                        "WASM plugins not supported (compile with --features plugin-wasm)".to_string()
-                    )
-                ));
+                return Err(PluginManagerError::LoadError(PluginLoaderError::LoadError(
+                    "WASM plugins not supported (compile with --features plugin-wasm)".to_string(),
+                )));
             }
         } else {
             // Load native plugin

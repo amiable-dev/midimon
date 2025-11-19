@@ -289,10 +289,10 @@ impl ActionExecutor {
                     self.execute((*action).clone(), context.clone());
 
                     // Add delay between iterations (but not after the last one)
-                    if i < count - 1 {
-                        if let Some(delay) = delay_ms {
-                            thread::sleep(Duration::from_millis(delay));
-                        }
+                    if i < count - 1
+                        && let Some(delay) = delay_ms
+                    {
+                        thread::sleep(Duration::from_millis(delay));
                     }
                 }
             }

@@ -12,11 +12,11 @@
 
 #![cfg(all(test, feature = "plugin-wasm"))]
 
-use std::path::PathBuf;
 use midimon_core::plugin::{
-    wasm_runtime::{WasmConfig, WasmPlugin},
     TriggerContext,
+    wasm_runtime::{WasmConfig, WasmPlugin},
 };
+use std::path::PathBuf;
 
 /// Get path to the compiled OBS plugin WASM binary
 fn get_obs_plugin_path() -> PathBuf {
@@ -41,7 +41,8 @@ async fn test_obs_plugin_loads() {
     );
 
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load OBS plugin");
 
     let metadata = plugin.init().await.expect("Failed to initialize plugin");
@@ -53,24 +54,32 @@ async fn test_obs_plugin_loads() {
 async fn test_obs_metadata() {
     let wasm_path = get_obs_plugin_path();
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin");
 
     let metadata = plugin.init().await.expect("Failed to initialize plugin");
     assert_eq!(metadata.name, "obs_control");
-    assert_eq!(metadata.description, "OBS Studio control via WebSocket protocol");
+    assert_eq!(
+        metadata.description,
+        "OBS Studio control via WebSocket protocol"
+    );
     assert_eq!(metadata.author, "Amiable Team");
     assert_eq!(metadata.license, "MIT");
 
     // Verify capabilities (Network capability required for OBS WebSocket)
-    assert!(!metadata.capabilities.is_empty(), "OBS plugin should request Network capability");
+    assert!(
+        !metadata.capabilities.is_empty(),
+        "OBS plugin should request Network capability"
+    );
 }
 
 #[tokio::test]
 async fn test_obs_start_stop_recording() {
     let wasm_path = get_obs_plugin_path();
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -90,7 +99,8 @@ async fn test_obs_start_stop_recording() {
 async fn test_obs_start_stop_streaming() {
     let wasm_path = get_obs_plugin_path();
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -110,7 +120,8 @@ async fn test_obs_start_stop_streaming() {
 async fn test_obs_all_actions() {
     let wasm_path = get_obs_plugin_path();
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -134,7 +145,8 @@ async fn test_obs_all_actions() {
 async fn test_obs_switch_scene() {
     let wasm_path = get_obs_plugin_path();
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -146,14 +158,18 @@ async fn test_obs_switch_scene() {
     let result = plugin.execute("switch_scene", &context).await;
 
     // Expected to fail without parameters in current implementation
-    assert!(result.is_err(), "switch_scene should fail without scene_name parameter");
+    assert!(
+        result.is_err(),
+        "switch_scene should fail without scene_name parameter"
+    );
 }
 
 #[tokio::test]
 async fn test_obs_toggle_mute() {
     let wasm_path = get_obs_plugin_path();
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -164,14 +180,18 @@ async fn test_obs_toggle_mute() {
     let result = plugin.execute("toggle_mute", &context).await;
 
     // Expected to fail without parameters in current implementation
-    assert!(result.is_err(), "toggle_mute should fail without source_name parameter");
+    assert!(
+        result.is_err(),
+        "toggle_mute should fail without source_name parameter"
+    );
 }
 
 #[tokio::test]
 async fn test_obs_unknown_action() {
     let wasm_path = get_obs_plugin_path();
     let config = WasmConfig::default();
-    let mut plugin = WasmPlugin::load(&wasm_path, config).await
+    let mut plugin = WasmPlugin::load(&wasm_path, config)
+        .await
         .expect("Failed to load plugin");
 
     plugin.init().await.expect("Failed to initialize plugin");
@@ -186,8 +206,7 @@ async fn test_obs_unknown_action() {
 #[tokio::test]
 async fn test_obs_binary_size() {
     let wasm_path = get_obs_plugin_path();
-    let metadata = std::fs::metadata(&wasm_path)
-        .expect("Failed to read plugin file metadata");
+    let metadata = std::fs::metadata(&wasm_path).expect("Failed to read plugin file metadata");
 
     let size_kb = metadata.len() / 1024;
 

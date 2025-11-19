@@ -301,10 +301,7 @@ pub async fn install_plugin_from_registry(
     let mut pm = plugin_manager.write().await;
     let _ = pm.discover_plugins();
 
-    Ok(plugin_path
-        .to_str()
-        .unwrap_or("unknown")
-        .to_string())
+    Ok(plugin_path.to_str().unwrap_or("unknown").to_string())
 }
 
 /// Uninstall a plugin (delete from filesystem)
@@ -336,7 +333,8 @@ pub async fn uninstall_plugin(
         // Try other extensions
         let extensions = vec!["so", "dll"];
         for ext in extensions {
-            let plugin_file = plugins_dir.join(format!("libmidimon_{}_plugin.{}", plugin_name, ext));
+            let plugin_file =
+                plugins_dir.join(format!("libmidimon_{}_plugin.{}", plugin_name, ext));
             if plugin_file.exists() {
                 std::fs::remove_file(&plugin_file)
                     .map_err(|e| format!("Failed to delete plugin file: {}", e))?;
