@@ -44,6 +44,12 @@ path = "src/bin/midimonctl.rs"
 name = "midimon-menubar"
 path = "src/bin/midimon_menubar.rs"
 
+# Plugin signing tool (v2.7)
+[[bin]]
+name = "midimon-sign"
+path = "src/bin/midimon-sign.rs"
+required-features = ["plugin-signing"]
+
 [[bench]]
 name = "reload_benchmark"
 path = "benches/reload_benchmark.rs"
@@ -97,6 +103,11 @@ dirs = "5.0"
 uuid = { version = "1.0", features = ["v4", "serde"] }
 sha2 = "0.10"
 
+# Plugin signing (v2.7 - optional)
+ed25519-dalek = { workspace = true, optional = true }
+hex = { workspace = true, optional = true }
+rand = { workspace = true, optional = true }
+
 # Platform-specific dependencies for menu bar
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25"
@@ -113,3 +124,4 @@ tempfile = "3.8"
 [features]
 default = []
 plugin-wasm = ["midimon-core/plugin-wasm"]
+plugin-signing = ["midimon-core/plugin-signing", "dep:ed25519-dalek", "dep:hex", "dep:rand"]

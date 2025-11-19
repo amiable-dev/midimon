@@ -444,6 +444,52 @@ pub fn add_trusted_key(
     Ok(())
 }
 
+/// Save trusted keys to config file
+///
+/// # Arguments
+///
+/// * `public_keys` - List of public key hex strings to save
+///
+/// # Returns
+///
+/// Returns `Ok(())` on success, or an error if saving fails
+pub fn save_trusted_keys(public_keys: &[String]) -> Result<(), EngineError> {
+    use serde::{Deserialize, Serialize};
+
+    let config_dir = dirs::config_dir()
+        .ok_or_else(|| EngineError::PluginLoadFailed("No config directory found".to_string()))?
+        .join("midimon");
+
+    std::fs::create_dir_all(&config_dir)
+        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to create config directory: {}", e)))?;
+
+    let keys_path = config_dir.join("trusted_keys.toml");
+
+    #[derive(Serialize, Deserialize)]
+    struct TrustedKeysFile {
+        keys: Vec<TrustedKey>,
+    }
+
+    // Convert public key strings to TrustedKey structs
+    let keys_file = TrustedKeysFile {
+        keys: public_keys.iter().map(|k| TrustedKey {
+            name: String::new(),  // Name not preserved when just saving keys
+            email: String::new(),
+            public_key: k.clone(),
+            added_at: chrono::Utc::now().to_rfc3339(),
+        }).collect(),
+    };
+
+    // Save file
+    let keys_toml = toml::to_string_pretty(&keys_file)
+        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to serialize trusted keys: {}", e)))?;
+
+    std::fs::write(&keys_path, keys_toml)
+        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to write trusted keys: {}", e)))?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
