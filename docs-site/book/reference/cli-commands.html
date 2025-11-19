@@ -733,6 +733,256 @@ State saved successfully
    │  └─ No → Use `stop --force`
    └─ Running in foreground for testing? → Use `shutdown`
 </code></pre>
+<h3 id="device-management-commands"><a class="header" href="#device-management-commands">Device Management Commands</a></h3>
+<h4 id="list-devices"><a class="header" href="#list-devices">list-devices</a></h4>
+<p>List all available MIDI input devices.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl list-devices [--json]
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Available MIDI Devices
+──────────────────────────────────────────────────
+  [0] USB MIDI Device
+  [1] IAC Driver Bus 1 (connected)
+  [2] Maschine Mikro MK3 - Input
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Find available MIDI ports</li>
+<li>Check which device is currently connected</li>
+<li>Troubleshoot device connectivity</li>
+</ul>
+<h4 id="set-device"><a class="header" href="#set-device">set-device</a></h4>
+<p>Switch the daemon to a different MIDI device without restart.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl set-device &lt;PORT&gt; [--json]
+</code></pre>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-bash"># Switch to port 2
+midimonctl set-device 2
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>✓ Switched to device at port 2
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Switch between MIDI devices on the fly</li>
+<li>Test different controllers</li>
+<li>Recover from device disconnection</li>
+</ul>
+<h4 id="get-device"><a class="header" href="#get-device">get-device</a></h4>
+<p>Show information about the currently connected MIDI device.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl get-device [--json]
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Current MIDI Device
+──────────────────────────────────────────────────
+Status:     Connected
+Name:       Maschine Mikro MK3 - Input
+Port:       2
+Last Event: 3s ago
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Verify which device is active</li>
+<li>Check connection status</li>
+<li>Debug event reception issues</li>
+</ul>
+<h3 id="service-management-commands"><a class="header" href="#service-management-commands">Service Management Commands</a></h3>
+<p><strong>Note</strong>: Service management commands are currently macOS-only (using LaunchAgent).</p>
+<h4 id="install"><a class="header" href="#install">install</a></h4>
+<p>Install MIDIMon as a LaunchAgent service that starts automatically on login.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl install [--install-binary] [--force] [--json]
+</code></pre>
+<p><strong>Options</strong>:</p>
+<ul>
+<li><code>--install-binary</code>: Copy daemon binary to <code>/usr/local/bin/midimon</code></li>
+<li><code>--force</code>: Reinstall even if already installed</li>
+</ul>
+<p><strong>What it does</strong>:</p>
+<ol>
+<li>Generates LaunchAgent plist from template</li>
+<li>Copies plist to <code>~/Library/LaunchAgents/com.amiable.midimon.plist</code></li>
+<li>Optionally installs binary to <code>/usr/local/bin</code> (requires sudo)</li>
+<li>Loads service with <code>launchctl</code></li>
+</ol>
+<p><strong>Output</strong>:</p>
+<pre><code>Installing MIDIMon service...
+  ✓ Generated plist
+  ✓ Installed to ~/Library/LaunchAgents/com.amiable.midimon.plist
+  ✓ Loaded service
+
+✓ MIDIMon service installed successfully
+
+Next steps:
+  • Start: midimonctl start
+  • Enable auto-start: midimonctl enable
+  • Check status: midimonctl service-status
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>First-time setup for background service</li>
+<li>Setting up production deployment</li>
+<li>Enable auto-start on login</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-bash"># Basic install (daemon must already be built)
+midimonctl install
+
+# Install and copy binary to system location
+sudo midimonctl install --install-binary
+
+# Force reinstall
+midimonctl install --force
+</code></pre>
+<h4 id="uninstall"><a class="header" href="#uninstall">uninstall</a></h4>
+<p>Remove MIDIMon service from LaunchAgent.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl uninstall [--remove-binary] [--remove-logs] [--json]
+</code></pre>
+<p><strong>Options</strong>:</p>
+<ul>
+<li><code>--remove-binary</code>: Also delete <code>/usr/local/bin/midimon</code></li>
+<li><code>--remove-logs</code>: Delete log files</li>
+</ul>
+<p><strong>What it does</strong>:</p>
+<ol>
+<li>Stops service if running</li>
+<li>Removes LaunchAgent plist</li>
+<li>Optionally removes binary and logs</li>
+</ol>
+<p><strong>Output</strong>:</p>
+<pre><code>Uninstalling MIDIMon service...
+  ✓ Stopped service
+  ✓ Removed plist: ~/Library/LaunchAgents/com.amiable.midimon.plist
+
+✓ MIDIMon service uninstalled successfully
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Removing MIDIMon completely</li>
+<li>Clean uninstall before upgrade</li>
+<li>Troubleshooting installation issues</li>
+</ul>
+<h4 id="start"><a class="header" href="#start">start</a></h4>
+<p>Start the LaunchAgent service.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl start [--wait &lt;SECONDS&gt;] [--json]
+</code></pre>
+<p><strong>Options</strong>:</p>
+<ul>
+<li><code>--wait &lt;SECONDS&gt;</code>: Wait up to N seconds for daemon to be ready (default: 5)</li>
+</ul>
+<p><strong>What it does</strong>:</p>
+<ol>
+<li>Loads service with <code>launchctl load</code></li>
+<li>Waits for daemon to respond to IPC</li>
+<li>Verifies daemon is running</li>
+</ol>
+<p><strong>Output</strong>:</p>
+<pre><code>Starting MIDIMon service...
+Waiting for daemon to be ready... ✓
+✓ Service started successfully
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Start service after install</li>
+<li>Start service after stop</li>
+<li>Verify service starts correctly</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-bash"># Start and wait up to 10 seconds
+midimonctl start --wait 10
+</code></pre>
+<h4 id="restart"><a class="header" href="#restart">restart</a></h4>
+<p>Restart the LaunchAgent service (stop + start).</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl restart [--wait &lt;SECONDS&gt;] [--json]
+</code></pre>
+<p><strong>What it does</strong>:</p>
+<ol>
+<li>Gracefully stops service</li>
+<li>Waits 500ms</li>
+<li>Starts service</li>
+<li>Waits for daemon to be ready</li>
+</ol>
+<p><strong>Output</strong>:</p>
+<pre><code>Restarting MIDIMon service...
+Stopping MIDIMon service...
+✓ Service stopped successfully
+Starting MIDIMon service...
+✓ Service started successfully
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Apply config changes that need full restart</li>
+<li>Recover from errors</li>
+<li>Test service lifecycle</li>
+</ul>
+<h4 id="enable"><a class="header" href="#enable">enable</a></h4>
+<p>Enable auto-start on login (loads service with <code>-w</code> flag).</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl enable [--json]
+</code></pre>
+<p><strong>What it does</strong>:</p>
+<ul>
+<li>Loads service with <code>launchctl load -w</code> flag</li>
+<li>Service will auto-start on next login</li>
+<li>Persists across reboots</li>
+</ul>
+<p><strong>Output</strong>:</p>
+<pre><code>✓ Service enabled (will start on login)
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Enable background service for daily use</li>
+<li>Set up auto-start after install</li>
+<li>Production deployment</li>
+</ul>
+<h4 id="disable"><a class="header" href="#disable">disable</a></h4>
+<p>Disable auto-start on login.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl disable [--json]
+</code></pre>
+<p><strong>What it does</strong>:</p>
+<ul>
+<li>Unloads service with <code>launchctl unload -w</code> flag</li>
+<li>Service will NOT auto-start on next login</li>
+<li>Stops currently running instance</li>
+</ul>
+<p><strong>Output</strong>:</p>
+<pre><code>✓ Service disabled (will not start on login)
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Temporarily disable background service</li>
+<li>Development workflow</li>
+<li>Troubleshooting</li>
+</ul>
+<h4 id="service-status"><a class="header" href="#service-status">service-status</a></h4>
+<p>Show detailed service installation and runtime status.</p>
+<p><strong>Syntax</strong>:</p>
+<pre><code class="language-bash">midimonctl service-status [--json]
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>MIDIMon Service Status
+──────────────────────────────────────────────────
+Status:          Installed and Loaded
+Service Label:   com.amiable.midimon
+Plist:           ~/Library/LaunchAgents/com.amiable.midimon.plist ✓
+Binary:          /usr/local/bin/midimon ✓
+
+Service is loaded (enabled)
+</code></pre>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Verify service is installed correctly</li>
+<li>Check if auto-start is enabled</li>
+<li>Troubleshoot service issues</li>
+<li>Audit service configuration</li>
+</ul>
 <h3 id="global-options"><a class="header" href="#global-options">Global Options</a></h3>
 <h4 id="--json"><a class="header" href="#--json">--json</a></h4>
 <p>Output in JSON format (for scripting/automation).</p>
@@ -748,9 +998,30 @@ if midimonctl reload --json | jq -e '.success'; then
 fi
 </code></pre>
 <h3 id="usage-examples"><a class="header" href="#usage-examples">Usage Examples</a></h3>
-<h4 id="example-1-development-workflow"><a class="header" href="#example-1-development-workflow">Example 1: Development Workflow</a></h4>
-<pre><code class="language-bash"># Start daemon in background
-cargo run --release --bin midimon 2 &amp;
+<h4 id="example-1-first-time-service-setup"><a class="header" href="#example-1-first-time-service-setup">Example 1: First-Time Service Setup</a></h4>
+<pre><code class="language-bash"># Build daemon
+cargo build --release --bin midimon
+
+# Install as LaunchAgent service
+midimonctl install
+
+# Enable auto-start on login
+midimonctl enable
+
+# Start service
+midimonctl start
+
+# Verify running
+midimonctl status
+
+# Check service details
+midimonctl service-status
+</code></pre>
+<h4 id="example-2-development-workflow"><a class="header" href="#example-2-development-workflow">Example 2: Development Workflow</a></h4>
+<pre><code class="language-bash"># Start daemon in foreground for testing
+cargo run --release --bin midimon 2 --foreground
+
+# In another terminal...
 
 # Check status
 midimonctl status
@@ -758,42 +1029,93 @@ midimonctl status
 # Edit config
 vim config.toml
 
-# Hot-reload changes
+# Hot-reload changes (zero downtime!)
 midimonctl reload
 
-# Test changes (no restart!)
+# Test changes immediately
+
+# Switch to different MIDI device
+midimonctl list-devices
+midimonctl set-device 1
 
 # Stop when done
+midimonctl shutdown
+</code></pre>
+<h4 id="example-3-service-management-workflow"><a class="header" href="#example-3-service-management-workflow">Example 3: Service Management Workflow</a></h4>
+<pre><code class="language-bash"># Check if service is installed
+midimonctl service-status
+
+# Start service if not running
+midimonctl start
+
+# Check which MIDI device is active
+midimonctl get-device
+
+# Switch to different device without restart
+midimonctl set-device 2
+
+# Restart service (apply changes that need full restart)
+midimonctl restart
+
+# Disable auto-start temporarily
+midimonctl disable
+
+# Stop service
 midimonctl stop
 </code></pre>
-<h4 id="example-2-production-monitoring"><a class="header" href="#example-2-production-monitoring">Example 2: Production Monitoring</a></h4>
-<pre><code class="language-bash"># Check daemon health
+<h4 id="example-4-production-monitoring"><a class="header" href="#example-4-production-monitoring">Example 4: Production Monitoring</a></h4>
+<pre><code class="language-bash">#!/bin/bash
+# monitor.sh - Health check script
+
+# Check daemon health
 if ! midimonctl ping --json | jq -e '.success'; then
-    systemctl --user restart midimon
+    echo "Daemon not responding, restarting..."
+    midimonctl restart
 fi
 
 # Get performance metrics
-midimonctl status --json | jq '.data.performance'
+RELOAD_MS=$(midimonctl status --json | jq '.data.reload_stats.avg_reload_ms')
+if [ "$RELOAD_MS" -gt 50 ]; then
+    echo "Warning: Average reload time ${RELOAD_MS}ms (expected &lt;50ms)"
+fi
+
+# Check MIDI device connectivity
+CONNECTED=$(midimonctl get-device --json | jq '.data.device.connected')
+if [ "$CONNECTED" != "true" ]; then
+    echo "MIDI device disconnected!"
+    # Try to reconnect
+    midimonctl list-devices
+fi
 </code></pre>
-<h4 id="example-3-configuration-management"><a class="header" href="#example-3-configuration-management">Example 3: Configuration Management</a></h4>
+<h4 id="example-5-configuration-management"><a class="header" href="#example-5-configuration-management">Example 5: Configuration Management</a></h4>
 <pre><code class="language-bash"># Validate before deploy
-midimonctl validate || exit 1
+if ! midimonctl validate --json | jq -e '.success'; then
+    echo "Config validation failed"
+    exit 1
+fi
+
+# Backup current config
+cp ~/.config/midimon/config.toml ~/.config/midimon/config.toml.backup
 
 # Deploy new config
 cp config-v2.toml ~/.config/midimon/config.toml
 
-# Apply changes
+# Apply changes (hot reload)
 midimonctl reload
 
-# Verify
+# Verify successful reload
 midimonctl status
+
+# If issues, rollback
+# cp ~/.config/midimon/config.toml.backup ~/.config/midimon/config.toml
+# midimonctl reload
 </code></pre>
-<h4 id="example-4-automated-testing"><a class="header" href="#example-4-automated-testing">Example 4: Automated Testing</a></h4>
+<h4 id="example-6-automated-testing"><a class="header" href="#example-6-automated-testing">Example 6: Automated Testing</a></h4>
 <pre><code class="language-bash">#!/bin/bash
 # test-config.sh
 
 # Validate syntax
-if ! midimonctl validate --json | jq -e '.success'; then
+if ! midimonctl validate --json | jq -e '.data.valid'; then
     echo "Config validation failed"
     exit 1
 fi
@@ -804,13 +1126,33 @@ if ! midimonctl reload --json | jq -e '.success'; then
     exit 1
 fi
 
-# Check reload latency
-LATENCY=$(midimonctl status --json | jq '.data.performance.last_reload_ms')
+# Check reload performance
+LATENCY=$(midimonctl status --json | jq '.data.reload_stats.last_reload_ms')
 if [ "$LATENCY" -gt 10 ]; then
     echo "Warning: Reload took ${LATENCY}ms (expected &lt;10ms)"
 fi
 
+# Verify device connection
+CONNECTED=$(midimonctl get-device --json | jq '.data.device.connected')
+if [ "$CONNECTED" != "true" ]; then
+    echo "Error: MIDI device not connected"
+    exit 1
+fi
+
 echo "✓ All checks passed"
+</code></pre>
+<h4 id="example-7-complete-uninstall"><a class="header" href="#example-7-complete-uninstall">Example 7: Complete Uninstall</a></h4>
+<pre><code class="language-bash"># Stop service
+midimonctl stop
+
+# Disable auto-start
+midimonctl disable
+
+# Uninstall service (with cleanup)
+midimonctl uninstall --remove-binary --remove-logs
+
+# Verify removal
+midimonctl service-status
 </code></pre>
 <h2 id="diagnostic-tools"><a class="header" href="#diagnostic-tools">Diagnostic Tools</a></h2>
 <p>MIDIMon includes several diagnostic utilities for debugging and configuration.</p>
@@ -1032,7 +1374,20 @@ Connection test: PASSED
 <tr><td><code>midimonctl validate</code></td><td>Validate config</td><td><code>midimonctl validate</code></td></tr>
 <tr><td><code>midimonctl ping</code></td><td>Health check</td><td><code>midimonctl ping</code></td></tr>
 <tr><td><code>midimonctl shutdown</code></td><td>Stop daemon (IPC)</td><td><code>midimonctl shutdown</code></td></tr>
-<tr><td><code>midimonctl stop</code></td><td>Stop service (LaunchAgent)</td><td><code>midimonctl stop</code></td></tr>
+<tr><td><code>midimonctl stop</code></td><td>Stop service (LaunchAgent)</td><td><code>midimonctl stop --force</code></td></tr>
+<tr><td><strong>Device Management</strong></td><td></td><td></td></tr>
+<tr><td><code>midimonctl list-devices</code></td><td>List MIDI devices</td><td><code>midimonctl list-devices</code></td></tr>
+<tr><td><code>midimonctl set-device</code></td><td>Switch MIDI device</td><td><code>midimonctl set-device 2</code></td></tr>
+<tr><td><code>midimonctl get-device</code></td><td>Show current device</td><td><code>midimonctl get-device</code></td></tr>
+<tr><td><strong>Service Management (macOS)</strong></td><td></td><td></td></tr>
+<tr><td><code>midimonctl install</code></td><td>Install LaunchAgent</td><td><code>midimonctl install --install-binary</code></td></tr>
+<tr><td><code>midimonctl uninstall</code></td><td>Remove service</td><td><code>midimonctl uninstall --remove-logs</code></td></tr>
+<tr><td><code>midimonctl start</code></td><td>Start service</td><td><code>midimonctl start --wait 10</code></td></tr>
+<tr><td><code>midimonctl restart</code></td><td>Restart service</td><td><code>midimonctl restart</code></td></tr>
+<tr><td><code>midimonctl enable</code></td><td>Enable auto-start</td><td><code>midimonctl enable</code></td></tr>
+<tr><td><code>midimonctl disable</code></td><td>Disable auto-start</td><td><code>midimonctl disable</code></td></tr>
+<tr><td><code>midimonctl service-status</code></td><td>Service status</td><td><code>midimonctl service-status</code></td></tr>
+<tr><td><strong>Global Options</strong></td><td></td><td></td></tr>
 <tr><td><code>--json</code></td><td>JSON output</td><td><code>midimonctl status --json</code></td></tr>
 <tr><td><strong>Diagnostic Tools</strong></td><td></td><td></td></tr>
 <tr><td><code>DEBUG=1</code></td><td>Enable debug log</td><td><code>DEBUG=1 midimon 2</code></td></tr>
