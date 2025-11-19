@@ -15512,6 +15512,1821 @@ checksum = "abc123..."
 </ul>
 <h2 id="community-plugins"><a class="header" href="#community-plugins">Community Plugins</a></h2>
 <p>Share your plugins with the community! Submit a PR to add your plugin to the <a href="https://github.com/amiable-dev/midimon-plugins">Plugin Registry</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="wasm-plugins"><a class="header" href="#wasm-plugins">WASM Plugins</a></h1>
+<p><strong>Since:</strong> v2.5
+<strong>Status:</strong> Production-ready</p>
+<p>MIDIMon's WASM (WebAssembly) plugin system provides a secure, sandboxed environment for running third-party plugins with enterprise-grade safety guarantees.</p>
+<h2 id="overview-16"><a class="header" href="#overview-16">Overview</a></h2>
+<p>WASM plugins offer several advantages over native plugins:</p>
+<ul>
+<li><strong>Security</strong>: Sandboxed execution with no direct system access</li>
+<li><strong>Portability</strong>: Write once, run anywhere (same binary on macOS/Linux/Windows)</li>
+<li><strong>Safety</strong>: Memory-safe execution, no undefined behavior</li>
+<li><strong>Isolation</strong>: Resource limits prevent runaway plugins</li>
+<li><strong>Verification</strong>: Cryptographic signatures ensure plugin integrity</li>
+</ul>
+<h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
+<pre><code>┌─────────────────────────────────────────────────────┐
+│  MIDIMon Core                                       │
+│  ┌───────────────────────────────────────────────┐ │
+│  │  WASM Runtime (wasmtime)                      │ │
+│  │  ┌─────────────────────────────────────────┐ │ │
+│  │  │  Plugin Instance                        │ │ │
+│  │  │  - Fuel metering (CPU limits)           │ │ │
+│  │  │  - Memory limits (128 MB default)       │ │ │
+│  │  │  - WASI filesystem sandboxing           │ │ │
+│  │  │  - Capability system (network, etc.)    │ │ │
+│  │  └─────────────────────────────────────────┘ │ │
+│  └───────────────────────────────────────────────┘ │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐ │
+│  │  Signature Verification (v2.7)                │ │
+│  │  - Ed25519 digital signatures                 │ │
+│  │  - SHA-256 integrity checking                 │ │
+│  │  - Trust management                           │ │
+│  └───────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+</code></pre>
+<h2 id="quick-comparison"><a class="header" href="#quick-comparison">Quick Comparison</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Native Plugins (v2.3)</th><th>WASM Plugins (v2.5+)</th></tr></thead><tbody>
+<tr><td><strong>Platform</strong></td><td>Platform-specific (.dylib/.so/.dll)</td><td>Universal (.wasm)</td></tr>
+<tr><td><strong>Security</strong></td><td>Full system access</td><td>Sandboxed</td></tr>
+<tr><td><strong>Memory Safety</strong></td><td>Depends on language</td><td>Guaranteed</td></tr>
+<tr><td><strong>Resource Limits</strong></td><td>None</td><td>CPU, memory, I/O</td></tr>
+<tr><td><strong>Installation</strong></td><td>Manual copy</td><td>Single file</td></tr>
+<tr><td><strong>Verification</strong></td><td>SHA256 checksum</td><td>Cryptographic signatures</td></tr>
+<tr><td><strong>Languages</strong></td><td>Rust, C, C++</td><td>Rust, C, C++, Go, Swift, Zig</td></tr>
+<tr><td><strong>Startup Time</strong></td><td>Fast (~1ms)</td><td>Fast (~10ms)</td></tr>
+<tr><td><strong>Runtime Overhead</strong></td><td>None</td><td>Minimal (~5%)</td></tr>
+</tbody></table>
+</div>
+<h2 id="plugin-lifecycle-1"><a class="header" href="#plugin-lifecycle-1">Plugin Lifecycle</a></h2>
+<ol>
+<li><strong>Load</strong> - WASM module loaded and validated</li>
+<li><strong>Verify</strong> (v2.7) - Cryptographic signature checked</li>
+<li><strong>Initialize</strong> - Plugin setup, capabilities granted</li>
+<li><strong>Execute</strong> - Plugin called for MIDI events</li>
+<li><strong>Shutdown</strong> - Cleanup and resource release</li>
+<li><strong>Unload</strong> - Module removed from memory</li>
+</ol>
+<h2 id="security-features"><a class="header" href="#security-features">Security Features</a></h2>
+<h3 id="resource-limiting-v27"><a class="header" href="#resource-limiting-v27">Resource Limiting (v2.7)</a></h3>
+<p><strong>Fuel Metering:</strong></p>
+<ul>
+<li>CPU execution limited to prevent infinite loops</li>
+<li>Default: 100 million instructions (~100ms)</li>
+<li>Configurable per-plugin</li>
+</ul>
+<p><strong>Memory Limits:</strong></p>
+<ul>
+<li>Default: 128 MB</li>
+<li>Prevents memory exhaustion</li>
+<li>Enforced by WASM runtime</li>
+</ul>
+<p><strong>Table Growth Limits:</strong></p>
+<ul>
+<li>Prevents unbounded table allocation</li>
+<li>Maximum elements configurable</li>
+</ul>
+<h3 id="filesystem-sandboxing-v27"><a class="header" href="#filesystem-sandboxing-v27">Filesystem Sandboxing (v2.7)</a></h3>
+<p><strong>Directory Preopening:</strong></p>
+<ul>
+<li>WASI filesystem isolated to specific directories</li>
+<li>Default: <code>~/.local/share/midimon/plugin-data/</code> (Linux)</li>
+<li>Default: <code>~/Library/Application Support/midimon/plugin-data/</code> (macOS)</li>
+<li>Plugins cannot access files outside sandbox</li>
+</ul>
+<h3 id="cryptographic-signatures-v27"><a class="header" href="#cryptographic-signatures-v27">Cryptographic Signatures (v2.7)</a></h3>
+<p><strong>Ed25519 Digital Signatures:</strong></p>
+<ul>
+<li>Industry-standard cryptography</li>
+<li>256-bit security level</li>
+<li>Signature file: <code>&lt;plugin&gt;.wasm.sig</code></li>
+</ul>
+<p><strong>Three-Tier Trust Model:</strong></p>
+<ol>
+<li><strong>Unsigned</strong> - Development only (optional signatures)</li>
+<li><strong>Self-Signed</strong> - Valid signature from any key</li>
+<li><strong>Trusted Keys</strong> - Signature must match trusted key list</li>
+</ol>
+<h2 id="capability-system-1"><a class="header" href="#capability-system-1">Capability System</a></h2>
+<p>Plugins request capabilities to access system resources:</p>
+<div class="table-wrapper"><table><thead><tr><th>Capability</th><th>Risk</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>Network</code></td><td>🟢 Low</td><td>HTTP requests, WebSocket</td></tr>
+<tr><td><code>Filesystem</code></td><td>🟡 Medium</td><td>Read/write files (sandboxed)</td></tr>
+<tr><td><code>Subprocess</code></td><td>🔴 High</td><td>Execute shell commands</td></tr>
+<tr><td><code>SystemControl</code></td><td>🔴 High</td><td>System-level operations</td></tr>
+</tbody></table>
+</div>
+<p><strong>Risk Levels:</strong></p>
+<ul>
+<li>🟢 <strong>Low</strong>: Auto-granted</li>
+<li>🟡 <strong>Medium</strong>: User approval required</li>
+<li>🔴 <strong>High</strong>: Explicit approval with warning</li>
+</ul>
+<h2 id="example-spotify-plugin"><a class="header" href="#example-spotify-plugin">Example: Spotify Plugin</a></h2>
+<pre><code class="language-rust">use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize)]
+struct SpotifyParams {
+    action: String,  // "play", "pause", "next", "previous"
+}
+
+#[no_mangle]
+pub extern "C" fn init() {
+    // Plugin initialization
+}
+
+#[no_mangle]
+pub extern "C" fn execute(params_json: *const u8, params_len: usize) -&gt; i32 {
+    // Parse parameters
+    let params_bytes = unsafe {
+        std::slice::from_raw_parts(params_json, params_len)
+    };
+    let params: SpotifyParams = serde_json::from_slice(params_bytes)
+        .expect("Invalid params");
+
+    // Control Spotify via Web API
+    match params.action.as_str() {
+        "play" =&gt; spotify_play(),
+        "pause" =&gt; spotify_pause(),
+        "next" =&gt; spotify_next(),
+        "previous" =&gt; spotify_previous(),
+        _ =&gt; return 1, // Error
+    }
+
+    0 // Success
+}</code></pre>
+<h2 id="building-wasm-plugins"><a class="header" href="#building-wasm-plugins">Building WASM Plugins</a></h2>
+<h3 id="prerequisites-6"><a class="header" href="#prerequisites-6">Prerequisites</a></h3>
+<pre><code class="language-bash"># Add WASM target
+rustup target add wasm32-wasip1
+</code></pre>
+<h3 id="project-setup"><a class="header" href="#project-setup">Project Setup</a></h3>
+<pre><code class="language-toml"># Cargo.toml
+[package]
+name = "my-wasm-plugin"
+version = "1.0.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+</code></pre>
+<h3 id="build"><a class="header" href="#build">Build</a></h3>
+<pre><code class="language-bash">cargo build --target wasm32-wasip1 --release
+</code></pre>
+<p>Output: <code>target/wasm32-wasip1/release/my_wasm_plugin.wasm</code></p>
+<h2 id="plugin-distribution"><a class="header" href="#plugin-distribution">Plugin Distribution</a></h2>
+<h3 id="recommended-structure"><a class="header" href="#recommended-structure">Recommended Structure</a></h3>
+<pre><code>my-plugin/
+├── my_plugin.wasm           # WASM binary
+├── my_plugin.wasm.sig       # Cryptographic signature (v2.7)
+├── README.md                # Documentation
+└── LICENSE                  # License file
+</code></pre>
+<h3 id="signing-your-plugin-v27"><a class="header" href="#signing-your-plugin-v27">Signing Your Plugin (v2.7)</a></h3>
+<pre><code class="language-bash"># Generate keypair (one-time)
+midimon-sign generate-key ~/.midimon/my-plugin-key
+
+# Sign plugin
+midimon-sign sign my_plugin.wasm ~/.midimon/my-plugin-key \
+  --name "Your Name" \
+  --email "you@example.com"
+
+# Verify signature
+midimon-sign verify my_plugin.wasm
+</code></pre>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<h3 id="user-installation"><a class="header" href="#user-installation">User Installation</a></h3>
+<pre><code class="language-bash"># Copy plugin to MIDIMon directory
+mkdir -p ~/.midimon/wasm-plugins/
+cp my_plugin.wasm ~/.midimon/wasm-plugins/
+cp my_plugin.wasm.sig ~/.midimon/wasm-plugins/  # v2.7
+</code></pre>
+<h3 id="configuration-3"><a class="header" href="#configuration-3">Configuration</a></h3>
+<pre><code class="language-toml"># config.toml
+[[modes.mappings]]
+trigger = { Note = { note = 60 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/my_plugin.wasm",
+    params = {
+        "action": "play"
+    }
+}}
+</code></pre>
+<h2 id="official-plugins"><a class="header" href="#official-plugins">Official Plugins</a></h2>
+<p>MIDIMon provides several official WASM plugins:</p>
+<h3 id="spotify-control"><a class="header" href="#spotify-control">Spotify Control</a></h3>
+<p><strong>File:</strong> <code>midimon_wasm_spotify.wasm</code>
+<strong>Capabilities:</strong> Network
+<strong>Actions:</strong> play, pause, next, previous, volume, shuffle, repeat</p>
+<h3 id="obs-studio-control"><a class="header" href="#obs-studio-control">OBS Studio Control</a></h3>
+<p><strong>File:</strong> <code>midimon_wasm_obs_control.wasm</code>
+<strong>Capabilities:</strong> Network
+<strong>Actions:</strong> scene switching, recording, streaming, mute/unmute</p>
+<h3 id="system-utilities"><a class="header" href="#system-utilities">System Utilities</a></h3>
+<p><strong>File:</strong> <code>midimon_wasm_system_utils.wasm</code>
+<strong>Capabilities:</strong> SystemControl
+<strong>Actions:</strong> lock screen, sleep, notifications, brightness</p>
+<h2 id="performance-4"><a class="header" href="#performance-4">Performance</a></h2>
+<p><strong>Typical Execution Times:</strong></p>
+<ul>
+<li>Plugin load: ~10ms (one-time)</li>
+<li>First execution: ~5ms (JIT compilation)</li>
+<li>Subsequent executions: &lt;1ms</li>
+<li>Memory overhead: ~2-5 MB per plugin</li>
+</ul>
+<p><strong>Optimization Tips:</strong></p>
+<ul>
+<li>Keep plugins small (&lt;1 MB ideal)</li>
+<li>Minimize allocations in hot paths</li>
+<li>Use <code>wasm-opt</code> for size/speed optimization</li>
+<li>Profile with <code>wasmtime::Store::fuel_consumed()</code></li>
+</ul>
+<h2 id="troubleshooting-21"><a class="header" href="#troubleshooting-21">Troubleshooting</a></h2>
+<h3 id="plugin-fails-to-load-1"><a class="header" href="#plugin-fails-to-load-1">Plugin Fails to Load</a></h3>
+<p><strong>Check WASM target:</strong></p>
+<pre><code class="language-bash">file my_plugin.wasm
+# Should show: WebAssembly (wasm) binary module version 0x1
+</code></pre>
+<p><strong>Verify WASI compatibility:</strong></p>
+<pre><code class="language-bash">wasm-objdump -x my_plugin.wasm | grep -A5 "Import"
+# Should show WASI imports like wasi_snapshot_preview1
+</code></pre>
+<h3 id="out-of-fuel-error"><a class="header" href="#out-of-fuel-error">Out of Fuel Error</a></h3>
+<p>Increase fuel limit in configuration:</p>
+<pre><code class="language-rust">let mut config = WasmConfig::default();
+config.max_fuel = 200_000_000;  // 200M instructions</code></pre>
+<h3 id="memory-limit-exceeded"><a class="header" href="#memory-limit-exceeded">Memory Limit Exceeded</a></h3>
+<p>Increase memory limit:</p>
+<pre><code class="language-rust">config.max_memory_bytes = 256 * 1024 * 1024;  // 256 MB</code></pre>
+<h3 id="signature-verification-failed"><a class="header" href="#signature-verification-failed">Signature Verification Failed</a></h3>
+<pre><code class="language-bash"># Verify signature manually
+midimon-sign verify my_plugin.wasm
+
+# Check if key is trusted
+midimon-sign trust list
+
+# Add key to trusted list
+midimon-sign trust add &lt;public-key-hex&gt; "Plugin Author"
+</code></pre>
+<h2 id="next-steps-15"><a class="header" href="#next-steps-15">Next Steps</a></h2>
+<ul>
+<li><a href="development/wasm-plugin-development.html">WASM Plugin Development Guide</a> - Complete development tutorial</li>
+<li><a href="development/plugin-security.html">Plugin Security</a> - Signing and verification</li>
+<li><a href="development/plugin-examples.html">Plugin Examples</a> - Real-world examples</li>
+<li><a href="development/../reference/wasm-plugin-api.html">Plugin API Reference</a> - API documentation</li>
+</ul>
+<h2 id="version-history"><a class="header" href="#version-history">Version History</a></h2>
+<ul>
+<li><strong>v2.5</strong> - Initial WASM plugin runtime</li>
+<li><strong>v2.6</strong> - Example plugins (Spotify, OBS, System Utils)</li>
+<li><strong>v2.7</strong> - Security hardening:
+<ul>
+<li>Resource limiting (fuel, memory, tables)</li>
+<li>Directory preopening (filesystem sandboxing)</li>
+<li>Plugin signing/verification (Ed25519)</li>
+</ul>
+</li>
+</ul>
+<h2 id="further-reading-3"><a class="header" href="#further-reading-3">Further Reading</a></h2>
+<ul>
+<li><a href="https://webassembly.org/docs/security/">WebAssembly Security</a></li>
+<li><a href="https://wasi.dev/">WASI Documentation</a></li>
+<li><a href="https://docs.wasmtime.dev/">wasmtime Guide</a></li>
+<li><a href="https://rustwasm.github.io/docs/book/">Rust and WebAssembly</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="wasm-plugin-development"><a class="header" href="#wasm-plugin-development">WASM Plugin Development</a></h1>
+<p>This guide walks you through creating a WASM plugin for MIDIMon from scratch.</p>
+<h2 id="prerequisites-7"><a class="header" href="#prerequisites-7">Prerequisites</a></h2>
+<h3 id="install-rust-wasm-target"><a class="header" href="#install-rust-wasm-target">Install Rust WASM Target</a></h3>
+<pre><code class="language-bash">rustup target add wasm32-wasip1
+</code></pre>
+<h3 id="verify-installation"><a class="header" href="#verify-installation">Verify Installation</a></h3>
+<pre><code class="language-bash">rustup target list | grep wasm32-wasip1
+# Should show: wasm32-wasip1 (installed)
+</code></pre>
+<h2 id="creating-your-first-plugin"><a class="header" href="#creating-your-first-plugin">Creating Your First Plugin</a></h2>
+<h3 id="1-project-setup"><a class="header" href="#1-project-setup">1. Project Setup</a></h3>
+<pre><code class="language-bash"># Create new library project
+cargo new --lib my-midi-plugin
+cd my-midi-plugin
+</code></pre>
+<h3 id="2-configure-cargotoml-1"><a class="header" href="#2-configure-cargotoml-1">2. Configure Cargo.toml</a></h3>
+<pre><code class="language-toml">[package]
+name = "my-midi-plugin"
+version = "1.0.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]  # Required for WASM
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[profile.release]
+opt-level = "z"     # Optimize for size
+lto = true          # Link-time optimization
+codegen-units = 1   # Better optimization
+strip = true        # Remove debug symbols
+</code></pre>
+<h3 id="3-implement-plugin-logic"><a class="header" href="#3-implement-plugin-logic">3. Implement Plugin Logic</a></h3>
+<pre><code class="language-rust">// src/lib.rs
+use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize)]
+struct PluginParams {
+    message: String,
+}
+
+#[derive(Serialize)]
+struct PluginResult {
+    success: bool,
+    output: String,
+}
+
+/// Initialize plugin (called once on load)
+#[no_mangle]
+pub extern "C" fn init() {
+    eprintln!("Plugin initialized");
+}
+
+/// Execute plugin action
+#[no_mangle]
+pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -&gt; i32 {
+    // Parse input parameters
+    let params_bytes = unsafe {
+        std::slice::from_raw_parts(params_ptr, params_len)
+    };
+
+    let params: PluginParams = match serde_json::from_slice(params_bytes) {
+        Ok(p) =&gt; p,
+        Err(e) =&gt; {
+            eprintln!("Failed to parse params: {}", e);
+            return 1;  // Error code
+        }
+    };
+
+    // Plugin logic
+    eprintln!("Received message: {}", params.message);
+
+    // Return success
+    0
+}
+
+/// Cleanup (called before unload)
+#[no_mangle]
+pub extern "C" fn shutdown() {
+    eprintln!("Plugin shutting down");
+}</code></pre>
+<h3 id="4-build-the-plugin"><a class="header" href="#4-build-the-plugin">4. Build the Plugin</a></h3>
+<pre><code class="language-bash">cargo build --target wasm32-wasip1 --release
+</code></pre>
+<p>Output file: <code>target/wasm32-wasip1/release/my_midi_plugin.wasm</code></p>
+<h3 id="5-test-the-plugin"><a class="header" href="#5-test-the-plugin">5. Test the Plugin</a></h3>
+<p>Create <code>test_config.toml</code>:</p>
+<pre><code class="language-toml">[[modes]]
+name = "Default"
+
+[[modes.mappings]]
+trigger = { Note = { note = 60 } }  # Middle C
+action = { WasmPlugin = {
+    path = "target/wasm32-wasip1/release/my_midi_plugin.wasm",
+    params = {
+        "message": "Hello from MIDI!"
+    }
+}}
+</code></pre>
+<h2 id="advanced-examples"><a class="header" href="#advanced-examples">Advanced Examples</a></h2>
+<h3 id="example-1-http-request-plugin"><a class="header" href="#example-1-http-request-plugin">Example 1: HTTP Request Plugin</a></h3>
+<pre><code class="language-rust">use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize)]
+struct HttpParams {
+    url: String,
+    method: String,
+}
+
+#[no_mangle]
+pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -&gt; i32 {
+    let params_bytes = unsafe {
+        std::slice::from_raw_parts(params_ptr, params_len)
+    };
+
+    let params: HttpParams = serde_json::from_slice(params_bytes)
+        .expect("Invalid params");
+
+    // Note: Requires Network capability
+    // This is a simplified example - real implementation would use reqwest
+    eprintln!("Making {} request to {}", params.method, params.url);
+
+    0
+}</code></pre>
+<p><strong>Required Capability:</strong> <code>Network</code></p>
+<h3 id="example-2-file-logger-plugin"><a class="header" href="#example-2-file-logger-plugin">Example 2: File Logger Plugin</a></h3>
+<pre><code class="language-rust">use std::fs::OpenOptions;
+use std::io::Write;
+
+#[derive(Deserialize)]
+struct LogParams {
+    message: String,
+    level: String,  // "info", "warn", "error"
+}
+
+#[no_mangle]
+pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -&gt; i32 {
+    let params_bytes = unsafe {
+        std::slice::from_raw_parts(params_ptr, params_len)
+    };
+
+    let params: LogParams = serde_json::from_slice(params_bytes)
+        .expect("Invalid params");
+
+    // Write to sandboxed directory
+    // Path: ~/Library/Application Support/midimon/plugin-data/
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("/plugin.log")  // Sandboxed path
+        .expect("Failed to open log file");
+
+    let timestamp = chrono::Utc::now().to_rfc3339();
+    writeln!(file, "[{}] {}: {}",
+        timestamp, params.level, params.message)
+        .expect("Failed to write log");
+
+    0
+}</code></pre>
+<p><strong>Required Capability:</strong> <code>Filesystem</code></p>
+<h3 id="example-3-velocity-responsive-plugin"><a class="header" href="#example-3-velocity-responsive-plugin">Example 3: Velocity-Responsive Plugin</a></h3>
+<pre><code class="language-rust">#[derive(Deserialize)]
+struct VelocityParams {
+    action: String,
+}
+
+#[derive(Deserialize)]
+struct TriggerContext {
+    velocity: Option&lt;u8&gt;,
+    mode: Option&lt;u8&gt;,
+}
+
+#[no_mangle]
+pub extern "C" fn execute_with_context(
+    params_ptr: *const u8,
+    params_len: usize,
+    context_ptr: *const u8,
+    context_len: usize,
+) -&gt; i32 {
+    let params_bytes = unsafe {
+        std::slice::from_raw_parts(params_ptr, params_len)
+    };
+    let context_bytes = unsafe {
+        std::slice::from_raw_parts(context_ptr, context_len)
+    };
+
+    let params: VelocityParams = serde_json::from_slice(params_bytes)
+        .expect("Invalid params");
+    let context: TriggerContext = serde_json::from_slice(context_bytes)
+        .expect("Invalid context");
+
+    let velocity = context.velocity.unwrap_or(0);
+
+    // Adjust action based on velocity
+    match velocity {
+        0..=40 =&gt; eprintln!("Soft press: {}", params.action),
+        41..=80 =&gt; eprintln!("Medium press: {}", params.action),
+        81..=127 =&gt; eprintln!("Hard press: {}", params.action),
+    }
+
+    0
+}</code></pre>
+<h2 id="capability-declaration"><a class="header" href="#capability-declaration">Capability Declaration</a></h2>
+<h3 id="declaring-capabilities"><a class="header" href="#declaring-capabilities">Declaring Capabilities</a></h3>
+<p>Capabilities are declared via a metadata function:</p>
+<pre><code class="language-rust">#[no_mangle]
+pub extern "C" fn capabilities() -&gt; *const u8 {
+    let caps = vec!["Network", "Filesystem"];
+    let json = serde_json::to_string(&amp;caps).unwrap();
+    let boxed = Box::new(json.into_bytes());
+    Box::into_raw(boxed) as *const u8
+}</code></pre>
+<h3 id="available-capabilities"><a class="header" href="#available-capabilities">Available Capabilities</a></h3>
+<pre><code class="language-rust">// Low risk - auto-granted
+"Network"      // HTTP requests, WebSocket
+"Audio"        // Audio device access
+"Midi"         // MIDI device access
+
+// Medium risk - user approval
+"Filesystem"   // File read/write (sandboxed)
+
+// High risk - explicit approval
+"Subprocess"   // Shell command execution
+"SystemControl" // System-level operations</code></pre>
+<h2 id="resource-limits"><a class="header" href="#resource-limits">Resource Limits</a></h2>
+<h3 id="fuel-cpu-limits"><a class="header" href="#fuel-cpu-limits">Fuel (CPU) Limits</a></h3>
+<p>Plugins are limited by "fuel" (instruction count):</p>
+<pre><code class="language-rust">// MIDIMon automatically limits plugins to 100M instructions
+// This prevents infinite loops and excessive CPU usage
+
+// Check remaining fuel (from plugin side):
+#[no_mangle]
+pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -&gt; i32 {
+    // Your plugin code...
+
+    // MIDIMon will automatically terminate if fuel runs out
+    0
+}</code></pre>
+<p><strong>Default:</strong> 100,000,000 instructions (~100ms execution time)</p>
+<h3 id="memory-limits"><a class="header" href="#memory-limits">Memory Limits</a></h3>
+<p><strong>Default:</strong> 128 MB per plugin</p>
+<pre><code class="language-rust">// MIDIMon enforces memory limits automatically
+// Allocations beyond the limit will fail
+
+#[no_mangle]
+pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -&gt; i32 {
+    // Be mindful of memory allocations
+    let large_buffer = vec![0u8; 1024 * 1024];  // 1 MB - OK
+    // let huge_buffer = vec![0u8; 200 * 1024 * 1024];  // 200 MB - Would fail
+
+    0
+}</code></pre>
+<h3 id="filesystem-sandbox"><a class="header" href="#filesystem-sandbox">Filesystem Sandbox</a></h3>
+<p>Plugins with <code>Filesystem</code> capability can only access:</p>
+<p><strong>macOS:</strong> <code>~/Library/Application Support/midimon/plugin-data/</code>
+<strong>Linux:</strong> <code>~/.local/share/midimon/plugin-data/</code>
+<strong>Windows:</strong> <code>%APPDATA%\midimon\plugin-data\</code></p>
+<pre><code class="language-rust">// These paths are relative to the sandbox root:
+let ok_path = "/my-data.json";          // OK - sandboxed
+let ok_path2 = "/subdir/file.txt";      // OK - sandboxed
+// let bad_path = "/etc/passwd";         // BLOCKED - outside sandbox
+// let bad_path2 = "../../../etc/passwd"; // BLOCKED - path traversal</code></pre>
+<h2 id="optimization"><a class="header" href="#optimization">Optimization</a></h2>
+<h3 id="size-optimization"><a class="header" href="#size-optimization">Size Optimization</a></h3>
+<pre><code class="language-toml"># Cargo.toml
+[profile.release]
+opt-level = "z"     # Optimize for size
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"     # Smaller panic handling
+</code></pre>
+<h3 id="post-build-optimization"><a class="header" href="#post-build-optimization">Post-Build Optimization</a></h3>
+<pre><code class="language-bash"># Install wasm-opt
+cargo install wasm-opt
+
+# Optimize WASM binary
+wasm-opt -Oz \
+  target/wasm32-wasip1/release/my_plugin.wasm \
+  -o target/wasm32-wasip1/release/my_plugin_opt.wasm
+
+# Check size reduction
+ls -lh target/wasm32-wasip1/release/*.wasm
+</code></pre>
+<h3 id="performance-tips-1"><a class="header" href="#performance-tips-1">Performance Tips</a></h3>
+<ol>
+<li>
+<p><strong>Minimize allocations in hot paths</strong></p>
+<pre><code class="language-rust">// Bad: allocates on every call
+fn process(data: &amp;str) -&gt; String {
+    format!("Processed: {}", data)
+}
+
+// Good: reuse buffer
+fn process(data: &amp;str, buffer: &amp;mut String) {
+    buffer.clear();
+    buffer.push_str("Processed: ");
+    buffer.push_str(data);
+}</code></pre>
+</li>
+<li>
+<p><strong>Use static data when possible</strong></p>
+<pre><code class="language-rust">// Bad: allocates vec on every call
+fn get_options() -&gt; Vec&lt;String&gt; {
+    vec!["option1".to_string(), "option2".to_string()]
+}
+
+// Good: static slice
+const OPTIONS: &amp;[&amp;str] = &amp;["option1", "option2"];</code></pre>
+</li>
+<li>
+<p><strong>Lazy initialization</strong></p>
+<pre><code class="language-rust">use std::sync::OnceLock;
+
+static HTTP_CLIENT: OnceLock&lt;reqwest::Client&gt; = OnceLock::new();
+
+fn get_client() -&gt; &amp;'static reqwest::Client {
+    HTTP_CLIENT.get_or_init(|| reqwest::Client::new())
+}</code></pre>
+</li>
+</ol>
+<h2 id="testing-1"><a class="header" href="#testing-1">Testing</a></h2>
+<h3 id="unit-tests"><a class="header" href="#unit-tests">Unit Tests</a></h3>
+<pre><code class="language-rust">#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_params() {
+        let params = r#"{"message": "test"}"#;
+        let parsed: PluginParams = serde_json::from_str(params).unwrap();
+        assert_eq!(parsed.message, "test");
+    }
+}</code></pre>
+<h3 id="integration-testing"><a class="header" href="#integration-testing">Integration Testing</a></h3>
+<pre><code class="language-bash"># Build plugin
+cargo build --target wasm32-wasip1 --release
+
+# Test with wasmtime
+wasmtime target/wasm32-wasip1/release/my_plugin.wasm
+
+# Or use MIDIMon directly
+midimon --config test_config.toml 0
+</code></pre>
+<h2 id="debugging-1"><a class="header" href="#debugging-1">Debugging</a></h2>
+<h3 id="enable-debug-logging"><a class="header" href="#enable-debug-logging">Enable Debug Logging</a></h3>
+<pre><code class="language-rust">#[no_mangle]
+pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -&gt; i32 {
+    // Use eprintln! for debug output
+    eprintln!("DEBUG: Received {} bytes", params_len);
+    eprintln!("DEBUG: Params: {:?}", params);
+
+    // This appears in MIDIMon's stderr
+    0
+}</code></pre>
+<h3 id="run-with-debug-output"><a class="header" href="#run-with-debug-output">Run with Debug Output</a></h3>
+<pre><code class="language-bash"># See plugin debug output
+DEBUG=1 midimon --config test_config.toml 0 2&gt;&amp;1 | grep "DEBUG:"
+</code></pre>
+<h3 id="common-issues"><a class="header" href="#common-issues">Common Issues</a></h3>
+<p><strong>Plugin not loading:</strong></p>
+<pre><code class="language-bash"># Verify WASM format
+file target/wasm32-wasip1/release/my_plugin.wasm
+# Should show: WebAssembly (wasm) binary module
+
+# Check for WASI imports
+wasm-objdump -x target/wasm32-wasip1/release/my_plugin.wasm | grep wasi
+</code></pre>
+<p><strong>Out of fuel error:</strong></p>
+<ul>
+<li>Reduce computation in execute()</li>
+<li>Move heavy work to init()</li>
+<li>Use lazy initialization</li>
+</ul>
+<p><strong>Memory limit exceeded:</strong></p>
+<ul>
+<li>Reduce buffer sizes</li>
+<li>Use streaming instead of loading entire data</li>
+<li>Profile with <code>cargo-bloat</code></li>
+</ul>
+<h2 id="signing-your-plugin"><a class="header" href="#signing-your-plugin">Signing Your Plugin</a></h2>
+<p><strong>See:</strong> <a href="development/plugin-security.html">Plugin Security Guide</a> for complete signing instructions.</p>
+<p><strong>Quick reference:</strong></p>
+<pre><code class="language-bash"># Generate keypair (one-time)
+midimon-sign generate-key ~/.midimon/my-key
+
+# Sign plugin
+midimon-sign sign \
+  target/wasm32-wasip1/release/my_plugin.wasm \
+  ~/.midimon/my-key \
+  --name "Your Name" \
+  --email "you@example.com"
+
+# Creates: my_plugin.wasm.sig
+</code></pre>
+<h2 id="distribution-2"><a class="header" href="#distribution-2">Distribution</a></h2>
+<h3 id="package-structure-1"><a class="header" href="#package-structure-1">Package Structure</a></h3>
+<pre><code>my-midi-plugin/
+├── my_plugin.wasm           # Binary
+├── my_plugin.wasm.sig       # Signature
+├── README.md                # Documentation
+├── LICENSE                  # License
+└── examples/
+    └── config.toml          # Example configuration
+</code></pre>
+<h3 id="readme-template"><a class="header" href="#readme-template">README Template</a></h3>
+<pre><code class="language-markdown"># My MIDI Plugin
+
+Brief description of what your plugin does.
+
+## Installation
+
+1. Download `my_plugin.wasm` and `my_plugin.wasm.sig`
+2. Copy to `~/.midimon/wasm-plugins/`
+3. Add to configuration (see example)
+
+## Configuration
+
+\```toml
+[[modes.mappings]]
+trigger = { Note = { note = 60 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/my_plugin.wasm",
+    params = {
+        "param1": "value1"
+    }
+}}
+\```
+
+## Parameters
+
+- `param1`: Description
+- `param2`: Description
+
+## Capabilities
+
+- Network: For HTTP requests
+- Filesystem: For data persistence
+
+## License
+
+MIT
+</code></pre>
+<h2 id="next-steps-16"><a class="header" href="#next-steps-16">Next Steps</a></h2>
+<ul>
+<li><a href="development/plugin-security.html">Plugin Security</a> - Signing and verification</li>
+<li><a href="development/plugin-examples.html">Plugin Examples</a> - Real-world examples</li>
+<li><a href="development/wasm-plugins.html">WASM Plugins Overview</a> - Architecture and concepts</li>
+</ul>
+<h2 id="resources"><a class="header" href="#resources">Resources</a></h2>
+<ul>
+<li><a href="https://rustwasm.github.io/docs/book/">Rust and WebAssembly Book</a></li>
+<li><a href="https://wasi.dev/">WASI Documentation</a></li>
+<li><a href="https://docs.wasmtime.dev/">wasmtime Guide</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="plugin-security"><a class="header" href="#plugin-security">Plugin Security</a></h1>
+<p><strong>Since:</strong> v2.7
+<strong>Status:</strong> Production-ready</p>
+<p>MIDIMon provides enterprise-grade security for WASM plugins through cryptographic signatures, resource limiting, and filesystem sandboxing.</p>
+<h2 id="security-architecture"><a class="header" href="#security-architecture">Security Architecture</a></h2>
+<pre><code>┌─────────────────────────────────────────────────┐
+│  Security Layers                                │
+│                                                 │
+│  ┌───────────────────────────────────────────┐ │
+│  │  Layer 1: Cryptographic Verification     │ │
+│  │  - Ed25519 digital signatures             │ │
+│  │  - SHA-256 integrity checking             │ │
+│  │  - Trust management                       │ │
+│  └───────────────────────────────────────────┘ │
+│                                                 │
+│  ┌───────────────────────────────────────────┐ │
+│  │  Layer 2: Resource Limiting               │ │
+│  │  - CPU fuel metering (100M instructions)  │ │
+│  │  - Memory limits (128 MB)                 │ │
+│  │  - Table growth limits                    │ │
+│  └───────────────────────────────────────────┘ │
+│                                                 │
+│  ┌───────────────────────────────────────────┐ │
+│  │  Layer 3: Filesystem Sandboxing           │ │
+│  │  - Directory preopening (WASI)            │ │
+│  │  - Path validation                        │ │
+│  │  - No escape from sandbox                 │ │
+│  └───────────────────────────────────────────┘ │
+│                                                 │
+│  ┌───────────────────────────────────────────┐ │
+│  │  Layer 4: Capability System               │ │
+│  │  - Explicit permission model              │ │
+│  │  - Risk-based approval                    │ │
+│  │  - Revocable grants                       │ │
+│  └───────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────┘
+</code></pre>
+<h2 id="plugin-signing"><a class="header" href="#plugin-signing">Plugin Signing</a></h2>
+<h3 id="overview-17"><a class="header" href="#overview-17">Overview</a></h3>
+<p>Plugin signing uses <strong>Ed25519 digital signatures</strong> to ensure:</p>
+<ul>
+<li><strong>Authenticity</strong>: Plugin comes from claimed developer</li>
+<li><strong>Integrity</strong>: Plugin hasn't been tampered with</li>
+<li><strong>Non-repudiation</strong>: Developer cannot deny signing</li>
+</ul>
+<h3 id="cli-tool-midimon-sign"><a class="header" href="#cli-tool-midimon-sign">CLI Tool: midimon-sign</a></h3>
+<h4 id="installation-1"><a class="header" href="#installation-1">Installation</a></h4>
+<pre><code class="language-bash"># Build with signing support
+cargo build --package midimon-daemon \
+  --bin midimon-sign \
+  --features plugin-signing \
+  --release
+</code></pre>
+<p>Binary location: <code>target/release/midimon-sign</code></p>
+<h3 id="signing-workflow"><a class="header" href="#signing-workflow">Signing Workflow</a></h3>
+<h4 id="1-generate-keypair"><a class="header" href="#1-generate-keypair">1. Generate Keypair</a></h4>
+<pre><code class="language-bash">midimon-sign generate-key ~/.midimon/my-plugin-key
+</code></pre>
+<p><strong>Output:</strong></p>
+<ul>
+<li><code>~/.midimon/my-plugin-key.private</code> (32 bytes, keep secure!)</li>
+<li><code>~/.midimon/my-plugin-key.public</code> (hex-encoded)</li>
+<li>Public key displayed in terminal</li>
+</ul>
+<p><strong>Example output:</strong></p>
+<pre><code>Generating Ed25519 keypair...
+✓ Keypair generated successfully!
+
+Private key: /Users/you/.midimon/my-plugin-key.private
+Public key:  /Users/you/.midimon/my-plugin-key.public
+
+Public key (hex): 3dab8dbfaeb804085e879791d395d6afabe268535a2bc98ea70afa1edd291cca
+
+⚠️  Keep your private key secure and never share it!
+</code></pre>
+<h4 id="2-sign-plugin"><a class="header" href="#2-sign-plugin">2. Sign Plugin</a></h4>
+<pre><code class="language-bash">midimon-sign sign my_plugin.wasm ~/.midimon/my-plugin-key \
+  --name "Your Name" \
+  --email "you@example.com"
+</code></pre>
+<p><strong>Creates:</strong> <code>my_plugin.wasm.sig</code> (JSON signature metadata)</p>
+<p><strong>Example signature file:</strong></p>
+<pre><code class="language-json">{
+  "version": 1,
+  "algorithm": "Ed25519",
+  "plugin_hash": "a1b2c3d4...",
+  "plugin_size": 123456,
+  "public_key": "3dab8dbf...",
+  "signature": "9f8e7d6c...",
+  "signed_at": "2025-11-19T08:59:12Z",
+  "developer": {
+    "name": "Your Name",
+    "email": "you@example.com"
+  }
+}
+</code></pre>
+<h4 id="3-verify-signature"><a class="header" href="#3-verify-signature">3. Verify Signature</a></h4>
+<pre><code class="language-bash">midimon-sign verify my_plugin.wasm
+</code></pre>
+<p><strong>Example output:</strong></p>
+<pre><code>Verifying plugin: my_plugin.wasm
+Signature file: "my_plugin.wasm.sig"
+Trusted keys: 1
+
+Signature Details:
+  Version:     1
+  Algorithm:   Ed25519
+  Signed at:   2025-11-19T08:59:12Z
+  Developer:   Your Name &lt;you@example.com&gt;
+  Public key:  3dab8dbf...
+
+✓ Signature verified successfully!
+✓ Plugin signed by trusted key
+</code></pre>
+<h4 id="4-manage-trusted-keys"><a class="header" href="#4-manage-trusted-keys">4. Manage Trusted Keys</a></h4>
+<p><strong>Add trusted key:</strong></p>
+<pre><code class="language-bash">midimon-sign trust add 3dab8dbfaeb804085e879791d395d6afabe268535a2bc98ea70afa1edd291cca "Official Plugin"
+</code></pre>
+<p><strong>List trusted keys:</strong></p>
+<pre><code class="language-bash">midimon-sign trust list
+</code></pre>
+<p><strong>Remove trusted key:</strong></p>
+<pre><code class="language-bash">midimon-sign trust remove 3dab8dbf...
+</code></pre>
+<p><strong>Trusted keys file:</strong> <code>~/.config/midimon/trusted_keys.toml</code></p>
+<h2 id="trust-models"><a class="header" href="#trust-models">Trust Models</a></h2>
+<p>MIDIMon supports three trust levels:</p>
+<h3 id="level-1-unsigned-development"><a class="header" href="#level-1-unsigned-development">Level 1: Unsigned (Development)</a></h3>
+<p><strong>Use case:</strong> Development and testing</p>
+<p><strong>Configuration:</strong></p>
+<pre><code class="language-rust">let mut config = WasmConfig::default();
+config.require_signature = false;  // Default</code></pre>
+<p><strong>Behavior:</strong></p>
+<ul>
+<li>No signature required</li>
+<li>Plugin loads without verification</li>
+<li>Suitable for development only</li>
+</ul>
+<h3 id="level-2-self-signed"><a class="header" href="#level-2-self-signed">Level 2: Self-Signed</a></h3>
+<p><strong>Use case:</strong> Personal plugins, one-off scripts</p>
+<p><strong>Configuration:</strong></p>
+<pre><code class="language-rust">let mut config = WasmConfig::default();
+config.require_signature = true;
+config.allow_self_signed = true;</code></pre>
+<p><strong>Behavior:</strong></p>
+<ul>
+<li>Signature must be valid (cryptographic check)</li>
+<li>Any key accepted (no trust check)</li>
+<li>Ensures binary integrity</li>
+<li>Good for personal use</li>
+</ul>
+<h3 id="level-3-trusted-keys-production"><a class="header" href="#level-3-trusted-keys-production">Level 3: Trusted Keys (Production)</a></h3>
+<p><strong>Use case:</strong> Production deployments, marketplace plugins</p>
+<p><strong>Configuration:</strong></p>
+<pre><code class="language-rust">let mut config = WasmConfig::default();
+config.require_signature = true;
+config.allow_self_signed = false;  // Default</code></pre>
+<p><strong>Behavior:</strong></p>
+<ul>
+<li>Signature must be valid</li>
+<li>Public key must be in trusted list</li>
+<li>Full security model</li>
+<li>Recommended for production</li>
+</ul>
+<h2 id="security-best-practices"><a class="header" href="#security-best-practices">Security Best Practices</a></h2>
+<h3 id="for-plugin-developers"><a class="header" href="#for-plugin-developers">For Plugin Developers</a></h3>
+<ol>
+<li>
+<p><strong>Protect Private Keys</strong></p>
+<pre><code class="language-bash"># Set secure permissions
+chmod 600 ~/.midimon/my-plugin-key.private
+
+# Never commit to version control
+echo "*.private" &gt;&gt; .gitignore
+</code></pre>
+</li>
+<li>
+<p><strong>Sign Every Release</strong></p>
+<pre><code class="language-bash"># Include signing in your release script
+cargo build --target wasm32-wasip1 --release
+midimon-sign sign \
+  target/wasm32-wasip1/release/my_plugin.wasm \
+  ~/.midimon/my-key \
+  --name "Your Name" --email "you@example.com"
+</code></pre>
+</li>
+<li>
+<p><strong>Publish Public Key</strong></p>
+<ul>
+<li>Include in README</li>
+<li>Post on official website</li>
+<li>Add to plugin registry</li>
+</ul>
+</li>
+<li>
+<p><strong>Use Separate Keys per Project</strong></p>
+<pre><code class="language-bash"># One key per plugin project
+midimon-sign generate-key ~/.midimon/plugin-a-key
+midimon-sign generate-key ~/.midimon/plugin-b-key
+</code></pre>
+</li>
+</ol>
+<h3 id="for-end-users"><a class="header" href="#for-end-users">For End Users</a></h3>
+<ol>
+<li>
+<p><strong>Verify Before Trust</strong></p>
+<pre><code class="language-bash"># Always verify signature first
+midimon-sign verify downloaded_plugin.wasm
+
+# Check developer information
+# Only trust if matches expected developer
+</code></pre>
+</li>
+<li>
+<p><strong>Add Keys Carefully</strong></p>
+<pre><code class="language-bash"># Only add keys from verified sources
+# Check plugin author's website for official key
+midimon-sign trust add &lt;key&gt; "Official Project Name"
+</code></pre>
+</li>
+<li>
+<p><strong>Audit Trusted Keys</strong></p>
+<pre><code class="language-bash"># Regularly review trusted keys
+midimon-sign trust list
+
+# Remove unused keys
+midimon-sign trust remove &lt;key&gt;
+</code></pre>
+</li>
+<li>
+<p><strong>Use Strict Mode in Production</strong></p>
+<pre><code class="language-toml"># ~/.config/midimon/config.toml
+[wasm]
+require_signature = true
+allow_self_signed = false  # Strict mode
+</code></pre>
+</li>
+</ol>
+<h2 id="resource-limiting"><a class="header" href="#resource-limiting">Resource Limiting</a></h2>
+<h3 id="cpu-limits-fuel-metering"><a class="header" href="#cpu-limits-fuel-metering">CPU Limits (Fuel Metering)</a></h3>
+<p><strong>Default:</strong> 100,000,000 instructions (~100ms)</p>
+<p><strong>What it prevents:</strong></p>
+<ul>
+<li>Infinite loops</li>
+<li>Excessive CPU usage</li>
+<li>Denial of service</li>
+</ul>
+<p><strong>How it works:</strong></p>
+<pre><code>Every WASM instruction consumes 1 unit of fuel
+Plugin execution stops when fuel exhausted
+</code></pre>
+<p><strong>Configuration:</strong></p>
+<pre><code class="language-rust">let mut config = WasmConfig::default();
+config.max_fuel = 200_000_000;  // 200M instructions</code></pre>
+<p><strong>Example:</strong></p>
+<pre><code class="language-rust">// This would exceed fuel limit:
+#[no_mangle]
+pub extern "C" fn execute(...) -&gt; i32 {
+    loop {
+        // Infinite loop - blocked by fuel limit
+        std::thread::sleep(Duration::from_millis(1));
+    }
+}
+// MIDIMon automatically terminates after ~100ms</code></pre>
+<h3 id="memory-limits-1"><a class="header" href="#memory-limits-1">Memory Limits</a></h3>
+<p><strong>Default:</strong> 128 MB per plugin</p>
+<p><strong>What it prevents:</strong></p>
+<ul>
+<li>Memory exhaustion</li>
+<li>Out-of-memory crashes</li>
+<li>Resource hogging</li>
+</ul>
+<p><strong>Configuration:</strong></p>
+<pre><code class="language-rust">let mut config = WasmConfig::default();
+config.max_memory_bytes = 256 * 1024 * 1024;  // 256 MB</code></pre>
+<p><strong>Example:</strong></p>
+<pre><code class="language-rust">#[no_mangle]
+pub extern "C" fn execute(...) -&gt; i32 {
+    // OK - 10 MB allocation
+    let buffer = vec![0u8; 10 * 1024 * 1024];
+
+    // BLOCKED - 200 MB exceeds limit
+    // let huge = vec![0u8; 200 * 1024 * 1024];
+    // ^ This allocation would fail
+
+    0
+}</code></pre>
+<h3 id="table-growth-limits"><a class="header" href="#table-growth-limits">Table Growth Limits</a></h3>
+<p><strong>Default:</strong> 10,000 elements</p>
+<p><strong>What it prevents:</strong></p>
+<ul>
+<li>Unbounded table allocation</li>
+<li>Memory exhaustion via tables</li>
+<li>DoS attacks</li>
+</ul>
+<p><strong>Configuration:</strong></p>
+<pre><code class="language-rust">let mut config = WasmConfig::default();
+config.max_table_elements = 20_000;</code></pre>
+<h2 id="filesystem-sandboxing"><a class="header" href="#filesystem-sandboxing">Filesystem Sandboxing</a></h2>
+<h3 id="directory-preopening"><a class="header" href="#directory-preopening">Directory Preopening</a></h3>
+<p>Plugins with <code>Filesystem</code> capability can only access a specific directory:</p>
+<p><strong>macOS:</strong></p>
+<pre><code>~/Library/Application Support/midimon/plugin-data/
+</code></pre>
+<p><strong>Linux:</strong></p>
+<pre><code>~/.local/share/midimon/plugin-data/
+</code></pre>
+<p><strong>Windows:</strong></p>
+<pre><code>%APPDATA%\midimon\plugin-data\
+</code></pre>
+<h3 id="whats-blocked"><a class="header" href="#whats-blocked">What's Blocked</a></h3>
+<pre><code class="language-rust">// ✅ ALLOWED - within sandbox
+std::fs::write("/my-data.json", data)?;
+std::fs::write("/subdir/file.txt", data)?;
+
+// ❌ BLOCKED - path traversal
+std::fs::write("/../../../etc/passwd", data)?;
+
+// ❌ BLOCKED - absolute path outside sandbox
+std::fs::write("/etc/passwd", data)?;
+
+// ❌ BLOCKED - home directory escape
+std::fs::write("~/other-file.txt", data)?;</code></pre>
+<h3 id="how-it-works-2"><a class="header" href="#how-it-works-2">How It Works</a></h3>
+<ol>
+<li><strong>WASI Preopening</strong>: MIDIMon pre-opens the plugin data directory</li>
+<li><strong>Path Mapping</strong>: All plugin paths mapped to sandbox root</li>
+<li><strong>Validation</strong>: WASI runtime blocks access outside preopened directories</li>
+<li><strong>No Escape</strong>: Path traversal attempts automatically blocked</li>
+</ol>
+<h2 id="capability-system-2"><a class="header" href="#capability-system-2">Capability System</a></h2>
+<h3 id="permission-model"><a class="header" href="#permission-model">Permission Model</a></h3>
+<p>Plugins must explicitly request capabilities:</p>
+<pre><code class="language-rust">// In plugin code
+#[no_mangle]
+pub extern "C" fn capabilities() -&gt; *const u8 {
+    let caps = vec!["Network", "Filesystem"];
+    let json = serde_json::to_string(&amp;caps).unwrap();
+    // ... return JSON
+}</code></pre>
+<h3 id="risk-levels-1"><a class="header" href="#risk-levels-1">Risk Levels</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Capability</th><th>Risk</th><th>Auto-Grant</th><th>Requires Approval</th></tr></thead><tbody>
+<tr><td>Network</td><td>🟢 Low</td><td>Yes</td><td>No</td></tr>
+<tr><td>Audio</td><td>🟢 Low</td><td>Yes</td><td>No</td></tr>
+<tr><td>Midi</td><td>🟢 Low</td><td>Yes</td><td>No</td></tr>
+<tr><td>Filesystem</td><td>🟡 Medium</td><td>No</td><td>Yes</td></tr>
+<tr><td>Subprocess</td><td>🔴 High</td><td>No</td><td>Yes + Warning</td></tr>
+<tr><td>SystemControl</td><td>🔴 High</td><td>No</td><td>Yes + Warning</td></tr>
+</tbody></table>
+</div>
+<h3 id="granting-capabilities"><a class="header" href="#granting-capabilities">Granting Capabilities</a></h3>
+<p><strong>Via GUI:</strong> Plugin Manager → Select Plugin → Grant Capability</p>
+<p><strong>Via Config:</strong></p>
+<pre><code class="language-toml">[plugins.my_plugin]
+granted_capabilities = ["Network", "Filesystem"]
+</code></pre>
+<h2 id="threat-model"><a class="header" href="#threat-model">Threat Model</a></h2>
+<h3 id="threats-mitigated"><a class="header" href="#threats-mitigated">Threats Mitigated</a></h3>
+<p>✅ <strong>Binary Tampering</strong></p>
+<ul>
+<li><strong>Mitigation:</strong> SHA-256 hash verification</li>
+<li><strong>Detection:</strong> Signature validation fails if binary modified</li>
+</ul>
+<p>✅ <strong>Malicious Plugin Injection</strong></p>
+<ul>
+<li><strong>Mitigation:</strong> Ed25519 signature verification</li>
+<li><strong>Detection:</strong> Invalid signature rejected</li>
+</ul>
+<p>✅ <strong>Man-in-the-Middle</strong></p>
+<ul>
+<li><strong>Mitigation:</strong> Cryptographic signatures</li>
+<li><strong>Detection:</strong> Signature doesn't match binary</li>
+</ul>
+<p>✅ <strong>Supply Chain Attacks</strong></p>
+<ul>
+<li><strong>Mitigation:</strong> Trusted key model</li>
+<li><strong>Detection:</strong> Untrusted keys rejected</li>
+</ul>
+<p>✅ <strong>Resource Exhaustion (DoS)</strong></p>
+<ul>
+<li><strong>Mitigation:</strong> Fuel metering, memory limits</li>
+<li><strong>Detection:</strong> Automatic termination</li>
+</ul>
+<p>✅ <strong>Filesystem Access</strong></p>
+<ul>
+<li><strong>Mitigation:</strong> Directory sandboxing</li>
+<li><strong>Detection:</strong> WASI blocks access</li>
+</ul>
+<p>✅ <strong>Privilege Escalation</strong></p>
+<ul>
+<li><strong>Mitigation:</strong> Capability system</li>
+<li><strong>Detection:</strong> Capability checks</li>
+</ul>
+<h3 id="threats-not-mitigated"><a class="header" href="#threats-not-mitigated">Threats NOT Mitigated</a></h3>
+<p>⚠️ <strong>Side-Channel Attacks</strong></p>
+<ul>
+<li>Timing attacks possible</li>
+<li>Mitigation: Careful crypto implementation</li>
+</ul>
+<p>⚠️ <strong>Social Engineering</strong></p>
+<ul>
+<li>User could trust malicious key</li>
+<li>Mitigation: User education</li>
+</ul>
+<p>⚠️ <strong>Key Compromise</strong></p>
+<ul>
+<li>Stolen private key can sign malicious plugins</li>
+<li>Mitigation: Hardware security keys, key rotation</li>
+</ul>
+<h2 id="security-checklist"><a class="header" href="#security-checklist">Security Checklist</a></h2>
+<h3 id="for-plugin-developers-1"><a class="header" href="#for-plugin-developers-1">For Plugin Developers</a></h3>
+<ul>
+<li><input disabled="" type="checkbox"/>
+Generate unique keypair for project</li>
+<li><input disabled="" type="checkbox"/>
+Protect private key (chmod 600, never commit)</li>
+<li><input disabled="" type="checkbox"/>
+Sign every release</li>
+<li><input disabled="" type="checkbox"/>
+Publish public key on official channels</li>
+<li><input disabled="" type="checkbox"/>
+Request minimum necessary capabilities</li>
+<li><input disabled="" type="checkbox"/>
+Include security disclosure policy</li>
+<li><input disabled="" type="checkbox"/>
+Test with strict mode enabled</li>
+<li><input disabled="" type="checkbox"/>
+Document all security considerations</li>
+</ul>
+<h3 id="for-end-users-1"><a class="header" href="#for-end-users-1">For End Users</a></h3>
+<ul>
+<li><input disabled="" type="checkbox"/>
+Only download plugins from trusted sources</li>
+<li><input disabled="" type="checkbox"/>
+Always verify signatures before use</li>
+<li><input disabled="" type="checkbox"/>
+Check developer information matches expected</li>
+<li><input disabled="" type="checkbox"/>
+Only add keys from verified sources</li>
+<li><input disabled="" type="checkbox"/>
+Enable strict mode in production</li>
+<li><input disabled="" type="checkbox"/>
+Regularly audit trusted keys</li>
+<li><input disabled="" type="checkbox"/>
+Review capability requests</li>
+<li><input disabled="" type="checkbox"/>
+Keep MIDIMon updated</li>
+</ul>
+<h2 id="troubleshooting-22"><a class="header" href="#troubleshooting-22">Troubleshooting</a></h2>
+<h3 id="signature-verification-failed-1"><a class="header" href="#signature-verification-failed-1">Signature Verification Failed</a></h3>
+<p><strong>Check signature exists:</strong></p>
+<pre><code class="language-bash">ls -la my_plugin.wasm.sig
+</code></pre>
+<p><strong>Verify signature manually:</strong></p>
+<pre><code class="language-bash">midimon-sign verify my_plugin.wasm
+</code></pre>
+<p><strong>Common causes:</strong></p>
+<ul>
+<li>Binary modified after signing</li>
+<li>Signature file missing</li>
+<li>Wrong public key used</li>
+<li>Corrupted signature file</li>
+</ul>
+<h3 id="key-not-trusted"><a class="header" href="#key-not-trusted">Key Not Trusted</a></h3>
+<p><strong>List trusted keys:</strong></p>
+<pre><code class="language-bash">midimon-sign trust list
+</code></pre>
+<p><strong>Add key:</strong></p>
+<pre><code class="language-bash">midimon-sign trust add &lt;public-key&gt; "Plugin Name"
+</code></pre>
+<p><strong>Verify key matches:</strong></p>
+<pre><code class="language-bash"># Compare key in signature vs. expected
+cat my_plugin.wasm.sig | jq '.public_key'
+</code></pre>
+<h3 id="out-of-fuel"><a class="header" href="#out-of-fuel">Out of Fuel</a></h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>Plugin terminates mid-execution</li>
+<li>"fuel exhausted" error</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<pre><code class="language-rust">// Increase fuel limit
+let mut config = WasmConfig::default();
+config.max_fuel = 200_000_000;
+
+// Or optimize plugin code
+// - Reduce loop iterations
+// - Move heavy work to init()
+// - Use lazy initialization</code></pre>
+<h2 id="advanced-topics"><a class="header" href="#advanced-topics">Advanced Topics</a></h2>
+<h3 id="hardware-security-keys"><a class="header" href="#hardware-security-keys">Hardware Security Keys</a></h3>
+<p>For maximum security, use hardware keys (YubiKey, etc.):</p>
+<pre><code class="language-bash"># Generate key on hardware device
+# (Implementation depends on HSM/hardware)
+
+# Sign using hardware key
+midimon-sign sign my_plugin.wasm \
+  --hardware-key /dev/yubikey \
+  --name "Your Name" --email "you@example.com"
+</code></pre>
+<h3 id="key-rotation"><a class="header" href="#key-rotation">Key Rotation</a></h3>
+<pre><code class="language-bash"># Generate new key
+midimon-sign generate-key ~/.midimon/my-plugin-key-v2
+
+# Sign with new key
+midimon-sign sign my_plugin.wasm ~/.midimon/my-plugin-key-v2 \
+  --name "Your Name" --email "you@example.com"
+
+# Announce rotation to users
+# Include both old and new public keys in transition period
+</code></pre>
+<h3 id="multi-signature"><a class="header" href="#multi-signature">Multi-Signature</a></h3>
+<p>For critical plugins, require multiple signatures:</p>
+<pre><code class="language-bash"># Sign with first key
+midimon-sign sign my_plugin.wasm ~/.midimon/key1 \
+  --name "Developer 1" --email "dev1@example.com"
+
+# Co-sign with second key
+midimon-sign cosign my_plugin.wasm ~/.midimon/key2 \
+  --name "Developer 2" --email "dev2@example.com"
+
+# Verify requires both signatures
+</code></pre>
+<h2 id="further-reading-4"><a class="header" href="#further-reading-4">Further Reading</a></h2>
+<ul>
+<li><a href="https://tools.ietf.org/html/rfc8032">Ed25519 Specification (RFC 8032)</a></li>
+<li><a href="https://github.com/WebAssembly/WASI/blob/main/docs/WASI-security-model.md">WASI Security Model</a></li>
+<li><a href="https://webassembly.org/docs/security/">WebAssembly Security</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html">Cryptographic Signing Best Practices</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="plugin-examples"><a class="header" href="#plugin-examples">Plugin Examples</a></h1>
+<p>MIDIMon includes three official WASM plugins that demonstrate real-world integration patterns. All plugins are signed with the official MIDIMon team key and include full source code.</p>
+<h2 id="official-plugins-1"><a class="header" href="#official-plugins-1">Official Plugins</a></h2>
+<h3 id="spotify-web-api-plugin"><a class="header" href="#spotify-web-api-plugin">Spotify Web API Plugin</a></h3>
+<p><strong>File:</strong> <code>midimon_wasm_spotify.wasm</code>
+<strong>Capabilities:</strong> Network
+<strong>Status:</strong> Production-ready</p>
+<p>Control Spotify playback directly from your MIDI controller.</p>
+<h4 id="features-1"><a class="header" href="#features-1">Features</a></h4>
+<ul>
+<li>Play/Pause control</li>
+<li>Track navigation (next/previous)</li>
+<li>Volume control</li>
+<li>Shuffle toggle</li>
+<li>Repeat mode toggle</li>
+<li>Get current playback state</li>
+</ul>
+<h4 id="setup"><a class="header" href="#setup">Setup</a></h4>
+<ol>
+<li>
+<p><strong>Get Spotify API Credentials</strong></p>
+<ul>
+<li>Visit <a href="https://developer.spotify.com/dashboard">Spotify Developer Dashboard</a></li>
+<li>Create an app</li>
+<li>Note Client ID and Client Secret</li>
+<li>Add redirect URI: <code>http://localhost:8888/callback</code></li>
+</ul>
+</li>
+<li>
+<p><strong>Authenticate</strong></p>
+<pre><code class="language-bash"># First-time setup (opens browser for OAuth)
+spotify-auth --client-id YOUR_ID --client-secret YOUR_SECRET
+</code></pre>
+</li>
+<li>
+<p><strong>Configuration</strong></p>
+<pre><code class="language-toml"># Play/Pause
+[[modes.mappings]]
+trigger = { Note = { note = 60 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+    params = {
+        "action": "play_pause"
+    }
+}}
+
+# Next track
+[[modes.mappings]]
+trigger = { Note = { note = 61 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+    params = {
+        "action": "next"
+    }
+}}
+
+# Previous track
+[[modes.mappings]]
+trigger = { Note = { note = 59 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+    params = {
+        "action": "previous"
+    }
+}}
+
+# Volume control (velocity-sensitive)
+[[modes.mappings]]
+trigger = { Note = { note = 62 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+    params = {
+        "action": "volume",
+        "level": "{velocity}"  # 0-127 mapped to 0-100%
+    }
+}}
+</code></pre>
+</li>
+</ol>
+<h4 id="available-actions"><a class="header" href="#available-actions">Available Actions</a></h4>
+<div class="table-wrapper"><table><thead><tr><th>Action</th><th>Parameters</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>play</code></td><td>None</td><td>Resume playback</td></tr>
+<tr><td><code>pause</code></td><td>None</td><td>Pause playback</td></tr>
+<tr><td><code>play_pause</code></td><td>None</td><td>Toggle play/pause</td></tr>
+<tr><td><code>next</code></td><td>None</td><td>Skip to next track</td></tr>
+<tr><td><code>previous</code></td><td>None</td><td>Previous track</td></tr>
+<tr><td><code>volume</code></td><td><code>level: 0-127</code></td><td>Set volume (maps to 0-100%)</td></tr>
+<tr><td><code>shuffle</code></td><td>None</td><td>Toggle shuffle</td></tr>
+<tr><td><code>repeat</code></td><td><code>mode: "off"|"track"|"context"</code></td><td>Set repeat mode</td></tr>
+<tr><td><code>get_state</code></td><td>None</td><td>Get current playback state</td></tr>
+</tbody></table>
+</div>
+<h4 id="advanced-velocity-sensitive-volume"><a class="header" href="#advanced-velocity-sensitive-volume">Advanced: Velocity-Sensitive Volume</a></h4>
+<pre><code class="language-toml">[[modes.mappings]]
+trigger = { VelocityRange = {
+    note = 62,
+    ranges = [
+        { min = 0, max = 40, action_index = 0 },    # Soft: -10%
+        { min = 41, max = 80, action_index = 1 },   # Medium: no change
+        { min = 81, max = 127, action_index = 2 }   # Hard: +10%
+    ]
+}}
+actions = [
+    { WasmPlugin = {
+        path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+        params = { "action": "volume", "delta": "-10" }
+    }},
+    { WasmPlugin = {
+        path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+        params = { "action": "get_state" }
+    }},
+    { WasmPlugin = {
+        path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+        params = { "action": "volume", "delta": "+10" }
+    }}
+]
+</code></pre>
+<hr />
+<h3 id="obs-studio-control-plugin"><a class="header" href="#obs-studio-control-plugin">OBS Studio Control Plugin</a></h3>
+<p><strong>File:</strong> <code>midimon_wasm_obs_control.wasm</code>
+<strong>Capabilities:</strong> Network
+<strong>Status:</strong> Production-ready</p>
+<p>Control OBS Studio streaming/recording via WebSocket.</p>
+<h4 id="features-2"><a class="header" href="#features-2">Features</a></h4>
+<ul>
+<li>Scene switching</li>
+<li>Start/Stop streaming</li>
+<li>Start/Stop recording</li>
+<li>Source mute/unmute</li>
+<li>Filter toggle</li>
+<li>Transition control</li>
+</ul>
+<h4 id="setup-1"><a class="header" href="#setup-1">Setup</a></h4>
+<ol>
+<li>
+<p><strong>Enable OBS WebSocket</strong></p>
+<ul>
+<li>OBS Studio → Tools → WebSocket Server Settings</li>
+<li>Enable WebSocket server</li>
+<li>Set password (optional but recommended)</li>
+<li>Note port (default: 4455)</li>
+</ul>
+</li>
+<li>
+<p><strong>Configuration</strong></p>
+<pre><code class="language-toml"># Scene switching
+[[modes.mappings]]
+trigger = { Note = { note = 48 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/midimon_wasm_obs_control.wasm",
+    params = {
+        "action": "set_scene",
+        "scene_name": "Gaming",
+        "host": "localhost:4455",
+        "password": "your_password"  # Optional
+    }
+}}
+
+# Start streaming
+[[modes.mappings]]
+trigger = { Note = { note = 49 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/midimon_wasm_obs_control.wasm",
+    params = {
+        "action": "start_streaming",
+        "host": "localhost:4455"
+    }
+}}
+
+# Stop streaming
+[[modes.mappings]]
+trigger = { Note = { note = 50 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/midimon_wasm_obs_control.wasm",
+    params = {
+        "action": "stop_streaming",
+        "host": "localhost:4455"
+    }
+}}
+
+# Toggle mic mute
+[[modes.mappings]]
+trigger = { Note = { note = 51 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/midimon_wasm_obs_control.wasm",
+    params = {
+        "action": "toggle_mute",
+        "source_name": "Microphone",
+        "host": "localhost:4455"
+    }
+}}
+</code></pre>
+</li>
+</ol>
+<h4 id="available-actions-1"><a class="header" href="#available-actions-1">Available Actions</a></h4>
+<div class="table-wrapper"><table><thead><tr><th>Action</th><th>Parameters</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>set_scene</code></td><td><code>scene_name</code></td><td>Switch to scene</td></tr>
+<tr><td><code>get_current_scene</code></td><td>None</td><td>Get active scene</td></tr>
+<tr><td><code>start_streaming</code></td><td>None</td><td>Start streaming</td></tr>
+<tr><td><code>stop_streaming</code></td><td>None</td><td>Stop streaming</td></tr>
+<tr><td><code>toggle_streaming</code></td><td>None</td><td>Toggle streaming</td></tr>
+<tr><td><code>start_recording</code></td><td>None</td><td>Start recording</td></tr>
+<tr><td><code>stop_recording</code></td><td>None</td><td>Stop recording</td></tr>
+<tr><td><code>toggle_recording</code></td><td>None</td><td>Toggle recording</td></tr>
+<tr><td><code>toggle_mute</code></td><td><code>source_name</code></td><td>Mute/unmute source</td></tr>
+<tr><td><code>set_volume</code></td><td><code>source_name</code>, <code>volume: 0-1</code></td><td>Set source volume</td></tr>
+<tr><td><code>toggle_filter</code></td><td><code>source_name</code>, <code>filter_name</code></td><td>Toggle filter</td></tr>
+<tr><td><code>set_transition</code></td><td><code>transition_name</code>, <code>duration_ms</code></td><td>Set scene transition</td></tr>
+</tbody></table>
+</div>
+<h4 id="advanced-scene-hotkeys"><a class="header" href="#advanced-scene-hotkeys">Advanced: Scene Hotkeys</a></h4>
+<pre><code class="language-toml"># Map pads to scenes
+[[modes]]
+name = "OBS Control"
+
+[[modes.mappings]]
+trigger = { Note = { note = 36 } }  # Pad 1
+action = { WasmPlugin = { path = "...", params = { "action": "set_scene", "scene_name": "Intro" }}}
+
+[[modes.mappings]]
+trigger = { Note = { note = 37 } }  # Pad 2
+action = { WasmPlugin = { path = "...", params = { "action": "set_scene", "scene_name": "Gaming" }}}
+
+[[modes.mappings]]
+trigger = { Note = { note = 38 } }  # Pad 3
+action = { WasmPlugin = { path = "...", params = { "action": "set_scene", "scene_name": "Chatting" }}}
+
+[[modes.mappings]]
+trigger = { Note = { note = 39 } }  # Pad 4
+action = { WasmPlugin = { path = "...", params = { "action": "set_scene", "scene_name": "BRB" }}}
+</code></pre>
+<hr />
+<h3 id="system-utilities-plugin"><a class="header" href="#system-utilities-plugin">System Utilities Plugin</a></h3>
+<p><strong>File:</strong> <code>midimon_wasm_system_utils.wasm</code>
+<strong>Capabilities:</strong> SystemControl
+<strong>Status:</strong> Production-ready</p>
+<p>System-level operations like screen lock, sleep, notifications.</p>
+<h4 id="features-3"><a class="header" href="#features-3">Features</a></h4>
+<ul>
+<li>Lock screen</li>
+<li>Sleep/shutdown</li>
+<li>Brightness control</li>
+<li>System notifications</li>
+<li>Application launcher</li>
+<li>Volume control (system-wide)</li>
+</ul>
+<h4 id="configuration-4"><a class="header" href="#configuration-4">Configuration</a></h4>
+<pre><code class="language-toml"># Lock screen
+[[modes.mappings]]
+trigger = { LongPress = { note = 60, duration_ms = 2000 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/midimon_wasm_system_utils.wasm",
+    params = {
+        "action": "lock_screen"
+    }
+}}
+
+# Display notification
+[[modes.mappings]]
+trigger = { Note = { note = 61 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/midimon_wasm_system_utils.wasm",
+    params = {
+        "action": "notify",
+        "title": "Recording Started",
+        "message": "Stream is now live!",
+        "sound": true
+    }
+}}
+
+# Brightness control (velocity-sensitive)
+[[modes.mappings]]
+trigger = { Note = { note = 62 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/midimon_wasm_system_utils.wasm",
+    params = {
+        "action": "brightness",
+        "level": "{velocity}"  # 0-127 mapped to 0-100%
+    }
+}}
+
+# Launch application
+[[modes.mappings]]
+trigger = { Note = { note = 63 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/midimon_wasm_system_utils.wasm",
+    params = {
+        "action": "launch",
+        "app": "Spotify"
+    }
+}}
+</code></pre>
+<h4 id="available-actions-2"><a class="header" href="#available-actions-2">Available Actions</a></h4>
+<div class="table-wrapper"><table><thead><tr><th>Action</th><th>Parameters</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>lock_screen</code></td><td>None</td><td>Lock screen (macOS/Linux)</td></tr>
+<tr><td><code>sleep</code></td><td>None</td><td>Put system to sleep</td></tr>
+<tr><td><code>shutdown</code></td><td><code>force: bool</code></td><td>Shutdown system</td></tr>
+<tr><td><code>notify</code></td><td><code>title</code>, <code>message</code>, <code>sound: bool</code></td><td>Show notification</td></tr>
+<tr><td><code>brightness</code></td><td><code>level: 0-127</code></td><td>Set screen brightness</td></tr>
+<tr><td><code>launch</code></td><td><code>app: string</code></td><td>Launch application</td></tr>
+<tr><td><code>volume</code></td><td><code>level: 0-127</code></td><td>Set system volume</td></tr>
+<tr><td><code>volume_up</code></td><td>None</td><td>Increase volume 10%</td></tr>
+<tr><td><code>volume_down</code></td><td>None</td><td>Decrease volume 10%</td></tr>
+<tr><td><code>mute</code></td><td>None</td><td>Toggle system mute</td></tr>
+</tbody></table>
+</div>
+<h4 id="platform-specific-notes-2"><a class="header" href="#platform-specific-notes-2">Platform-Specific Notes</a></h4>
+<p><strong>macOS:</strong></p>
+<ul>
+<li><code>lock_screen</code>: Uses <code>pmset</code> command</li>
+<li><code>brightness</code>: Requires screen brightness permission</li>
+<li><code>launch</code>: Uses <code>open -a</code></li>
+</ul>
+<p><strong>Linux:</strong></p>
+<ul>
+<li><code>lock_screen</code>: Uses <code>loginctl</code> or <code>xdg-screensaver</code></li>
+<li><code>brightness</code>: Requires <code>/sys/class/backlight</code> access</li>
+<li><code>launch</code>: Uses <code>xdg-open</code></li>
+</ul>
+<p><strong>Windows:</strong></p>
+<ul>
+<li><code>lock_screen</code>: Uses <code>rundll32.exe</code></li>
+<li><code>brightness</code>: Uses WMI</li>
+<li><code>launch</code>: Uses <code>start</code></li>
+</ul>
+<hr />
+<h2 id="creating-your-own-plugin"><a class="header" href="#creating-your-own-plugin">Creating Your Own Plugin</a></h2>
+<h3 id="template-repository"><a class="header" href="#template-repository">Template Repository</a></h3>
+<p>Start with the official template:</p>
+<pre><code class="language-bash">git clone https://github.com/amiable-dev/midimon-wasm-plugin-template
+cd midimon-wasm-plugin-template
+</code></pre>
+<h3 id="example-simple-notification-plugin"><a class="header" href="#example-simple-notification-plugin">Example: Simple Notification Plugin</a></h3>
+<pre><code class="language-rust">// src/lib.rs
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct NotifyParams {
+    message: String,
+}
+
+#[no_mangle]
+pub extern "C" fn init() {
+    eprintln!("Notification plugin initialized");
+}
+
+#[no_mangle]
+pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -&gt; i32 {
+    let params_bytes = unsafe {
+        std::slice::from_raw_parts(params_ptr, params_len)
+    };
+
+    let params: NotifyParams = match serde_json::from_slice(params_bytes) {
+        Ok(p) =&gt; p,
+        Err(e) =&gt; {
+            eprintln!("Invalid params: {}", e);
+            return 1;
+        }
+    };
+
+    // Platform-specific notification (simplified)
+    #[cfg(target_os = "macos")]
+    {
+        let cmd = format!(
+            "osascript -e 'display notification \"{}\" with title \"MIDIMon\"'",
+            params.message
+        );
+        std::process::Command::new("sh")
+            .arg("-c")
+            .arg(&amp;cmd)
+            .output()
+            .expect("Failed to show notification");
+    }
+
+    eprintln!("Notification sent: {}", params.message);
+    0
+}</code></pre>
+<h3 id="build-and-test"><a class="header" href="#build-and-test">Build and Test</a></h3>
+<pre><code class="language-bash"># Build
+cargo build --target wasm32-wasip1 --release
+
+# Sign
+midimon-sign sign \
+  target/wasm32-wasip1/release/my_notify_plugin.wasm \
+  ~/.midimon/my-key \
+  --name "Your Name" --email "you@example.com"
+
+# Test
+cat &gt; test_config.toml &lt;&lt;EOF
+[[modes.mappings]]
+trigger = { Note = { note = 60 } }
+action = { WasmPlugin = {
+    path = "target/wasm32-wasip1/release/my_notify_plugin.wasm",
+    params = { "message": "Test notification" }
+}}
+EOF
+
+midimon --config test_config.toml 0
+</code></pre>
+<h2 id="best-practices-7"><a class="header" href="#best-practices-7">Best Practices</a></h2>
+<h3 id="error-handling-1"><a class="header" href="#error-handling-1">Error Handling</a></h3>
+<pre><code class="language-rust">#[no_mangle]
+pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -&gt; i32 {
+    // Always validate inputs
+    if params_len == 0 {
+        eprintln!("ERROR: Empty parameters");
+        return 1;
+    }
+
+    // Handle JSON parsing errors
+    let params: MyParams = match serde_json::from_slice(params_bytes) {
+        Ok(p) =&gt; p,
+        Err(e) =&gt; {
+            eprintln!("ERROR: Invalid JSON: {}", e);
+            return 1;
+        }
+    };
+
+    // Handle operation errors
+    match perform_action(&amp;params) {
+        Ok(_) =&gt; 0,   // Success
+        Err(e) =&gt; {
+            eprintln!("ERROR: Action failed: {}", e);
+            1  // Error
+        }
+    }
+}</code></pre>
+<h3 id="performance-optimization-1"><a class="header" href="#performance-optimization-1">Performance Optimization</a></h3>
+<pre><code class="language-rust">use std::sync::OnceLock;
+
+// Lazy initialization (runs once)
+static HTTP_CLIENT: OnceLock&lt;reqwest::Client&gt; = OnceLock::new();
+
+fn get_client() -&gt; &amp;'static reqwest::Client {
+    HTTP_CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .timeout(Duration::from_secs(5))
+            .build()
+            .expect("Failed to create HTTP client")
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -&gt; i32 {
+    // Reuse client instead of creating new one
+    let client = get_client();
+
+    // Your code...
+    0
+}</code></pre>
+<h3 id="resource-management"><a class="header" href="#resource-management">Resource Management</a></h3>
+<pre><code class="language-rust">// Use Drop for cleanup
+struct PluginState {
+    connection: Option&lt;Connection&gt;,
+}
+
+impl Drop for PluginState {
+    fn drop(&amp;mut self) {
+        if let Some(conn) = &amp;mut self.connection {
+            let _ = conn.close();
+        }
+        eprintln!("Plugin state cleaned up");
+    }
+}
+
+static mut STATE: Option&lt;PluginState&gt; = None;
+
+#[no_mangle]
+pub extern "C" fn init() {
+    unsafe {
+        STATE = Some(PluginState {
+            connection: None,
+        });
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn shutdown() {
+    unsafe {
+        STATE = None;  // Triggers Drop
+    }
+}</code></pre>
+<h2 id="troubleshooting-23"><a class="header" href="#troubleshooting-23">Troubleshooting</a></h2>
+<h3 id="plugin-not-executing"><a class="header" href="#plugin-not-executing">Plugin Not Executing</a></h3>
+<ol>
+<li>
+<p><strong>Check logs:</strong></p>
+<pre><code class="language-bash">DEBUG=1 midimon --config config.toml 0 2&gt;&amp;1 | grep WASM
+</code></pre>
+</li>
+<li>
+<p><strong>Verify WASM format:</strong></p>
+<pre><code class="language-bash">file my_plugin.wasm
+# Should show: WebAssembly (wasm) binary module
+</code></pre>
+</li>
+<li>
+<p><strong>Check signature:</strong></p>
+<pre><code class="language-bash">midimon-sign verify my_plugin.wasm
+</code></pre>
+</li>
+</ol>
+<h3 id="out-of-fuel-1"><a class="header" href="#out-of-fuel-1">Out of Fuel</a></h3>
+<pre><code class="language-rust">// Symptoms: Plugin terminates early
+
+// Solution 1: Optimize code
+// - Move heavy work to init()
+// - Reduce loop iterations
+// - Use lazy initialization
+
+// Solution 2: Increase fuel limit (config.toml)
+[wasm]
+max_fuel = 200_000_000</code></pre>
+<h3 id="network-requests-failing"><a class="header" href="#network-requests-failing">Network Requests Failing</a></h3>
+<pre><code class="language-rust">// Check capability is granted
+fn capabilities() -&gt; Vec&lt;String&gt; {
+    vec!["Network".to_string()]
+}
+
+// Use appropriate timeout
+let client = reqwest::Client::builder()
+    .timeout(Duration::from_secs(5))
+    .build()?;
+
+// Handle errors gracefully
+match client.get(url).send().await {
+    Ok(response) =&gt; { /* ... */ },
+    Err(e) =&gt; {
+        eprintln!("Network error: {}", e);
+        return 1;
+    }
+}</code></pre>
+<h2 id="further-reading-5"><a class="header" href="#further-reading-5">Further Reading</a></h2>
+<ul>
+<li><a href="development/wasm-plugin-development.html">WASM Plugin Development Guide</a></li>
+<li><a href="development/plugin-security.html">Plugin Security</a></li>
+<li><a href="development/wasm-plugins.html">WASM Plugins Overview</a></li>
+<li><a href="https://github.com/amiable-dev/midimon/tree/main/plugins">Official Plugin Source Code</a></li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="contributing-guide"><a class="header" href="#contributing-guide">Contributing Guide</a></h1>
 <blockquote>
 <p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
@@ -15544,7 +17359,7 @@ checksum = "abc123..."
 </ul>
 <h2 id="midi-device-simulator"><a class="header" href="#midi-device-simulator">MIDI Device Simulator</a></h2>
 <p>The MIDI device simulator allows comprehensive testing of MIDIMon without requiring physical hardware. It simulates all MIDI events and complex user interactions with precise timing control.</p>
-<h3 id="features-1"><a class="header" href="#features-1">Features</a></h3>
+<h3 id="features-4"><a class="header" href="#features-4">Features</a></h3>
 <p>The simulator supports:</p>
 <ul>
 <li><strong>Basic MIDI Events</strong>: Note On/Off, Control Change, Aftertouch, Pitch Bend, Program Change</li>
@@ -15568,7 +17383,7 @@ sim.note_off(60);
 let events = sim.get_events();
 assert_eq!(events.len(), 2); // Note on + Note off</code></pre>
 <h2 id="running-tests"><a class="header" href="#running-tests">Running Tests</a></h2>
-<h3 id="unit-tests"><a class="header" href="#unit-tests">Unit Tests</a></h3>
+<h3 id="unit-tests-1"><a class="header" href="#unit-tests-1">Unit Tests</a></h3>
 <p>Run the simulator's built-in unit tests:</p>
 <pre><code class="language-bash">cargo test --test midi_simulator
 </code></pre>
@@ -16109,7 +17924,7 @@ sim.set_debug(true);
 
 sim.note_on(60, 100);
 // Output: [SIM] Sending: [90, 3C, 64]</code></pre>
-<h2 id="best-practices-7"><a class="header" href="#best-practices-7">Best Practices</a></h2>
+<h2 id="best-practices-8"><a class="header" href="#best-practices-8">Best Practices</a></h2>
 <ol>
 <li><strong>Clear events between tests</strong>: Always clear the event queue between tests to avoid interference</li>
 <li><strong>Use gestures for complex interactions</strong>: Prefer high-level gestures over manual event sequences</li>
@@ -16134,7 +17949,7 @@ jobs:
       - name: Run tests
         run: cargo test --all-features
 </code></pre>
-<h2 id="troubleshooting-21"><a class="header" href="#troubleshooting-21">Troubleshooting</a></h2>
+<h2 id="troubleshooting-24"><a class="header" href="#troubleshooting-24">Troubleshooting</a></h2>
 <h3 id="tests-timeout"><a class="header" href="#tests-timeout">Tests Timeout</a></h3>
 <p>If timing-based tests timeout, increase tolerance:</p>
 <pre><code class="language-rust">assert!(duration &gt;= Duration::from_millis(2500));
@@ -16376,7 +18191,7 @@ fn test_feature_name() {
 <hr />
 <p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="development/../development/contributing.html">Contributing Guide</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="common-issues-and-solutions"><a class="header" href="#common-issues-and-solutions">Common Issues and Solutions</a></h1>
-<h2 id="overview-16"><a class="header" href="#overview-16">Overview</a></h2>
+<h2 id="overview-18"><a class="header" href="#overview-18">Overview</a></h2>
 <p>This guide covers the most frequently encountered issues when using MIDIMon, along with step-by-step solutions. For detailed diagnostic procedures, see <a href="troubleshooting/diagnostics.html">Diagnostics Guide</a>.</p>
 <h2 id="midi-device-not-found"><a class="header" href="#midi-device-not-found">MIDI Device Not Found</a></h2>
 <h3 id="symptoms"><a class="header" href="#symptoms">Symptoms</a></h3>
@@ -17038,7 +18853,7 @@ Correct MIDI channel is used (usually Channel 0)</li>
 <li><input disabled="" type="checkbox"/>
 No other applications are blocking the MIDI port</li>
 </ul>
-<h2 id="common-issues"><a class="header" href="#common-issues">Common Issues</a></h2>
+<h2 id="common-issues-1"><a class="header" href="#common-issues-1">Common Issues</a></h2>
 <h3 id="issue-1-port-not-found-error"><a class="header" href="#issue-1-port-not-found-error">Issue 1: "Port not found" Error</a></h3>
 <p><strong>Symptoms</strong>:</p>
 <pre><code>ERROR: MIDI output port "IAC Driver Bus 1" not found
@@ -17565,7 +19380,7 @@ midimonctl stop
 <hr />
 <p><strong>Help Wanted</strong>: We're looking for contributors to help write documentation. See <a href="troubleshooting/../development/contributing.html">Contributing Guide</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="diagnostic-tools-and-procedures"><a class="header" href="#diagnostic-tools-and-procedures">Diagnostic Tools and Procedures</a></h1>
-<h2 id="overview-17"><a class="header" href="#overview-17">Overview</a></h2>
+<h2 id="overview-19"><a class="header" href="#overview-19">Overview</a></h2>
 <p>MIDIMon includes a comprehensive suite of diagnostic tools for debugging connectivity, event processing, LED control, and configuration issues. This guide covers each tool in detail and provides systematic troubleshooting procedures.</p>
 <h2 id="quick-diagnostic-checklist-1"><a class="header" href="#quick-diagnostic-checklist-1">Quick Diagnostic Checklist</a></h2>
 <p>Before diving deep, run through this quick checklist:</p>
@@ -18429,7 +20244,7 @@ grep -i failed midimon.log
 <hr />
 <p><strong>Last Updated</strong>: November 11, 2025
 <strong>Diagnostic Tool Version</strong>: 0.1.0</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="performance-4"><a class="header" href="#performance-4">Performance</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="performance-5"><a class="header" href="#performance-5">Performance</a></h1>
 <blockquote>
 <p><strong>Note</strong>: This section is under development and will be completed in Phase 1 (Q1 2025).</p>
 <p>For now, please refer to:</p>
