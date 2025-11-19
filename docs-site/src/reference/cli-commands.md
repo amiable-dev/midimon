@@ -578,13 +578,13 @@ Latency: 0.4ms
 - Monitor system responsiveness
 - Health checks in scripts
 
-#### stop
+#### shutdown
 
-Gracefully shut down the daemon.
+Gracefully shut down the **running daemon process** via IPC.
 
 **Syntax**:
 ```bash
-midimonctl stop [--json]
+midimonctl shutdown [--json]
 ```
 
 **Output**:
@@ -595,16 +595,78 @@ Uptime: 2h 34m 17s
 State saved successfully
 ```
 
-**Features**:
-- **Graceful Shutdown**: Saves state before exit
-- **Resource Cleanup**: Closes MIDI/HID connections
-- **State Preservation**: Saves device state to disk
+**What it does**:
+- Sends IPC `Stop` command to running daemon
+- Daemon saves state and exits gracefully
+- Closes MIDI/HID connections cleanly
+- Persists device state to disk
 
 **When to use**:
-- Clean daemon shutdown
-- Before system restart
-- Switching configurations
-- Development workflow
+- **Daemon is running** and you want to stop it
+- Quick shutdown during development
+- When you know daemon is responsive
+
+**Requirements**:
+- Daemon must be running
+- IPC socket must be accessible
+- No LaunchAgent/systemd interaction
+
+#### stop
+
+Stop the **LaunchAgent/systemd service** (tries graceful shutdown first).
+
+**Syntax**:
+```bash
+midimonctl stop [--json] [--force]
+```
+
+**Output**:
+```
+Stopping MIDIMon service...
+  Attempting graceful shutdown via IPC...
+✓ Service stopped successfully
+```
+
+**What it does**:
+1. **First**: Attempts graceful IPC shutdown (same as `shutdown` command)
+2. **Waits**: 500ms for daemon to exit
+3. **Then**: Unloads LaunchAgent (macOS) or stops systemd service (Linux)
+
+**When to use**:
+- **Service is installed** via `midimonctl install`
+- Need to stop the background service
+- Daemon may or may not be responsive
+- Want to ensure service is fully stopped
+
+**Requirements**:
+- Service must be installed (via `midimonctl install`)
+- macOS: LaunchAgent plist exists
+- Linux: systemd unit exists
+
+**Options**:
+- `--force`: Skip graceful shutdown, immediately unload service
+
+### Choosing Between shutdown and stop
+
+| Scenario | Use Command | Why |
+|----------|-------------|-----|
+| Daemon running in foreground | `shutdown` | Faster, direct IPC |
+| Daemon started manually (not service) | `shutdown` | No service to unload |
+| Service installed and running | `stop` | Ensures service unloaded |
+| Daemon not responding | `stop --force` | Bypasses IPC, forces unload |
+| Development workflow | `shutdown` | Quick restarts |
+| Production/installed service | `stop` | Proper service management |
+
+**Decision tree**:
+```
+Is daemon installed as a service?
+├─ No → Use `shutdown`
+└─ Yes
+   ├─ Is daemon responsive?
+   │  ├─ Yes → Use `stop` (graceful)
+   │  └─ No → Use `stop --force`
+   └─ Running in foreground for testing? → Use `shutdown`
+```
 
 ### Global Options
 
@@ -962,7 +1024,8 @@ Connection test: PASSED
 | `midimonctl reload` | Hot-reload config | `midimonctl reload` |
 | `midimonctl validate` | Validate config | `midimonctl validate` |
 | `midimonctl ping` | Health check | `midimonctl ping` |
-| `midimonctl stop` | Stop daemon | `midimonctl stop` |
+| `midimonctl shutdown` | Stop daemon (IPC) | `midimonctl shutdown` |
+| `midimonctl stop` | Stop service (LaunchAgent) | `midimonctl stop` |
 | `--json` | JSON output | `midimonctl status --json` |
 | **Diagnostic Tools** |||
 | `DEBUG=1` | Enable debug log | `DEBUG=1 midimon 2` |
