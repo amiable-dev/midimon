@@ -21,6 +21,7 @@ pub struct PluginRegistry {
     pub version: String,
     pub last_updated: String,
     pub plugins: Vec<PluginRegistryEntry>,
+    #[serde(default)]
     pub featured_plugins: Vec<String>,
     pub categories: Vec<PluginCategory>,
 }
@@ -33,24 +34,19 @@ pub struct PluginRegistryEntry {
     pub description: String,
     pub author: String,
     pub version: String,
-    pub homepage: Option<String>,
-    pub repository: Option<String>,
-    pub license: String,
-    pub categories: Vec<String>,
+    pub category: String,
     pub tags: Vec<String>,
     pub capabilities: Vec<String>,
-    pub platforms: Vec<String>,
+    pub download_url: String,
+    pub signature_url: String,
+    pub checksum: String,
+    pub size_bytes: u64,
+    pub license: String,
+    pub repository: String,
+    pub documentation: String,
     pub min_midimon_version: String,
-    pub downloads: HashMap<String, String>,
-    pub checksums: HashMap<String, String>,
-    pub file_size: HashMap<String, u64>,
-    pub setup_instructions: Option<String>,
-    pub example_config: Option<String>,
-    pub screenshots: Vec<String>,
-    pub video_demo: Option<String>,
-    pub install_count: u64,
-    pub rating: f32,
-    pub reviews_count: u32,
+    pub signed: bool,
+    pub verified: bool,
 }
 
 /// Plugin category metadata
@@ -160,20 +156,18 @@ impl PluginRegistryClient {
         registry
             .plugins
             .iter()
-            .filter(|p| p.categories.contains(&category.to_string()))
+            .filter(|p| p.category == category)
             .collect()
     }
 
-    /// Get download URL for current platform
-    pub fn get_download_url<'a>(&self, plugin: &'a PluginRegistryEntry) -> Option<&'a String> {
-        let platform = self.current_platform();
-        plugin.downloads.get(&platform)
+    /// Get download URL for plugin
+    pub fn get_download_url<'a>(&self, plugin: &'a PluginRegistryEntry) -> &'a String {
+        &plugin.download_url
     }
 
-    /// Get checksum for current platform
-    pub fn get_checksum<'a>(&self, plugin: &'a PluginRegistryEntry) -> Option<&'a String> {
-        let platform = self.current_platform();
-        plugin.checksums.get(&platform)
+    /// Get checksum for plugin
+    pub fn get_checksum<'a>(&self, plugin: &'a PluginRegistryEntry) -> &'a String {
+        &plugin.checksum
     }
 
     /// Detect current platform
@@ -205,24 +199,21 @@ impl PluginRegistryClient {
         plugin: &PluginRegistryEntry,
         destination: impl AsRef<Path>,
     ) -> Result<PathBuf, Box<dyn std::error::Error>> {
-        let url = self
-            .get_download_url(plugin)
-            .ok_or("No download URL for current platform")?;
+        let url = self.get_download_url(plugin);
 
         let response = reqwest::get(url).await?;
         let bytes = response.bytes().await?;
 
         // Verify checksum
-        if let Some(expected_checksum) = self.get_checksum(plugin) {
-            let digest = sha2::Sha256::digest(&bytes);
-            let actual_checksum = format!("sha256:{:x}", digest);
-            if actual_checksum != *expected_checksum {
-                return Err(format!(
-                    "Checksum mismatch: expected {}, got {}",
-                    expected_checksum, actual_checksum
-                )
-                .into());
-            }
+        let expected_checksum = self.get_checksum(plugin);
+        let digest = sha2::Sha256::digest(&bytes);
+        let actual_checksum = format!("sha256:{:x}", digest);
+        if actual_checksum != *expected_checksum {
+            return Err(format!(
+                "Checksum mismatch: expected {}, got {}",
+                expected_checksum, actual_checksum
+            )
+            .into());
         }
 
         // Write to destination
