@@ -81,6 +81,10 @@ pub struct WasmConfig {
     /// Maximum execution time per call (default: 5 seconds)
     pub max_execution_time: Duration,
 
+    /// Maximum fuel (instruction count) per call (default: 100M instructions)
+    /// 1 fuel ≈ 1 WASM instruction
+    pub max_fuel: u64,
+
     /// Capabilities granted to this plugin
     pub capabilities: Vec<Capability>,
 }
@@ -90,6 +94,7 @@ impl Default for WasmConfig {
         Self {
             max_memory_bytes: 128 * 1024 * 1024, // 128 MB
             max_execution_time: Duration::from_secs(5),
+            max_fuel: 100_000_000, // 100M instructions
             capabilities: Vec::new(),
         }
     }
@@ -122,6 +127,7 @@ impl ResourceLimiter for PluginResourceLimiter {
 /// Host state for WASM plugin
 struct PluginHostState {
     wasi: WasiP1Ctx,
+    limiter: PluginResourceLimiter,
 }
 
 /// WASM plugin instance with sandboxed execution
@@ -277,18 +283,23 @@ impl WasmPlugin {
         // We don't need to explicitly enable it
 
         let wasi_ctx = wasi_builder.build_p1();
-        let host_state = PluginHostState { wasi: wasi_ctx };
+        let limiter = PluginResourceLimiter {
+            memory_limit: self.config.max_memory_bytes,
+        };
+        let host_state = PluginHostState {
+            wasi: wasi_ctx,
+            limiter,
+        };
         let mut store = Store::new(&self.engine, host_state);
 
-        // Set resource limiter
-        // TODO: Re-implement resource limiting with wasmtime v26 API
-        // The ResourceLimiter API changed significantly in v26
-        // For now, we rely on OS-level limits and WASM linear memory isolation
+        // Set resource limiter (wasmtime v26 API)
+        // This enforces memory and table growth limits to prevent DoS attacks
+        store.limiter(|state| &mut state.limiter);
 
-        // Set fuel limit (instruction count limit)
-        // 1 fuel ≈ 1 WASM instruction, so 100M fuel ≈ 100M instructions
+        // Set fuel limit (instruction count limit from config)
+        // 1 fuel ≈ 1 WASM instruction
         // NOTE: Fuel must be enabled in Config before creating engine (done in load())
-        store.set_fuel(100_000_000)
+        store.set_fuel(self.config.max_fuel)
             .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to set fuel: {}", e)))?;
 
         Ok(store)
