@@ -1,6 +1,6 @@
 [package]
 name = "midimon-gui"
-version = "2.0.0"
+version = "2.7.0"
 description = "MIDIMon - Visual Configuration Interface"
 authors = ["MIDIMon Contributors"]
 edition = "2024"

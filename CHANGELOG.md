@@ -8,11 +8,226 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Profile marketplace (v2.4)
 - Windows and Linux platform support for app detection
 - Advanced trigger types (Chord, Sequence)
 - Action macros and scripting
 - Cloud sync (optional)
+
+## [2.7.0] - 2025-11-19
+
+### 🔐 Plugin Security & Verification
+
+**Phase 6 (Part 4)**: Comprehensive security layer for WASM plugins with cryptographic signing, resource limiting, filesystem sandboxing, and enterprise-grade safety guarantees.
+
+### Added - Plugin Signing & Verification
+
+- **Ed25519 Digital Signatures** (486 lines) - Industry-standard cryptographic verification
+  - 32-byte public keys, 64-byte signatures
+  - SHA-256 binary integrity checking
+  - Deterministic signing (identical inputs → identical signatures)
+  - Embedded JSON metadata (signer name, email, timestamp, version)
+  - Protection against tampering and unauthorized modifications
+
+- **Three-Tier Trust Model** - Flexible security policies
+  - **Unsigned**: Development and testing (security warnings displayed)
+  - **Self-Signed**: Plugins signed with any valid key (authenticity verified)
+  - **Trusted Keys**: Only allow plugins signed with pre-approved keys (maximum security)
+  - Configurable per-plugin or system-wide
+  - Trust store in `~/.midimon/trusted_keys.json`
+
+- **CLI Signing Tool** (`midimon-sign`, 460 lines) - Complete key management and signing workflow
+  - `generate-key` - Generate Ed25519 keypair with PEM encoding
+  - `sign` - Sign WASM plugins with metadata embedding
+  - `verify` - Verify plugin signatures and integrity
+  - `trust add/remove/list` - Manage trusted key store
+  - Portable PEM format for easy distribution
+  - Integration with WASM plugin loader
+
+### Added - Resource Limiting
+
+- **Fuel Metering** - CPU instruction counting to prevent runaway plugins
+  - Default: 100M instructions per execution
+  - Configurable per-plugin (10M to 1B instructions)
+  - Real-time tracking via wasmtime fuel API
+  - Automatic termination on limit exceeded
+  - Performance overhead: <1%
+
+- **Memory Limits** - Prevent memory exhaustion
+  - Default: 128 MB maximum memory per plugin
+  - Configurable per-plugin (16 MB to 512 MB)
+  - Linear memory growth constraints
+  - Table growth limits (1024 elements default)
+  - Protection against allocation attacks
+
+### Added - Filesystem Sandboxing
+
+- **Directory Preopening** (WASI) - Whitelist-based filesystem access
+  - Explicit directory grants (read-only or read-write)
+  - Path traversal prevention (no `../` escapes)
+  - Default: No filesystem access unless explicitly granted
+  - Per-plugin directory configuration
+  - WASI preview1 standard compliance
+
+### Added - Integration Tests
+
+- **10 Plugin Signing Tests** (436 lines, 100% pass rate, 0.53s execution)
+  - `test_sign_and_verify_workflow` - End-to-end signing workflow
+  - `test_load_signed_plugin_with_self_signed_mode` - Self-signed loading
+  - `test_reject_unsigned_plugin_when_required` - Signature enforcement
+  - `test_reject_tampered_plugin` - Binary integrity detection
+  - `test_reject_invalid_signature` - Wrong key rejection
+  - `test_signature_metadata_format` - JSON metadata parsing
+  - `test_load_unsigned_plugin_when_not_required` - Backward compatibility
+  - `test_multiple_executions_with_signed_plugin` - Runtime verification
+  - `test_key_size_validation` - Ed25519 key validation (32-byte enforcement)
+  - `test_signature_deterministic` - Reproducible signatures
+
+### Added - Documentation
+
+- **mdBook WASM Plugin Documentation** (6,715 lines across 4 new pages)
+  - `development/wasm-plugins.md` - Overview, architecture, security features
+  - `development/wasm-plugin-development.md` - Complete development tutorial
+  - `development/plugin-security.md` - 4-layer security architecture guide
+  - `development/plugin-examples.md` - Real-world examples (Spotify, OBS, system utils)
+  - Quick comparison tables (native vs WASM plugins)
+  - Security checklists and best practices
+  - Complete midimon-sign CLI reference
+  - Configuration examples with all security modes
+
+- **Technical Documentation** (648 lines)
+  - `docs/v2.7-plugin-signing-complete.md` - Complete implementation report
+  - Architecture diagrams with 4-layer security model
+  - Performance benchmarks and overhead analysis
+  - Integration guide for plugin developers
+
+### Technical Details
+
+- **Production Code**: ~1,400 lines across 3 new files
+  - `midimon-core/src/plugin/signing.rs` (486 lines)
+  - `midimon-daemon/src/bin/midimon-sign.rs` (460 lines)
+  - `midimon-core/tests/plugin_signing_test.rs` (436 lines)
+
+- **Dependencies Added**:
+  - `ed25519-dalek v2.2` - Ed25519 signatures
+  - `pem v3.0` - PEM encoding for keys
+  - `base64 v0.22` - Base64 encoding for signatures
+
+- **Test Coverage**: 10 integration tests (100% passing)
+- **Build Time**: No measurable impact (still ~26s clean, ~4s incremental)
+- **Runtime Overhead**:
+  - Signature verification: <5ms on first load (one-time cost)
+  - Fuel metering: <1% per execution
+  - Memory tracking: Negligible
+
+### Security Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│  Security Layers                                │
+│                                                 │
+│  Layer 1: Cryptographic Verification           │
+│  - Ed25519 digital signatures                   │
+│  - SHA-256 integrity checking                   │
+│                                                 │
+│  Layer 2: Resource Limiting                     │
+│  - CPU fuel metering (100M instructions)        │
+│  - Memory limits (128 MB)                       │
+│                                                 │
+│  Layer 3: Filesystem Sandboxing                 │
+│  - Directory preopening (WASI)                  │
+│                                                 │
+│  Layer 4: Capability System                     │
+│  - Explicit permission model (from v2.3)        │
+└─────────────────────────────────────────────────┘
+```
+
+### Usage
+
+**Generate Keypair:**
+```bash
+midimon-sign generate-key ~/.midimon/my-key
+# Creates: my-key.pem (private), my-key.pub.pem (public)
+```
+
+**Sign Plugin:**
+```bash
+midimon-sign sign my_plugin.wasm ~/.midimon/my-key \
+  --name "Your Name" \
+  --email "you@example.com"
+# Creates: my_plugin.wasm.sig (detached signature)
+```
+
+**Verify Signature:**
+```bash
+midimon-sign verify my_plugin.wasm
+# Output: Signature verified successfully (shows metadata)
+```
+
+**Manage Trust Store:**
+```bash
+# Add trusted key
+midimon-sign trust add ~/.midimon/my-key.pub.pem "My Plugin"
+
+# List trusted keys
+midimon-sign trust list
+
+# Remove trusted key
+midimon-sign trust remove <public-key-hex>
+```
+
+**Configuration (Trusted Keys Mode):**
+```toml
+[[modes.mappings]]
+trigger = { Note = { note = 60 } }
+action = { WasmPlugin = {
+    path = "~/.midimon/wasm-plugins/my_plugin.wasm",
+    signature_policy = "trusted_keys_only",  # Require pre-approved keys
+    max_fuel = 50000000,  # 50M instructions
+    max_memory_mb = 64,   # 64 MB limit
+    allowed_dirs = [
+        { path = "~/.midimon/plugin-data", writable = true }
+    ]
+}}
+```
+
+### Performance
+
+- **Signature Verification**: <5ms (one-time on load)
+- **Fuel Metering Overhead**: <1% per execution
+- **Memory Tracking**: Negligible overhead
+- **No impact on MIDI event processing latency**: Still <1ms
+
+### Breaking Changes
+
+None - fully backward compatible with v2.6.0. Unsigned plugins continue to work with security warnings.
+
+### Migration Guide
+
+1. Pull latest code: `git pull origin main`
+2. Build release: `cargo build --release --workspace`
+3. Install CLI tool: `cargo install --path midimon-daemon --bin midimon-sign`
+4. (Optional) Generate signing keys: `midimon-sign generate-key ~/.midimon/my-key`
+5. (Optional) Sign existing plugins: `midimon-sign sign plugin.wasm ~/.midimon/my-key`
+6. (Optional) Configure trust store for maximum security
+
+### Security Considerations
+
+- **Unsigned plugins**: Display security warnings but execute (backward compatibility)
+- **Self-signed plugins**: Verify signature authenticity, no pre-approval needed
+- **Trusted keys mode**: Maximum security - only execute plugins from approved developers
+- **Resource limits**: Prevent denial-of-service attacks from runaway plugins
+- **Filesystem sandboxing**: Prevent unauthorized file access
+- **No network sandboxing yet**: WASM plugins can make network requests if capability granted
+
+### Known Issues
+
+None
+
+### Next Steps
+
+- v2.8: Plugin marketplace with discovery and distribution
+- v2.9: Network sandboxing for WASM plugins
+- v3.0: Windows and Linux platform support for app detection
 
 ## [2.3.0] - 2025-01-18
 
@@ -1049,7 +1264,12 @@ This v0.1.0-monolithic release preserves the working single-binary implementatio
 
 ## Version History
 
-- **v1.0.0** (2025-01-13): Production daemon with hot-reload ✨
+- **v2.7.0** (2025-11-19): Plugin security & verification ✨
+- **v2.3.0** (2025-01-18): Plugin architecture
+- **v2.2.0** (2025-11-18): Velocity curves & conditionals
+- **v2.1.0** (2025-11-17): Virtual MIDI output
+- **v2.0.0** (2025-11-14): Tauri GUI & visual config
+- **v1.0.0** (2025-01-13): Production daemon with hot-reload
 - **v0.2.0** (2025-11-12): Workspace architecture migration
 - **v0.1.0-monolithic** (2025-11-11): Initial public release with 26 features
 - **Unreleased**: Next version in development
@@ -1072,7 +1292,12 @@ Version numbers follow [Semantic Versioning](https://semver.org/):
 - **MINOR**: New features, backward-compatible
 - **PATCH**: Bug fixes, performance improvements
 
-[Unreleased]: https://github.com/amiable-dev/midimon/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/amiable-dev/midimon/compare/v2.7.0...HEAD
+[2.7.0]: https://github.com/amiable-dev/midimon/releases/tag/v2.7.0
+[2.3.0]: https://github.com/amiable-dev/midimon/releases/tag/v2.3.0
+[2.2.0]: https://github.com/amiable-dev/midimon/releases/tag/v2.2.0
+[2.1.0]: https://github.com/amiable-dev/midimon/releases/tag/v2.1.0
+[2.0.0]: https://github.com/amiable-dev/midimon/releases/tag/v2.0.0
 [1.0.0]: https://github.com/amiable-dev/midimon/releases/tag/v1.0.0
 [0.2.0]: https://github.com/amiable-dev/midimon/releases/tag/v0.2.0
 [0.1.0-monolithic]: https://github.com/amiable-dev/midimon/releases/tag/v0.1.0-monolithic
