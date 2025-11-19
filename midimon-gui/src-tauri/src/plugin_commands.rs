@@ -253,7 +253,7 @@ pub async fn fetch_plugin_registry() -> Result<PluginRegistry, String> {
         .join("plugin-registry");
 
     let client = PluginRegistryClient::new(
-        "https://raw.githubusercontent.com/amiable-dev/midimon/main/plugins/registry/registry.json",
+        "https://raw.githubusercontent.com/amiable-dev/midimon-plugin-registry/main/registry.json",
         cache_dir,
     );
 
@@ -276,7 +276,7 @@ pub async fn install_plugin_from_registry(
         .join("plugin-registry");
 
     let client = PluginRegistryClient::new(
-        "https://raw.githubusercontent.com/amiable-dev/midimon/main/plugins/registry/registry.json",
+        "https://raw.githubusercontent.com/amiable-dev/midimon-plugin-registry/main/registry.json",
         cache_dir,
     );
 
