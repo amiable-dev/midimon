@@ -74,7 +74,7 @@
 
   // Filter plugins based on category and search
   $: filteredPlugins = plugins.filter(plugin => {
-    const matchesCategory = selectedCategory === 'all' || (plugin.categories && plugin.categories.includes(selectedCategory));
+    const matchesCategory = selectedCategory === 'all' || plugin.category === selectedCategory;
     const matchesSearch = !searchQuery ||
       plugin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       plugin.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -204,7 +204,9 @@
                     Install
                   </button>
                 {/if}
-                <span class="install-count">{plugin.install_count} installs</span>
+                {#if plugin.install_count !== undefined}
+                  <span class="install-count">{plugin.install_count} installs</span>
+                {/if}
               </div>
             </article>
           {/each}
@@ -234,11 +236,9 @@
           <p class="plugin-description-full">{selectedPlugin.description}</p>
 
           <section class="details-section">
-            <h3>Categories</h3>
+            <h3>Category</h3>
             <div class="category-badges">
-              {#each selectedPlugin.categories as category}
-                <span class="badge category">{category}</span>
-              {/each}
+              <span class="badge category">{selectedPlugin.category}</span>
             </div>
           </section>
 
@@ -260,47 +260,30 @@
             </ul>
           </section>
 
-          <section class="details-section">
-            <h3>Supported Platforms</h3>
-            <div class="platform-badges">
-              {#each selectedPlugin.platforms as platform}
-                <span class="badge platform">{platform}</span>
-              {/each}
-            </div>
-          </section>
-
-          {#if selectedPlugin.homepage}
+          {#if selectedPlugin.platforms && selectedPlugin.platforms.length > 0}
             <section class="details-section">
-              <h3>Links</h3>
-              <div class="links">
-                <a href={selectedPlugin.homepage} target="_blank" class="link">Homepage</a>
-                {#if selectedPlugin.repository}
-                  <a href={selectedPlugin.repository} target="_blank" class="link">Repository</a>
-                {/if}
-                {#if selectedPlugin.setup_instructions}
-                  <a href={selectedPlugin.setup_instructions} target="_blank" class="link">Setup Guide</a>
-                {/if}
+              <h3>Supported Platforms</h3>
+              <div class="platform-badges">
+                {#each selectedPlugin.platforms as platform}
+                  <span class="badge platform">{platform}</span>
+                {/each}
               </div>
             </section>
           {/if}
 
-          <section class="details-section">
-            <h3>Statistics</h3>
-            <div class="stats-grid">
-              <div class="stat">
-                <strong>{selectedPlugin.install_count}</strong>
-                <span>Installs</span>
+          {#if selectedPlugin.repository || selectedPlugin.documentation}
+            <section class="details-section">
+              <h3>Links</h3>
+              <div class="links">
+                {#if selectedPlugin.repository}
+                  <a href={selectedPlugin.repository} target="_blank" class="link">Repository</a>
+                {/if}
+                {#if selectedPlugin.documentation}
+                  <a href={selectedPlugin.documentation} target="_blank" class="link">Documentation</a>
+                {/if}
               </div>
-              <div class="stat">
-                <strong>{selectedPlugin.rating.toFixed(1)}</strong>
-                <span>Rating</span>
-              </div>
-              <div class="stat">
-                <strong>{selectedPlugin.reviews_count}</strong>
-                <span>Reviews</span>
-              </div>
-            </div>
-          </section>
+            </section>
+          {/if}
         </div>
 
         <footer class="modal-footer">
