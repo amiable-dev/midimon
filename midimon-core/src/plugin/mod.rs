@@ -49,6 +49,10 @@ mod trigger_plugin;
 #[cfg(feature = "plugin-wasm")]
 pub mod wasm_runtime;
 
+// Plugin signing/verification (v2.7 - cryptographic security)
+#[cfg(feature = "plugin-signing")]
+pub mod signing;
+
 pub use action_plugin::{ActionPlugin, TriggerContext};
 pub use capability::{Capability, RiskLevel};
 pub use discovery::{

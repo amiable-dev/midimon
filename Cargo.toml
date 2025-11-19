@@ -61,6 +61,8 @@ regex = "1.10"  # Security validation
 dirs = "5.0"  # Path handling
 libloading = "0.8"  # Plugin loading - native .dylib/.so/.dll (v2.3)
 sha2 = "0.10"  # Checksum verification (v2.3)
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }  # Plugin signing (v2.7)
+hex = "0.4"  # Hex encoding for signatures (v2.7)
 
 # WASM plugin runtime (v2.5 - sandboxed plugin execution)
 wasmtime = "26.0"
@@ -73,10 +75,12 @@ alsa = "0.9"  # Linux ALSA virtual ports
 # MIDI message parsing
 midi-msg = "0.8"  # Modern MIDI message parser (actively maintained)
 
+# Shared dependencies (used by multiple crates)
+chrono = "0.4"  # Timestamps for signing, logs, etc.
+
 # CLI/display dependencies (NOT in midimon-core, only midimon-daemon)
 enigo = "0.6"
 colored = "3.0"
-chrono = "0.4"
 ctrlc = "3.4"
 clap = { version = "4.5", features = ["derive", "cargo"] }
 

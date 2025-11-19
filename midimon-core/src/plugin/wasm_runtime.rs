@@ -87,6 +87,18 @@ pub struct WasmConfig {
 
     /// Capabilities granted to this plugin
     pub capabilities: Vec<Capability>,
+
+    /// Require cryptographic signature for plugin loading (default: false for backward compatibility)
+    #[cfg(feature = "plugin-signing")]
+    pub require_signature: bool,
+
+    /// Allow plugins signed by any key (self-signed), or require trusted keys (default: false)
+    #[cfg(feature = "plugin-signing")]
+    pub allow_self_signed: bool,
+
+    /// Custom path to trusted_keys.toml file (default: ~/.config/midimon/trusted_keys.toml)
+    #[cfg(feature = "plugin-signing")]
+    pub trusted_keys_path: Option<std::path::PathBuf>,
 }
 
 impl Default for WasmConfig {
@@ -96,6 +108,12 @@ impl Default for WasmConfig {
             max_execution_time: Duration::from_secs(5),
             max_fuel: 100_000_000, // 100M instructions
             capabilities: Vec::new(),
+            #[cfg(feature = "plugin-signing")]
+            require_signature: false,  // Backward compatible: signatures optional by default
+            #[cfg(feature = "plugin-signing")]
+            allow_self_signed: false,  // Require trusted keys by default
+            #[cfg(feature = "plugin-signing")]
+            trusted_keys_path: None,  // Use default ~/.config/midimon/trusted_keys.toml
         }
     }
 }
@@ -144,7 +162,51 @@ impl WasmPlugin {
     ///
     /// This initializes the WASM runtime, loads the module, and sets up
     /// the sandboxed environment with configured resource limits and capabilities.
+    ///
+    /// If plugin signing is enabled and configured, this will verify the plugin's
+    /// cryptographic signature before loading.
     pub async fn load(path: &Path, config: WasmConfig) -> Result<Self, EngineError> {
+        // Verify plugin signature if signing feature is enabled
+        #[cfg(feature = "plugin-signing")]
+        {
+            use crate::plugin::signing::{verify_plugin_signature, load_trusted_keys};
+
+            let sig_path = path.with_extension("wasm.sig");
+
+            if sig_path.exists() {
+                // Signature file exists - verify it
+                let trusted_keys = if config.allow_self_signed {
+                    // Allow any key (self-signed)
+                    vec![]  // Empty list means skip trust check in verify_plugin_signature
+                } else {
+                    // Load trusted keys from config or default location
+                    load_trusted_keys()?
+                };
+
+                // Skip trust check if allow_self_signed is true by passing signature's own key
+                if config.allow_self_signed {
+                    // For self-signed mode, we still verify the signature is valid,
+                    // but we extract the public key from the signature and trust it
+                    let sig_json = std::fs::read_to_string(&sig_path)
+                        .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to read signature: {}", e)))?;
+                    let sig_metadata: crate::plugin::signing::SignatureMetadata = serde_json::from_str(&sig_json)
+                        .map_err(|e| EngineError::PluginLoadFailed(format!("Invalid signature format: {}", e)))?;
+
+                    // Trust the key from the signature itself
+                    verify_plugin_signature(path, &sig_path, &[sig_metadata.public_key])?;
+                } else {
+                    // Normal mode: require trusted keys
+                    verify_plugin_signature(path, &sig_path, &trusted_keys)?;
+                }
+            } else if config.require_signature {
+                // Signature required but not found
+                return Err(EngineError::PluginLoadFailed(
+                    format!("Plugin signature required but not found: {:?}.sig", path)
+                ));
+            }
+            // If signature file doesn't exist and not required, continue loading without verification
+        }
+
         // Configure WASM engine
         let mut engine_config = Config::new();
         engine_config.async_support(true);      // Enable async execution
