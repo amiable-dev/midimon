@@ -791,6 +791,25 @@ Last Event: 3s ago
 </ul>
 <h3 id="service-management-commands"><a class="header" href="#service-management-commands">Service Management Commands</a></h3>
 <p><strong>Note</strong>: Service management commands are currently macOS-only (using LaunchAgent).</p>
+<h4 id="understanding-launchagent-behavior"><a class="header" href="#understanding-launchagent-behavior">Understanding LaunchAgent Behavior</a></h4>
+<p>The MIDIMon LaunchAgent plist has <code>RunAtLoad=true</code>, which affects command behavior:</p>
+<p><strong>Key insight</strong>: <code>launchctl load</code> = load plist + start daemon immediately</p>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>launchctl operation</th><th>Starts daemon?</th><th>Auto-start on login?</th></tr></thead><tbody>
+<tr><td><code>install</code></td><td><code>load</code></td><td>✓ Yes</td><td>✗ No</td></tr>
+<tr><td><code>start</code></td><td><code>load</code></td><td>✓ Yes</td><td>✗ No</td></tr>
+<tr><td><code>enable</code></td><td><code>load -w</code></td><td>✓ Yes</td><td>✓ Yes</td></tr>
+<tr><td><code>stop</code></td><td><code>unload</code></td><td>✗ Stops</td><td>✗ No</td></tr>
+<tr><td><code>disable</code></td><td><code>unload -w</code></td><td>✗ Stops</td><td>✗ No</td></tr>
+</tbody></table>
+</div>
+<p><strong>Common patterns</strong>:</p>
+<ul>
+<li><strong>Quick setup</strong>: <code>install</code> → daemon runs but won't auto-start on reboot</li>
+<li><strong>Production setup</strong>: <code>install</code> then <code>enable</code> → daemon runs now AND on every login</li>
+<li><strong>One-step production</strong>: <code>enable</code> (if already installed) → starts + enables auto-start</li>
+<li><strong>Temporary disable</strong>: <code>stop</code> → stops now but will auto-start on next login (if enabled)</li>
+<li><strong>Complete disable</strong>: <code>disable</code> → stops now AND prevents auto-start</li>
+</ul>
 <h4 id="install"><a class="header" href="#install">install</a></h4>
 <p>Install MIDIMon as a LaunchAgent service that starts automatically on login.</p>
 <p><strong>Syntax</strong>:</p>
@@ -922,44 +941,48 @@ Starting MIDIMon service...
 <li>Test service lifecycle</li>
 </ul>
 <h4 id="enable"><a class="header" href="#enable">enable</a></h4>
-<p>Enable auto-start on login (loads service with <code>-w</code> flag).</p>
+<p>Enable auto-start on login AND start the daemon immediately.</p>
 <p><strong>Syntax</strong>:</p>
 <pre><code class="language-bash">midimonctl enable [--json]
 </code></pre>
 <p><strong>What it does</strong>:</p>
-<ul>
-<li>Loads service with <code>launchctl load -w</code> flag</li>
-<li>Service will auto-start on next login</li>
-<li>Persists across reboots</li>
-</ul>
+<ol>
+<li><strong>Loads service</strong> with <code>launchctl load -w</code> flag</li>
+<li><strong>Starts daemon immediately</strong> (because plist has <code>RunAtLoad=true</code>)</li>
+<li><strong>Enables auto-start</strong> on next login (persists across reboots)</li>
+</ol>
 <p><strong>Output</strong>:</p>
 <pre><code>✓ Service enabled (will start on login)
 </code></pre>
+<p><strong>Note</strong>: This is equivalent to <code>start</code> + making it persistent across reboots.</p>
 <p><strong>When to use</strong>:</p>
 <ul>
-<li>Enable background service for daily use</li>
-<li>Set up auto-start after install</li>
-<li>Production deployment</li>
+<li><strong>One-step setup</strong>: Enable and start in single command</li>
+<li>Production deployment (start now + auto-start on reboot)</li>
+<li>After <code>disable</code> to re-enable everything</li>
 </ul>
+<p><strong>Alternative</strong>: If you only want to enable auto-start WITHOUT starting now, use <code>start</code> to load the service first, then the <code>-w</code> flag will be set.</p>
 <h4 id="disable"><a class="header" href="#disable">disable</a></h4>
-<p>Disable auto-start on login.</p>
+<p>Disable auto-start on login AND stop the daemon immediately.</p>
 <p><strong>Syntax</strong>:</p>
 <pre><code class="language-bash">midimonctl disable [--json]
 </code></pre>
 <p><strong>What it does</strong>:</p>
-<ul>
-<li>Unloads service with <code>launchctl unload -w</code> flag</li>
-<li>Service will NOT auto-start on next login</li>
-<li>Stops currently running instance</li>
-</ul>
+<ol>
+<li><strong>Unloads service</strong> with <code>launchctl unload -w</code> flag</li>
+<li><strong>Stops daemon immediately</strong></li>
+<li><strong>Disables auto-start</strong> on next login</li>
+</ol>
 <p><strong>Output</strong>:</p>
 <pre><code>✓ Service disabled (will not start on login)
 </code></pre>
+<p><strong>Note</strong>: This is equivalent to <code>stop</code> + preventing auto-start on reboot.</p>
 <p><strong>When to use</strong>:</p>
 <ul>
+<li><strong>Complete shutdown</strong>: Stop now + prevent auto-start</li>
 <li>Temporarily disable background service</li>
 <li>Development workflow</li>
-<li>Troubleshooting</li>
+<li>Before uninstall</li>
 </ul>
 <h4 id="service-status"><a class="header" href="#service-status">service-status</a></h4>
 <p>Show detailed service installation and runtime status.</p>
@@ -998,24 +1021,37 @@ if midimonctl reload --json | jq -e '.success'; then
 fi
 </code></pre>
 <h3 id="usage-examples"><a class="header" href="#usage-examples">Usage Examples</a></h3>
-<h4 id="example-1-first-time-service-setup"><a class="header" href="#example-1-first-time-service-setup">Example 1: First-Time Service Setup</a></h4>
+<h4 id="example-1-first-time-service-setup-production"><a class="header" href="#example-1-first-time-service-setup-production">Example 1: First-Time Service Setup (Production)</a></h4>
 <pre><code class="language-bash"># Build daemon
 cargo build --release --bin midimon
 
-# Install as LaunchAgent service
+# Install as LaunchAgent service (starts immediately)
 midimonctl install
-
-# Enable auto-start on login
-midimonctl enable
-
-# Start service
-midimonctl start
 
 # Verify running
 midimonctl status
 
+# Enable auto-start on login (also starts if not running)
+# Since install already started it, this just enables persistence
+midimonctl enable
+
 # Check service details
 midimonctl service-status
+</code></pre>
+<p><strong>Alternative (simpler)</strong>:</p>
+<pre><code class="language-bash"># Build daemon
+cargo build --release --bin midimon
+
+# One-step: Install service
+midimonctl install
+
+# One-step: Enable auto-start (if you want persistence across reboots)
+midimonctl enable
+</code></pre>
+<p><strong>Simplest production setup</strong>:</p>
+<pre><code class="language-bash">cargo build --release --bin midimon
+midimonctl install --install-binary  # Copies to /usr/local/bin
+midimonctl enable                     # Starts + enables auto-start
 </code></pre>
 <h4 id="example-2-development-workflow"><a class="header" href="#example-2-development-workflow">Example 2: Development Workflow</a></h4>
 <pre><code class="language-bash"># Start daemon in foreground for testing

@@ -746,6 +746,27 @@ Last Event: 3s ago
 
 **Note**: Service management commands are currently macOS-only (using LaunchAgent).
 
+#### Understanding LaunchAgent Behavior
+
+The MIDIMon LaunchAgent plist has `RunAtLoad=true`, which affects command behavior:
+
+**Key insight**: `launchctl load` = load plist + start daemon immediately
+
+| Command | launchctl operation | Starts daemon? | Auto-start on login? |
+|---------|-------------------|----------------|---------------------|
+| `install` | `load` | ✓ Yes | ✗ No |
+| `start` | `load` | ✓ Yes | ✗ No |
+| `enable` | `load -w` | ✓ Yes | ✓ Yes |
+| `stop` | `unload` | ✗ Stops | ✗ No |
+| `disable` | `unload -w` | ✗ Stops | ✗ No |
+
+**Common patterns**:
+- **Quick setup**: `install` → daemon runs but won't auto-start on reboot
+- **Production setup**: `install` then `enable` → daemon runs now AND on every login
+- **One-step production**: `enable` (if already installed) → starts + enables auto-start
+- **Temporary disable**: `stop` → stops now but will auto-start on next login (if enabled)
+- **Complete disable**: `disable` → stops now AND prevents auto-start
+
 #### install
 
 Install MIDIMon as a LaunchAgent service that starts automatically on login.
@@ -895,7 +916,7 @@ Starting MIDIMon service...
 
 #### enable
 
-Enable auto-start on login (loads service with `-w` flag).
+Enable auto-start on login AND start the daemon immediately.
 
 **Syntax**:
 ```bash
@@ -903,23 +924,27 @@ midimonctl enable [--json]
 ```
 
 **What it does**:
-- Loads service with `launchctl load -w` flag
-- Service will auto-start on next login
-- Persists across reboots
+1. **Loads service** with `launchctl load -w` flag
+2. **Starts daemon immediately** (because plist has `RunAtLoad=true`)
+3. **Enables auto-start** on next login (persists across reboots)
 
 **Output**:
 ```
 ✓ Service enabled (will start on login)
 ```
 
+**Note**: This is equivalent to `start` + making it persistent across reboots.
+
 **When to use**:
-- Enable background service for daily use
-- Set up auto-start after install
-- Production deployment
+- **One-step setup**: Enable and start in single command
+- Production deployment (start now + auto-start on reboot)
+- After `disable` to re-enable everything
+
+**Alternative**: If you only want to enable auto-start WITHOUT starting now, use `start` to load the service first, then the `-w` flag will be set.
 
 #### disable
 
-Disable auto-start on login.
+Disable auto-start on login AND stop the daemon immediately.
 
 **Syntax**:
 ```bash
@@ -927,19 +952,22 @@ midimonctl disable [--json]
 ```
 
 **What it does**:
-- Unloads service with `launchctl unload -w` flag
-- Service will NOT auto-start on next login
-- Stops currently running instance
+1. **Unloads service** with `launchctl unload -w` flag
+2. **Stops daemon immediately**
+3. **Disables auto-start** on next login
 
 **Output**:
 ```
 ✓ Service disabled (will not start on login)
 ```
 
+**Note**: This is equivalent to `stop` + preventing auto-start on reboot.
+
 **When to use**:
+- **Complete shutdown**: Stop now + prevent auto-start
 - Temporarily disable background service
 - Development workflow
-- Troubleshooting
+- Before uninstall
 
 #### service-status
 
@@ -990,26 +1018,43 @@ fi
 
 ### Usage Examples
 
-#### Example 1: First-Time Service Setup
+#### Example 1: First-Time Service Setup (Production)
 
 ```bash
 # Build daemon
 cargo build --release --bin midimon
 
-# Install as LaunchAgent service
+# Install as LaunchAgent service (starts immediately)
 midimonctl install
-
-# Enable auto-start on login
-midimonctl enable
-
-# Start service
-midimonctl start
 
 # Verify running
 midimonctl status
 
+# Enable auto-start on login (also starts if not running)
+# Since install already started it, this just enables persistence
+midimonctl enable
+
 # Check service details
 midimonctl service-status
+```
+
+**Alternative (simpler)**:
+```bash
+# Build daemon
+cargo build --release --bin midimon
+
+# One-step: Install service
+midimonctl install
+
+# One-step: Enable auto-start (if you want persistence across reboots)
+midimonctl enable
+```
+
+**Simplest production setup**:
+```bash
+cargo build --release --bin midimon
+midimonctl install --install-binary  # Copies to /usr/local/bin
+midimonctl enable                     # Starts + enables auto-start
 ```
 
 #### Example 2: Development Workflow
