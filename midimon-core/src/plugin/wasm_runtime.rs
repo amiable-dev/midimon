@@ -266,6 +266,7 @@ impl WasmPlugin {
 
         // Grant filesystem access if capability is present
         if self.config.capabilities.contains(&Capability::Filesystem) {
+            // Create plugin-specific data directory
             let plugin_data_dir = dirs::data_dir()
                 .ok_or_else(|| EngineError::PluginLoadFailed("No data directory".to_string()))?
                 .join("midimon")
@@ -274,9 +275,21 @@ impl WasmPlugin {
             std::fs::create_dir_all(&plugin_data_dir)
                 .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to create plugin data dir: {}", e)))?;
 
-            // In wasmtime v26, directory preopening API changed
-            // For now, skip directory preopening - will be added in future update
-            // TODO: Update to wasmtime v26 directory API
+            // Preopen directory with read/write access (wasmtime v26 API)
+            // This allows the plugin to access only this specific directory
+            use wasmtime_wasi::DirPerms;
+            use wasmtime_wasi::FilePerms;
+
+            let dir_perms = DirPerms::all();
+            let file_perms = FilePerms::all();
+
+            wasi_builder.preopened_dir(
+                plugin_data_dir,
+                "/",  // Mount at root of WASI filesystem
+                dir_perms,
+                file_perms,
+            )
+            .map_err(|e| EngineError::PluginLoadFailed(format!("Failed to preopen directory: {}", e)))?;
         }
 
         // Network capability is implicit in WASI (TCP/UDP sockets)

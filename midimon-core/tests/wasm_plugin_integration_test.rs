@@ -33,11 +33,7 @@ async fn test_load_wasm_plugin() {
         return;
     }
 
-    let config = WasmConfig {
-        max_memory_bytes: 128 * 1024 * 1024, // 128 MB
-        max_execution_time: Duration::from_secs(5),
-        capabilities: Vec::new(),
-    };
+    let config = WasmConfig::default();
 
     // Load the WASM plugin
     let result = WasmPlugin::load(&wasm_path, config).await;
@@ -98,11 +94,10 @@ async fn test_wasm_plugin_with_capabilities() {
         return;
     }
 
-    let config = WasmConfig {
-        max_memory_bytes: 64 * 1024 * 1024, // 64 MB
-        max_execution_time: Duration::from_secs(3),
-        capabilities: vec![Capability::Network],
-    };
+    let mut config = WasmConfig::default();
+    config.max_memory_bytes = 64 * 1024 * 1024; // 64 MB
+    config.max_execution_time = Duration::from_secs(3);
+    config.capabilities = vec![Capability::Network];
 
     let mut plugin = WasmPlugin::load(&wasm_path, config).await
         .expect("Failed to load plugin with Network capability");
@@ -123,11 +118,8 @@ async fn test_wasm_plugin_execution_timeout() {
     }
 
     // Set a very short timeout to test timeout handling
-    let config = WasmConfig {
-        max_memory_bytes: 128 * 1024 * 1024,
-        max_execution_time: Duration::from_millis(1), // 1ms timeout
-        capabilities: Vec::new(),
-    };
+    let mut config = WasmConfig::default();
+    config.max_execution_time = Duration::from_millis(1); // 1ms timeout
 
     let mut plugin = WasmPlugin::load(&wasm_path, config).await
         .expect("Failed to load plugin");
