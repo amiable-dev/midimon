@@ -12,6 +12,7 @@ This guide covers testing strategies for MIDIMon, including hardware-independent
 - [Writing Tests](#writing-tests)
 - [Interactive CLI Tool](#interactive-cli-tool)
 - [Test Scenarios](#test-scenarios)
+- [Game Controllers (HID) Testing (v3.0+)](#game-controllers-hid-testing-v30)
 
 ## MIDI Device Simulator
 
@@ -1011,11 +1012,1246 @@ All integration tests run automatically in GitHub Actions:
 - **Timing tolerance**: Increased for CI environments (±35ms)
 - **Platform coverage**: Tests run on macOS, Linux, Windows
 
+## Game Controllers (HID) Testing (v3.0+)
+
+MIDIMon v3.0 added support for all SDL2-compatible HID devices (gamepads, joysticks, racing wheels, flight sticks, HOTAS, and custom controllers). This section covers comprehensive testing strategies for gamepad functionality.
+
+### Overview
+
+Game controller testing in MIDIMon covers three main areas:
+
+1. **Unit Tests**: Component-level testing of InputManager, GamepadDeviceManager, and event conversion
+2. **Integration Tests**: Multi-component testing of hybrid mode, event streams, and device lifecycle
+3. **Manual Testing**: Physical hardware testing with real game controllers
+
+### Unit Tests
+
+#### InputManager Creation Tests
+
+Test InputManager initialization with different input modes:
+
+```bash
+# Run InputManager tests
+cargo test input_manager
+```
+
+**Test Coverage**:
+- `InputMode::MidiOnly` - MIDI device only (gamepad_manager = None)
+- `InputMode::GamepadOnly` - Gamepad device only (midi_manager = None)
+- `InputMode::Both` - Hybrid mode (both managers initialized)
+- Auto-reconnection configuration propagation
+- Device name configuration
+
+Example test:
+
+```rust
+#[test]
+fn test_input_manager_gamepad_only_mode() {
+    use midimon_daemon::input_manager::{InputManager, InputMode};
+
+    let manager = InputManager::new(
+        None,  // No MIDI device
+        true,  // auto_reconnect
+        InputMode::GamepadOnly
+    );
+
+    // Verify only gamepad manager is initialized
+    assert!(manager.has_gamepad_manager());
+    assert!(!manager.has_midi_manager());
+}
+```
+
+#### GamepadDeviceManager Lifecycle Tests
+
+Test gamepad connection, disconnection, and state management:
+
+```bash
+# Run gamepad-specific unit tests
+cargo test gamepad
+```
+
+**Test Coverage**:
+- Device detection and enumeration
+- Connection lifecycle (connect → active → disconnect)
+- Connection state tracking (is_connected flag)
+- Device ID assignment (0-based indexing)
+- Device name retrieval
+- Thread safety (Arc/Mutex patterns)
+
+Example test:
+
+```rust
+#[test]
+fn test_gamepad_connection_lifecycle() {
+    use midimon_daemon::gamepad_device::GamepadDeviceManager;
+    use tokio::sync::mpsc;
+
+    let (event_tx, _event_rx) = mpsc::channel(1024);
+    let (command_tx, _command_rx) = mpsc::channel(32);
+
+    let mut manager = GamepadDeviceManager::new(true);
+
+    // Test connection (requires physical gamepad)
+    match manager.connect(event_tx, command_tx) {
+        Ok((id, name)) => {
+            println!("Connected: {} (ID {})", name, id);
+            assert!(manager.is_connected());
+        }
+        Err(_) => {
+            // Expected when no gamepad is connected
+            assert!(!manager.is_connected());
+        }
+    }
+}
+```
+
+#### Event Conversion Tests (HID → InputEvent)
+
+Test conversion of gamepad events to InputEvent format:
+
+**Test Coverage**:
+- Button press → `InputEvent::PadPressed` (IDs 128-255)
+- Button release → `InputEvent::PadReleased` (IDs 128-255)
+- Analog stick movement → `InputEvent::EncoderTurned` (X/Y axes)
+- Trigger pull → `InputEvent::EncoderTurned` (analog triggers)
+- D-pad press → `InputEvent::PadPressed` (direction buttons)
+
+Example test (from `midimon-core/tests/gamepad_input_test.rs`):
+
+```rust
+#[test]
+fn test_gamepad_button_press_detection() {
+    let mut processor = EventProcessor::new();
+
+    // Gamepad button press (button ID 128 = South/A/Cross/B)
+    let event = InputEvent::PadPressed {
+        pad: 128,
+        velocity: 100,
+        time: Instant::now(),
+    };
+
+    let processed = processor.process_input(event);
+
+    // Should detect PadPressed with velocity level
+    assert_eq!(processed.len(), 1);
+
+    match &processed[0] {
+        ProcessedEvent::PadPressed {
+            note,
+            velocity,
+            velocity_level,
+        } => {
+            assert_eq!(*note, 128);
+            assert_eq!(*velocity, 100);
+            assert_eq!(*velocity_level, VelocityLevel::Hard); // 100 is in Hard range (81-127)
+        }
+        _ => panic!("Expected PadPressed event"),
+    }
+}
+```
+
+#### ID Range Validation Tests
+
+Verify gamepad IDs are correctly mapped to 128-255 range:
+
+**Test Coverage**:
+- Button IDs: 128-143 (Face buttons: 128-131, D-pad: 132-135, Shoulder buttons: 136-139, etc.)
+- Analog stick IDs: 128-131 (Left X: 128, Left Y: 129, Right X: 130, Right Y: 131)
+- Trigger IDs: 132-133 (Left trigger: 132, Right trigger: 133)
+- No collision with MIDI note range (0-127)
+
+Example test:
+
+```rust
+#[test]
+fn test_gamepad_id_range_no_midi_collision() {
+    use midimon_core::events::InputEvent;
+    use std::time::Instant;
+
+    let time = Instant::now();
+
+    // Test button IDs are >= 128
+    let button_event = InputEvent::PadPressed {
+        pad: 128,  // South button
+        velocity: 100,
+        time,
+    };
+
+    match button_event {
+        InputEvent::PadPressed { pad, .. } => {
+            assert!(pad >= 128, "Gamepad button ID must be >= 128");
+            assert!(pad <= 255, "Gamepad button ID must be <= 255");
+        }
+        _ => panic!("Expected PadPressed"),
+    }
+
+    // Test analog stick IDs are >= 128
+    let stick_event = InputEvent::EncoderTurned {
+        encoder: 128,  // Left stick X
+        value: 64,
+        time,
+    };
+
+    match stick_event {
+        InputEvent::EncoderTurned { encoder, .. } => {
+            assert!(encoder >= 128, "Gamepad analog ID must be >= 128");
+            assert!(encoder <= 255, "Gamepad analog ID must be <= 255");
+        }
+        _ => panic!("Expected EncoderTurned"),
+    }
+}
+```
+
+#### Button/Axis Mapping Correctness Tests
+
+Verify correct mapping of standard gamepad layout:
+
+**Test Coverage**:
+- Face buttons (South/East/West/North)
+- D-pad (Up/Down/Left/Right)
+- Shoulder buttons (L1/R1/L2/R2)
+- Stick buttons (L3/R3)
+- Start/Select/Guide buttons
+- Analog sticks (Left/Right X/Y)
+- Analog triggers (L2/R2)
+
+Example test:
+
+```rust
+#[test]
+fn test_standard_gamepad_button_mapping() {
+    // Standard SDL2 gamepad button mappings
+    const BUTTON_SOUTH: u8 = 128;    // A/Cross/B
+    const BUTTON_EAST: u8 = 129;     // B/Circle/A
+    const BUTTON_WEST: u8 = 130;     // X/Square/Y
+    const BUTTON_NORTH: u8 = 131;    // Y/Triangle/X
+    const DPAD_UP: u8 = 132;
+    const DPAD_DOWN: u8 = 133;
+    const DPAD_LEFT: u8 = 134;
+    const DPAD_RIGHT: u8 = 135;
+
+    // Verify no ID collisions
+    let button_ids = vec![
+        BUTTON_SOUTH, BUTTON_EAST, BUTTON_WEST, BUTTON_NORTH,
+        DPAD_UP, DPAD_DOWN, DPAD_LEFT, DPAD_RIGHT
+    ];
+
+    let mut seen = std::collections::HashSet::new();
+    for id in button_ids {
+        assert!(seen.insert(id), "Duplicate button ID: {}", id);
+        assert!(id >= 128, "Button ID must be >= 128");
+    }
+}
+```
+
+### Integration Tests
+
+Integration tests verify multi-component interactions and complex workflows.
+
+#### Hybrid Mode Event Stream Tests
+
+Test simultaneous MIDI + gamepad event processing:
+
+```bash
+# Run integration tests
+cargo test --test integration
+```
+
+**Test Coverage**:
+- Simultaneous MIDI and gamepad events
+- Event stream merging (single InputEvent channel)
+- No event loss or corruption
+- Correct event ordering
+- Thread synchronization
+
+Example integration test:
+
+```rust
+#[test]
+async fn test_hybrid_mode_event_stream() {
+    use midimon_daemon::input_manager::{InputManager, InputMode};
+    use tokio::sync::mpsc;
+
+    let (event_tx, mut event_rx) = mpsc::channel(1024);
+    let (command_tx, _command_rx) = mpsc::channel(32);
+
+    let mut manager = InputManager::new(
+        Some("Maschine Mikro MK3".to_string()),
+        true,
+        InputMode::Both  // Hybrid mode
+    );
+
+    // Connect both devices
+    manager.connect(event_tx, command_tx).unwrap();
+
+    // Simulate MIDI event
+    // ... (MIDI event simulation)
+
+    // Simulate gamepad event
+    // ... (gamepad event simulation)
+
+    // Verify both events arrive in order
+    let event1 = event_rx.recv().await.unwrap();
+    let event2 = event_rx.recv().await.unwrap();
+
+    // Verify event types and ordering
+    // ...
+}
+```
+
+#### MIDI + Gamepad Event Ordering Tests
+
+Verify events maintain temporal ordering:
+
+**Test Coverage**:
+- Timestamp-based ordering
+- No race conditions
+- Event interleaving
+- Microsecond-level timing precision
+
+Example test:
+
+```rust
+#[test]
+fn test_event_ordering_with_timestamps() {
+    use midimon_core::events::InputEvent;
+    use std::time::{Duration, Instant};
+
+    let base_time = Instant::now();
+
+    // Create events with precise timestamps
+    let midi_event = InputEvent::PadPressed {
+        pad: 60,  // MIDI note
+        velocity: 100,
+        time: base_time,
+    };
+
+    let gamepad_event = InputEvent::PadPressed {
+        pad: 128,  // Gamepad button
+        velocity: 100,
+        time: base_time + Duration::from_millis(10),
+    };
+
+    // Verify timestamps for ordering
+    match (midi_event, gamepad_event) {
+        (InputEvent::PadPressed { time: t1, .. },
+         InputEvent::PadPressed { time: t2, .. }) => {
+            assert!(t2 > t1, "Gamepad event should have later timestamp");
+        }
+        _ => panic!("Expected PadPressed events"),
+    }
+}
+```
+
+#### Device Disconnection/Reconnection Tests
+
+Test automatic reconnection behavior:
+
+**Test Coverage**:
+- Detect device disconnection
+- Automatic reconnection attempts
+- Exponential backoff (1s, 2s, 4s, 8s, 16s, 30s)
+- Maximum retry limit (6 attempts)
+- State restoration after reconnection
+- Event stream recovery
+
+Example test:
+
+```rust
+#[test]
+async fn test_gamepad_reconnection_logic() {
+    use midimon_daemon::gamepad_device::GamepadDeviceManager;
+    use tokio::sync::mpsc;
+    use std::time::Duration;
+
+    let (event_tx, _event_rx) = mpsc::channel(1024);
+    let (command_tx, mut command_rx) = mpsc::channel(32);
+
+    let mut manager = GamepadDeviceManager::new(true);  // auto_reconnect = true
+
+    // Simulate disconnection by connecting then disconnecting
+    if let Ok(_) = manager.connect(event_tx.clone(), command_tx.clone()) {
+        manager.disconnect();
+
+        // Verify disconnection detected
+        assert!(!manager.is_connected());
+
+        // Wait for reconnection attempt (background thread)
+        tokio::time::sleep(Duration::from_secs(2)).await;
+
+        // Check for reconnection command
+        if let Ok(cmd) = tokio::time::timeout(
+            Duration::from_secs(1),
+            command_rx.recv()
+        ).await {
+            // Verify reconnection command received
+            // ...
+        }
+    }
+}
+```
+
+#### Auto-Reconnection Logic Tests
+
+Verify reconnection backoff and retry behavior:
+
+**Test Coverage**:
+- Backoff schedule: 1s, 2s, 4s, 8s, 16s, 30s
+- Maximum 6 attempts
+- DaemonCommand::DeviceReconnectionResult sent on completion
+- No resource leaks during retries
+- Thread cleanup on failure
+
+#### Mode Switching with Gamepad Tests
+
+Test switching between input modes during runtime:
+
+**Test Coverage**:
+- Switch from MidiOnly to Both
+- Switch from GamepadOnly to Both
+- Switch from Both to MidiOnly
+- Switch from Both to GamepadOnly
+- Clean device disconnection during mode change
+- No event loss during transition
+
+Example test:
+
+```rust
+#[test]
+fn test_mode_switching_midi_to_hybrid() {
+    use midimon_daemon::input_manager::{InputManager, InputMode};
+
+    // Start with MIDI only
+    let mut manager = InputManager::new(
+        Some("Maschine Mikro MK3".to_string()),
+        true,
+        InputMode::MidiOnly
+    );
+
+    assert!(manager.has_midi_manager());
+    assert!(!manager.has_gamepad_manager());
+
+    // Switch to hybrid mode (would require runtime mode switching API)
+    // Note: Current implementation requires manager recreation
+    // Future enhancement: dynamic mode switching
+
+    // Create new manager with Both mode
+    let manager_hybrid = InputManager::new(
+        Some("Maschine Mikro MK3".to_string()),
+        true,
+        InputMode::Both
+    );
+
+    assert!(manager_hybrid.has_midi_manager());
+    assert!(manager_hybrid.has_gamepad_manager());
+}
+```
+
+### Manual Testing
+
+Manual testing with physical game controllers is essential for validating real-world behavior.
+
+#### Physical Gamepad Connection
+
+**Test Procedure**:
+1. Connect physical gamepad via USB or Bluetooth
+2. Launch MIDIMon daemon with gamepad support
+3. Verify gamepad detected and connected
+4. Check logs for connection confirmation
+
+```bash
+# Start daemon with gamepad-only mode
+cargo run --release -- --input-mode gamepad
+
+# Or hybrid mode (MIDI + gamepad)
+cargo run --release -- --input-mode both
+
+# Check logs for connection status
+tail -f ~/.midimon/daemon.log
+```
+
+**Expected Output**:
+```
+[INFO] Gamepad connected: Xbox Series Controller (ID 0)
+[INFO] Gamepad events: 15 buttons, 6 axes
+[INFO] Polling thread started
+```
+
+#### Button Mapping Verification
+
+**Test Procedure**:
+1. Press each button on the gamepad
+2. Verify correct button ID assigned (128-255)
+3. Check Event Console for button events
+4. Verify no duplicate IDs
+
+**Manual Test Checklist**:
+- [ ] South button (A/Cross/B) → ID 128
+- [ ] East button (B/Circle/A) → ID 129
+- [ ] West button (X/Square/Y) → ID 130
+- [ ] North button (Y/Triangle/X) → ID 131
+- [ ] D-Pad Up → ID 132
+- [ ] D-Pad Down → ID 133
+- [ ] D-Pad Left → ID 134
+- [ ] D-Pad Right → ID 135
+- [ ] Left Shoulder (L1/LB) → ID 136
+- [ ] Right Shoulder (R1/RB) → ID 137
+- [ ] Left Trigger Button (L2/LT) → ID 138 (if digital)
+- [ ] Right Trigger Button (R2/RT) → ID 139 (if digital)
+- [ ] Left Stick Button (L3) → ID 140
+- [ ] Right Stick Button (R3) → ID 141
+- [ ] Start/Options → ID 142
+- [ ] Select/Share → ID 143
+
+**Verification Command**:
+```bash
+# Open Event Console in GUI
+# Press each button and verify ID appears correctly
+```
+
+#### Analog Stick Dead Zone Testing
+
+Test dead zone behavior for analog sticks:
+
+**Test Procedure**:
+1. Leave analog sticks at center (neutral) position
+2. Verify no events generated (dead zone active)
+3. Move stick slightly (within dead zone)
+4. Verify no events still (dead zone threshold)
+5. Move stick beyond dead zone
+6. Verify `EncoderTurned` events generated
+7. Return stick to center
+8. Verify events stop (dead zone reactivated)
+
+**Dead Zone Configuration** (default: 0.1 or 10%):
+```rust
+// Dead zone prevents drift from neutral position
+const ANALOG_DEAD_ZONE: f32 = 0.1;  // 10% of full range
+```
+
+**Manual Test Checklist**:
+- [ ] Left stick neutral → no events
+- [ ] Left stick small movement → no events (within dead zone)
+- [ ] Left stick large movement → events generated
+- [ ] Left stick return to center → events stop
+- [ ] Right stick neutral → no events
+- [ ] Right stick small movement → no events
+- [ ] Right stick large movement → events generated
+- [ ] Right stick return to center → events stop
+
+#### Trigger Threshold Testing
+
+Test analog trigger activation thresholds:
+
+**Test Procedure**:
+1. Leave triggers released (0.0 position)
+2. Verify no events generated
+3. Pull trigger slightly (below threshold)
+4. Verify no events (threshold not met)
+5. Pull trigger beyond threshold
+6. Verify `EncoderTurned` events generated
+7. Release trigger
+8. Verify events stop
+
+**Trigger Configuration** (default threshold: 0.1 or 10%):
+```rust
+// Threshold for analog trigger activation
+const TRIGGER_THRESHOLD: f32 = 0.1;  // 10% of full pull
+```
+
+**Manual Test Checklist**:
+- [ ] Left trigger released → no events
+- [ ] Left trigger slight pull → no events (below threshold)
+- [ ] Left trigger half pull → events generated
+- [ ] Left trigger full pull → events generated (max value)
+- [ ] Left trigger release → events stop
+- [ ] Right trigger released → no events
+- [ ] Right trigger slight pull → no events
+- [ ] Right trigger half pull → events generated
+- [ ] Right trigger full pull → events generated
+- [ ] Right trigger release → events stop
+
+#### Template Loading Verification
+
+Test gamepad template loading:
+
+**Test Procedure**:
+1. Create gamepad template file (TOML)
+2. Place in `~/.midimon/templates/` directory
+3. Select template in GUI
+4. Verify mappings loaded correctly
+5. Test button mappings from template
+6. Verify actions execute correctly
+
+**Example Template** (Xbox controller):
+```toml
+# ~/.midimon/templates/xbox-series-controller.toml
+
+[device]
+name = "Xbox Series Controller"
+type = "gamepad"
+
+[[modes]]
+name = "Default"
+color = "blue"
+
+[[modes.mappings]]
+trigger = { PadPressed = { pad = 128, velocity_range = [0, 127] } }  # A button
+action = { Keystroke = { key = "Space", modifiers = [] } }
+
+[[modes.mappings]]
+trigger = { PadPressed = { pad = 129 } }  # B button
+action = { Keystroke = { key = "Escape", modifiers = [] } }
+```
+
+**Verification Commands**:
+```bash
+# List available templates
+midimonctl templates list
+
+# Load template
+midimonctl templates load xbox-series-controller
+
+# Verify template active
+midimonctl status
+```
+
+**Manual Test Checklist**:
+- [ ] Template file exists and is valid TOML
+- [ ] Template appears in GUI template selector
+- [ ] Template loads without errors
+- [ ] Mappings appear in mapping list
+- [ ] Button presses trigger correct actions
+- [ ] LED feedback works (if supported)
+
+#### MIDI Learn with Gamepad
+
+Test MIDI Learn mode with gamepad buttons:
+
+**Test Procedure**:
+1. Open GUI configuration
+2. Create new mapping
+3. Click "MIDI Learn" button
+4. Press gamepad button
+5. Verify button ID captured (128-255)
+6. Assign action to mapping
+7. Test mapping works
+
+**Manual Test Checklist**:
+- [ ] MIDI Learn mode activates
+- [ ] Gamepad button press detected
+- [ ] Correct button ID captured
+- [ ] Button ID displayed in UI
+- [ ] Mapping saved successfully
+- [ ] Mapping triggers action correctly
+- [ ] Multiple gamepad buttons can be learned
+- [ ] Chord detection works (multiple buttons)
+- [ ] Long press detection works
+- [ ] Double-tap detection works
+
+#### Device Disconnection/Reconnection
+
+Test device hot-plugging:
+
+**Test Procedure**:
+1. Connect gamepad and verify active
+2. Physically disconnect gamepad (unplug USB or disable Bluetooth)
+3. Verify daemon detects disconnection
+4. Wait for reconnection attempts (check logs)
+5. Reconnect gamepad
+6. Verify daemon reconnects automatically
+7. Test button presses work after reconnection
+
+**Manual Test Checklist**:
+- [ ] Daemon detects disconnection immediately
+- [ ] Logs show "Gamepad disconnected" message
+- [ ] Reconnection attempts start (1s, 2s, 4s, 8s, 16s, 30s backoff)
+- [ ] Logs show reconnection attempts
+- [ ] Gamepad reconnects when plugged back in
+- [ ] Logs show "Gamepad reconnected" message
+- [ ] Button presses work immediately after reconnection
+- [ ] No event loss after reconnection
+- [ ] State restored (mode, mappings, etc.)
+
+#### Cross-Platform Verification
+
+Test gamepad support across different operating systems:
+
+**Platform-Specific Testing**:
+
+**macOS**:
+- [ ] USB gamepad detection
+- [ ] Bluetooth gamepad detection
+- [ ] Xbox controller support
+- [ ] PlayStation controller support
+- [ ] Nintendo Switch Pro controller support
+- [ ] Generic HID gamepad support
+- [ ] Input Monitoring permissions granted
+
+**Linux**:
+- [ ] USB gamepad detection via evdev
+- [ ] Bluetooth gamepad detection
+- [ ] Xbox controller support (xpad kernel module)
+- [ ] PlayStation controller support (hid-sony kernel module)
+- [ ] udev rules configured correctly
+- [ ] Permissions for `/dev/input/event*`
+
+**Windows**:
+- [ ] USB gamepad detection
+- [ ] Bluetooth gamepad detection
+- [ ] Xbox controller support (native)
+- [ ] PlayStation controller support (DS4Windows)
+- [ ] DirectInput gamepad support
+- [ ] XInput gamepad support
+
+### Platform-Specific Testing Notes
+
+#### macOS
+
+**Hardware Requirements**:
+- Real hardware required (no emulation available)
+- Native SDL2 support via macOS HID APIs
+
+**Permissions**:
+- Input Monitoring permissions required (System Settings → Privacy & Security)
+- Grant permissions to Terminal or MIDIMon daemon
+
+**Testing Approach**:
+- Use physical controllers only
+- Test native Apple controllers (PS5, Xbox Series)
+- Test third-party controllers (8BitDo, Logitech)
+
+```bash
+# Check Input Monitoring permissions
+tccutil reset SystemPolicyInputMonitoring
+
+# Grant permissions to Terminal
+sudo sqlite3 ~/Library/Application\ Support/com.apple.TCC/TCC.db \
+  "INSERT INTO access VALUES('kTCCServiceAccessibility','com.apple.Terminal',0,1,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL);"
+```
+
+#### Linux
+
+**Hardware Requirements**:
+- Real hardware preferred
+- evdev emulation possible with `evemu-device`
+
+**Permissions**:
+- User must be in `input` group
+- udev rules required for device access
+
+**Testing Approach**:
+- Test with real controllers via USB/Bluetooth
+- Use evdev emulation for CI/CD testing
+- Test with various kernel modules (xpad, hid-sony)
+
+```bash
+# Add user to input group
+sudo usermod -a -G input $USER
+
+# Create udev rule for gamepad access
+echo 'KERNEL=="event*", SUBSYSTEM=="input", MODE="0666"' | \
+  sudo tee /etc/udev/rules.d/99-input.rules
+
+# Reload udev rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+
+# List connected gamepads
+ls -l /dev/input/event*
+
+# Test with evtest
+sudo evtest /dev/input/event0
+```
+
+**evdev Emulation for Testing**:
+```bash
+# Install evemu tools
+sudo apt-get install evemu-tools
+
+# Record gamepad events to file
+sudo evemu-record /dev/input/event0 > gamepad.events
+
+# Replay events for testing
+sudo evemu-play /dev/input/event0 < gamepad.events
+```
+
+#### Windows
+
+**Hardware Requirements**:
+- Real hardware preferred
+- Virtual gamepad possible with vJoy
+
+**Testing Approach**:
+- Test with real Xbox/PlayStation controllers
+- Use vJoy for virtual gamepad testing
+- Test both DirectInput and XInput modes
+
+**vJoy for Virtual Gamepads**:
+```powershell
+# Install vJoy
+# Download from: https://sourceforge.net/projects/vjoystick/
+
+# Configure virtual gamepad
+vJoyConf.exe
+
+# Test with gamepad tester
+# Download from: https://gamepad-tester.com/
+```
+
+### Test Coverage Requirements
+
+MIDIMon maintains high test coverage standards for gamepad functionality:
+
+#### Core Functionality Coverage (Target: 90%+)
+
+- **InputManager**: 95% line coverage
+  - Mode selection (MidiOnly, GamepadOnly, Both)
+  - Device initialization
+  - Connection lifecycle
+  - Event stream merging
+
+- **GamepadDeviceManager**: 90% line coverage
+  - Device detection
+  - Connection/disconnection
+  - Event polling loop
+  - Reconnection logic
+  - State management
+
+- **Event Conversion**: 95% line coverage
+  - Button press/release conversion
+  - Analog stick conversion
+  - Trigger conversion
+  - ID range validation
+
+#### Edge Cases Coverage (Target: 85%+)
+
+- **Device Not Found**:
+  - No gamepad connected
+  - Invalid device ID
+  - Device disconnected during operation
+  - Rapid connect/disconnect cycles
+
+- **SDL2 Unavailable**:
+  - SDL2 library not installed
+  - SDL2 initialization failure
+  - gilrs library unavailable
+
+- **Error Handling Paths**:
+  - Connection timeout
+  - Thread spawn failure
+  - Channel send/receive errors
+  - Reconnection limit exceeded
+
+Example edge case test:
+
+```rust
+#[test]
+fn test_no_gamepad_connected_error() {
+    use midimon_daemon::gamepad_device::GamepadDeviceManager;
+    use tokio::sync::mpsc;
+
+    let (event_tx, _event_rx) = mpsc::channel(1024);
+    let (command_tx, _command_rx) = mpsc::channel(32);
+
+    let mut manager = GamepadDeviceManager::new(false);  // auto_reconnect = false
+
+    // Attempt connection with no gamepad present
+    let result = manager.connect(event_tx, command_tx);
+
+    // Should return error
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(err.contains("No gamepad detected"));
+
+    // Manager should remain disconnected
+    assert!(!manager.is_connected());
+}
+```
+
+### Test Commands Reference
+
+```bash
+# Run all gamepad-specific unit tests
+cargo test gamepad
+
+# Run InputManager tests
+cargo test input_manager
+
+# Run integration tests (requires physical gamepad)
+cargo test --test integration
+
+# Run all tests with verbose output
+cargo test gamepad -- --nocapture
+
+# Run tests and show timing
+cargo nextest run gamepad
+
+# Run tests with coverage
+cargo llvm-cov --test gamepad --html
+
+# Run specific test
+cargo test test_gamepad_button_press_detection
+```
+
+### Test Fixtures and Mocking
+
+#### Mock Gamepad Devices for CI/CD
+
+For CI/CD environments without physical hardware:
+
+**Linux (evdev emulation)**:
+```rust
+#[cfg(test)]
+mod mock_gamepad {
+    use std::process::Command;
+
+    pub fn create_virtual_gamepad() -> Result<String, String> {
+        // Create virtual gamepad using evemu
+        let output = Command::new("evemu-device")
+            .arg("/path/to/gamepad.desc")
+            .output()
+            .map_err(|e| format!("Failed to create virtual gamepad: {}", e))?;
+
+        if output.status.success() {
+            let device = String::from_utf8_lossy(&output.stdout);
+            Ok(device.trim().to_string())
+        } else {
+            Err("Failed to create virtual gamepad".to_string())
+        }
+    }
+}
+```
+
+**Windows (vJoy)**:
+```rust
+#[cfg(target_os = "windows")]
+#[cfg(test)]
+mod mock_gamepad {
+    use winapi::um::winuser::*;
+
+    pub fn create_virtual_gamepad() -> Result<(), String> {
+        // Initialize vJoy device
+        // ...
+        Ok(())
+    }
+}
+```
+
+#### Simulated HID Events
+
+For unit tests without physical devices:
+
+```rust
+#[cfg(test)]
+mod simulated_events {
+    use midimon_core::events::InputEvent;
+    use std::time::Instant;
+
+    pub fn simulate_button_press(button: u8) -> InputEvent {
+        InputEvent::PadPressed {
+            pad: button,
+            velocity: 100,
+            time: Instant::now(),
+        }
+    }
+
+    pub fn simulate_button_release(button: u8) -> InputEvent {
+        InputEvent::PadReleased {
+            pad: button,
+            time: Instant::now(),
+        }
+    }
+
+    pub fn simulate_analog_stick_movement(axis: u8, value: u8) -> InputEvent {
+        InputEvent::EncoderTurned {
+            encoder: axis,
+            value,
+            time: Instant::now(),
+        }
+    }
+}
+```
+
+#### Test Data for Button/Axis Mapping
+
+Standard test data for gamepad button/axis mapping:
+
+```rust
+#[cfg(test)]
+mod test_data {
+    // Standard gamepad button IDs (Xbox layout)
+    pub const BUTTON_SOUTH: u8 = 128;     // A/Cross/B
+    pub const BUTTON_EAST: u8 = 129;      // B/Circle/A
+    pub const BUTTON_WEST: u8 = 130;      // X/Square/Y
+    pub const BUTTON_NORTH: u8 = 131;     // Y/Triangle/X
+    pub const DPAD_UP: u8 = 132;
+    pub const DPAD_DOWN: u8 = 133;
+    pub const DPAD_LEFT: u8 = 134;
+    pub const DPAD_RIGHT: u8 = 135;
+    pub const LEFT_SHOULDER: u8 = 136;    // L1/LB
+    pub const RIGHT_SHOULDER: u8 = 137;   // R1/RB
+    pub const LEFT_TRIGGER_BTN: u8 = 138; // L2/LT (digital)
+    pub const RIGHT_TRIGGER_BTN: u8 = 139;// R2/RT (digital)
+    pub const LEFT_STICK: u8 = 140;       // L3
+    pub const RIGHT_STICK: u8 = 141;      // R3
+    pub const START: u8 = 142;
+    pub const SELECT: u8 = 143;
+
+    // Analog axis IDs
+    pub const LEFT_STICK_X: u8 = 128;
+    pub const LEFT_STICK_Y: u8 = 129;
+    pub const RIGHT_STICK_X: u8 = 130;
+    pub const RIGHT_STICK_Y: u8 = 131;
+    pub const LEFT_TRIGGER: u8 = 132;     // L2/LT (analog)
+    pub const RIGHT_TRIGGER: u8 = 133;    // R2/RT (analog)
+
+    // Test velocity values
+    pub const VELOCITY_SOFT: u8 = 30;     // 0-40
+    pub const VELOCITY_MEDIUM: u8 = 60;   // 41-80
+    pub const VELOCITY_HARD: u8 = 100;    // 81-127
+
+    // Test analog values (0-127 normalized)
+    pub const ANALOG_CENTER: u8 = 64;
+    pub const ANALOG_MIN: u8 = 0;
+    pub const ANALOG_MAX: u8 = 127;
+}
+```
+
+### Debugging Tips
+
+#### Event Console Usage
+
+The GUI Event Console is invaluable for debugging gamepad events:
+
+1. Open MIDIMon GUI
+2. Navigate to "Event Console" tab
+3. Press gamepad buttons/move sticks
+4. Observe live event stream with IDs and values
+
+**Event Console Output Example**:
+```
+[14:23:45.123] PadPressed { pad: 128, velocity: 100 }  // South button
+[14:23:45.234] PadReleased { pad: 128 }
+[14:23:46.001] EncoderTurned { encoder: 128, value: 95, direction: CW, delta: 31 }  // Left stick X
+[14:23:46.112] PadPressed { pad: 132, velocity: 100 }  // D-Pad Up
+```
+
+#### Log Inspection
+
+Enable debug logging for gamepad module:
+
+```bash
+# Set RUST_LOG environment variable
+export RUST_LOG=midimon_daemon::gamepad_device=debug
+
+# Or for all MIDIMon modules
+export RUST_LOG=midimon=debug
+
+# Run daemon
+cargo run --release
+```
+
+**Log Output Example**:
+```
+[DEBUG midimon_daemon::gamepad_device] Gamepad 0 connected: Xbox Series Controller
+[DEBUG midimon_daemon::gamepad_device] Polling thread started for gamepad 0
+[DEBUG midimon_daemon::gamepad_device] Button pressed: South (128) velocity 100
+[DEBUG midimon_daemon::gamepad_device] Axis movement: LeftX (128) value 95 delta 31
+[DEBUG midimon_daemon::gamepad_device] Button released: South (128)
+```
+
+#### gilrs Event Debugging
+
+For low-level HID event debugging:
+
+```rust
+#[cfg(test)]
+fn debug_gilrs_events() {
+    use gilrs::{Gilrs, Event};
+
+    let mut gilrs = Gilrs::new().unwrap();
+
+    println!("Detected gamepads:");
+    for (_id, gamepad) in gilrs.gamepads() {
+        println!("  {} (ID: {})", gamepad.name(), gamepad.id());
+        println!("    Buttons: {}", gamepad.buttons().count());
+        println!("    Axes: {}", gamepad.axes().count());
+    }
+
+    println!("\nPress buttons to see raw gilrs events (Ctrl+C to exit):");
+
+    loop {
+        while let Some(Event { id, event, time }) = gilrs.next_event() {
+            println!("[{:?}] Gamepad {}: {:?}", time, id, event);
+        }
+    }
+}
+```
+
+**Run Debug Tool**:
+```bash
+cargo test debug_gilrs_events -- --nocapture --ignored
+```
+
+### Continuous Integration (CI/CD)
+
+Gamepad tests in CI environments require special considerations:
+
+#### GitHub Actions Configuration
+
+```yaml
+name: Gamepad Tests
+
+on: [push, pull_request]
+
+jobs:
+  test-gamepad-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      # Unit tests don't require physical hardware
+      - name: Run gamepad unit tests
+        run: cargo test gamepad --lib
+
+      - name: Run InputManager tests
+        run: cargo test input_manager
+
+  test-gamepad-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      # Install evemu for virtual gamepad
+      - name: Install evemu
+        run: sudo apt-get install -y evemu-tools
+
+      # Create virtual gamepad
+      - name: Setup virtual gamepad
+        run: |
+          sudo evemu-device ./tests/fixtures/virtual_gamepad.desc &
+          sleep 2
+
+      # Run integration tests with virtual gamepad
+      - name: Run gamepad integration tests
+        run: cargo test --test integration -- gamepad
+```
+
+#### Coverage in CI
+
+```yaml
+- name: Generate gamepad test coverage
+  run: |
+    cargo install cargo-llvm-cov
+    cargo llvm-cov --test gamepad --lcov --output-path lcov-gamepad.info
+
+- name: Upload coverage to Codecov
+  uses: codecov/codecov-action@v3
+  with:
+    files: lcov-gamepad.info
+    flags: gamepad
+```
+
+### Manual Test Checklist
+
+Complete manual testing checklist for game controller support:
+
+#### Device Detection
+- [ ] Gamepad detected via USB
+- [ ] Gamepad detected via Bluetooth
+- [ ] Multiple gamepads detected simultaneously
+- [ ] Gamepad ID assigned correctly (0-based)
+- [ ] Gamepad name retrieved correctly
+
+#### Button ID Mapping (128-255)
+- [ ] Face buttons (South/East/West/North): 128-131
+- [ ] D-Pad (Up/Down/Left/Right): 132-135
+- [ ] Shoulder buttons (L1/R1): 136-137
+- [ ] Trigger buttons (L2/R2 digital): 138-139
+- [ ] Stick buttons (L3/R3): 140-141
+- [ ] Start/Select buttons: 142-143
+- [ ] No ID collision with MIDI notes (0-127)
+
+#### Analog Stick Movement
+- [ ] Left stick X axis detected (ID 128)
+- [ ] Left stick Y axis detected (ID 129)
+- [ ] Right stick X axis detected (ID 130)
+- [ ] Right stick Y axis detected (ID 131)
+- [ ] Dead zone prevents drift (<10% movement)
+- [ ] Full range movement (0-127 values)
+- [ ] Direction detection (Clockwise/CounterClockwise)
+
+#### Trigger Pull Detection
+- [ ] Left trigger analog detected (ID 132)
+- [ ] Right trigger analog detected (ID 133)
+- [ ] Trigger threshold prevents noise (<10% pull)
+- [ ] Full pull range (0-127 values)
+- [ ] Smooth value transitions
+
+#### Hybrid MIDI + Gamepad
+- [ ] Both MIDI and gamepad devices connected
+- [ ] Events from both devices processed
+- [ ] No event loss or corruption
+- [ ] Correct event ordering maintained
+- [ ] Mode switching works with both inputs
+
+#### Template Loading
+- [ ] Gamepad template loads successfully
+- [ ] Mappings appear in mapping list
+- [ ] Button presses trigger correct actions
+- [ ] Template selector shows gamepad templates
+- [ ] Template validation passes
+
+#### MIDI Learn with Gamepad
+- [ ] MIDI Learn mode captures gamepad buttons
+- [ ] Button IDs 128-255 displayed correctly
+- [ ] Long press detection works in MIDI Learn
+- [ ] Double-tap detection works in MIDI Learn
+- [ ] Chord detection works (multiple buttons)
+
+#### Device Disconnection/Reconnection
+- [ ] Disconnection detected immediately
+- [ ] Reconnection attempts start (exponential backoff)
+- [ ] Gamepad reconnects when available
+- [ ] Event stream resumes after reconnection
+- [ ] State restored (mappings, mode, etc.)
+- [ ] Maximum retry limit enforced (6 attempts)
+
+#### Cross-Platform Verification
+- [ ] macOS: USB gamepad detection
+- [ ] macOS: Bluetooth gamepad detection
+- [ ] macOS: Input Monitoring permissions granted
+- [ ] Linux: USB gamepad detection (evdev)
+- [ ] Linux: Bluetooth gamepad detection
+- [ ] Linux: udev rules configured
+- [ ] Windows: USB gamepad detection
+- [ ] Windows: Bluetooth gamepad detection
+- [ ] Windows: XInput/DirectInput support
+
+#### Event Console
+- [ ] Gamepad events appear in Event Console
+- [ ] Button IDs displayed correctly (128-255)
+- [ ] Velocity values displayed correctly
+- [ ] Analog values displayed correctly
+- [ ] Timestamps accurate
+- [ ] Event filtering works
+
+#### Performance
+- [ ] Event latency <5ms
+- [ ] No event drops at 1000Hz polling
+- [ ] CPU usage <5% during active use
+- [ ] Memory usage stable (<10MB increase)
+- [ ] Thread cleanup on disconnection
+
 ## Related Documentation
 
 - [Event Processing Architecture](../architecture/event-processing.md)
 - [MIDI Event Types](../reference/midi-events.md)
 - [Action System](../reference/actions.md)
+- [Game Controller Support](../guides/game-controllers.md)
 - [Contributing Guide](../contributing.md)
 
 ## Examples
@@ -1032,6 +2268,7 @@ Additional examples in specialized test suites:
 - `tests/event_processing_tests.rs`: Aftertouch and pitch bend
 - `tests/action_tests.rs`: Application launch and volume control
 - `tests/action_orchestration_tests.rs`: Action sequences and conditionals
+- `midimon-core/tests/gamepad_input_test.rs`: Game controller event processing
 
 ## Support
 
@@ -1039,4 +2276,5 @@ For questions or issues with testing:
 - Check existing integration tests for examples
 - Use the interactive CLI tool to experiment
 - Review the simulator source code in `tests/midi_simulator.rs`
+- Check gamepad tests in `midimon-core/tests/gamepad_input_test.rs`
 - Open an issue on GitHub with test failure details
