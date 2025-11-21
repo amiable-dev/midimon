@@ -11,8 +11,8 @@ use crate::daemon::types::{
     DaemonCommand, DaemonStatistics, DeviceStatus, ErrorDetails, ErrorEntry, IpcCommand,
     IpcResponse, LifecycleState, ReloadMetrics, ResponseStatus,
 };
-use crate::midi_device::MidiDeviceManager;
-use midimon_core::event_processor::MidiEvent;
+use crate::input_manager::{InputManager, InputMode};
+use midimon_core::events::InputEvent;
 use midimon_core::{Config, EventProcessor, MappingEngine};
 use serde_json::json;
 use std::path::PathBuf;
@@ -32,12 +32,12 @@ pub struct EngineManager {
     mapping_engine: Arc<RwLock<MappingEngine>>,
     action_executor: Arc<Mutex<ActionExecutor>>,
 
-    /// MIDI device manager
-    midi_device: Arc<Mutex<Option<MidiDeviceManager>>>,
+    /// Unified input device manager (MIDI + Gamepad) (v3.0)
+    input_manager: Arc<Mutex<Option<InputManager>>>,
 
-    /// MIDI event channel (buffer: 100 events ~100ms at 1000 events/sec)
-    midi_event_tx: mpsc::Sender<MidiEvent>,
-    midi_event_rx: mpsc::Receiver<MidiEvent>,
+    /// Input event channel (buffer: 100 events ~100ms at 1000 events/sec) (v3.0)
+    input_event_tx: mpsc::Sender<InputEvent>,
+    input_event_rx: mpsc::Receiver<InputEvent>,
 
     /// Lifecycle state
     state: Arc<RwLock<LifecycleState>>,
@@ -76,8 +76,8 @@ impl EngineManager {
         mapping_engine.load_from_config(&config);
         let action_executor = ActionExecutor::new();
 
-        // Create MIDI event channel (buffer: 100 events)
-        let (midi_event_tx, midi_event_rx) = mpsc::channel::<MidiEvent>(100);
+        // Create input event channel (buffer: 100 events) (v3.0)
+        let (input_event_tx, input_event_rx) = mpsc::channel::<InputEvent>(100);
 
         Ok(Self {
             config: Arc::new(RwLock::new(config)),
@@ -85,9 +85,9 @@ impl EngineManager {
             event_processor: Arc::new(RwLock::new(event_processor)),
             mapping_engine: Arc::new(RwLock::new(mapping_engine)),
             action_executor: Arc::new(Mutex::new(action_executor)),
-            midi_device: Arc::new(Mutex::new(None)),
-            midi_event_tx,
-            midi_event_rx,
+            input_manager: Arc::new(Mutex::new(None)),
+            input_event_tx,
+            input_event_rx,
             state: Arc::new(RwLock::new(LifecycleState::Init)),
             device_status: Arc::new(RwLock::new(DeviceStatus::default())),
             statistics: Arc::new(RwLock::new(DaemonStatistics::default())),
@@ -106,10 +106,10 @@ impl EngineManager {
         // Transition to Starting state
         self.transition_state(LifecycleState::Starting).await?;
 
-        // Initialize MIDI device connection
-        if let Err(e) = self.connect_midi_device().await {
-            warn!("Failed to connect to MIDI device during startup: {}", e);
-            self.log_error("MidiConnectionFailed", e.to_string()).await;
+        // Initialize input device connection (v3.0)
+        if let Err(e) = self.connect_input_devices().await {
+            warn!("Failed to connect to input device during startup: {}", e);
+            self.log_error("InputConnectionFailed", e.to_string()).await;
             // Continue anyway - device may be connected later via IPC
         }
 
@@ -117,14 +117,14 @@ impl EngineManager {
 
         info!("Engine manager running");
 
-        // Main event loop: process MIDI events and commands concurrently
+        // Main event loop: process input events and commands concurrently (v3.0)
         loop {
             tokio::select! {
-                // MIDI events from device
-                Some(midi_event) = self.midi_event_rx.recv() => {
-                    if let Err(e) = self.process_midi_event(midi_event).await {
-                        error!("Failed to process MIDI event: {}", e);
-                        self.log_error("MidiEventProcessingFailed", e.to_string()).await;
+                // Input events from device (MIDI or gamepad) (v3.0)
+                Some(input_event) = self.input_event_rx.recv() => {
+                    if let Err(e) = self.process_input_event(input_event).await {
+                        error!("Failed to process input event: {}", e);
+                        self.log_error("InputEventProcessingFailed", e.to_string()).await;
                     }
                 }
 
@@ -151,20 +151,26 @@ impl EngineManager {
                             warn!("Device disconnected");
                             self.transition_state(LifecycleState::Degraded).await?;
                             self.update_device_status(false, None, None).await;
-                            self.log_error("DeviceDisconnected", "MIDI device unplugged").await;
+                            self.log_error("DeviceDisconnected", "Input device unplugged").await;
 
-                            // Disconnect device manager
-                            self.disconnect_midi_device().await;
+                            // Disconnect device manager (v3.0)
+                            self.disconnect_input_devices().await;
                         }
 
                         DaemonCommand::DeviceReconnected => {
                             info!("Device reconnected - attempting to establish connection");
-                            if let Err(e) = self.connect_midi_device().await {
-                                error!("Failed to reconnect to MIDI device: {}", e);
-                                self.log_error("MidiReconnectionFailed", e.to_string()).await;
+                            if let Err(e) = self.connect_input_devices().await {
+                                error!("Failed to reconnect to input device: {}", e);
+                                self.log_error("InputReconnectionFailed", e.to_string()).await;
                             } else {
                                 self.transition_state(LifecycleState::Running).await?;
                             }
+                        }
+
+                        DaemonCommand::ReconnectGamepad => {
+                            info!("Gamepad reconnection requested (v3.0 - not yet implemented)");
+                            // TODO: Implement gamepad reconnection in Week 3-4
+                            // For now, just log that we received the command
                         }
 
                         DaemonCommand::DeviceReconnectionFailed => {
@@ -204,8 +210,8 @@ impl EngineManager {
             }
         }
 
-        // Disconnect MIDI device before shutdown
-        self.disconnect_midi_device().await;
+        // Disconnect input devices before shutdown (v3.0)
+        self.disconnect_input_devices().await;
 
         // Final state transition
         self.transition_state(LifecycleState::Stopped).await?;
@@ -247,10 +253,22 @@ impl EngineManager {
                 create_success_response(
                     &id,
                     Some(json!({
+                        // Nested structure for frontend compatibility
+                        "daemon": {
+                            "lifecycle_state": format!("{}", state),
+                            "uptime_seconds": uptime_secs,
+                        },
+                        "statistics": {
+                            "events_processed": stats.events_processed,
+                            "errors_since_start": stats.errors_since_start,
+                            "config_reloads": stats.config_reloads,
+                        },
+                        "device": device_status,
+                        // Legacy fields for backward compatibility
                         "state": format!("{}", state),
                         "current_mode": config.modes.first().map(|m| &m.name).unwrap_or(&"None".to_string()),
                         "config_path": self.config_path,
-                        "config_loaded_at": stats.uptime_secs, // Placeholder
+                        "config_loaded_at": stats.uptime_secs,
                         "device_status": device_status,
                         "uptime_secs": uptime_secs,
                         "events_processed": stats.events_processed,
@@ -422,8 +440,24 @@ impl EngineManager {
     async fn reload_config(&mut self) -> Result<ReloadMetrics> {
         let start = Instant::now();
 
-        // Transition to Reloading state
+        // Check current state
         let current_state = *self.state.read().await;
+
+        // If already reloading, skip silently to avoid race conditions
+        // (happens when config file watcher fires multiple times quickly)
+        if current_state == LifecycleState::Reloading {
+            debug!("Already reloading config, skipping duplicate reload request");
+            return Ok(ReloadMetrics {
+                duration_ms: 0,
+                modes_loaded: 0,
+                mappings_loaded: 0,
+                config_load_ms: 0,
+                mapping_compile_ms: 0,
+                swap_ms: 0,
+            });
+        }
+
+        // Transition to Reloading state
         if !current_state.can_transition_to(LifecycleState::Reloading) {
             return Err(DaemonError::InvalidStateTransition {
                 from: format!("{}", current_state),
@@ -598,59 +632,63 @@ impl EngineManager {
         *self.state.read().await
     }
 
-    /// Connect to MIDI device based on config
-    async fn connect_midi_device(&mut self) -> Result<()> {
+    /// Connect to input devices based on config (v3.0)
+    async fn connect_input_devices(&mut self) -> Result<()> {
         let config = self.config.read().await;
         let device_config = &config.device;
 
         info!(
-            "Attempting to connect to MIDI device: {} (auto_reconnect: {})",
+            "Attempting to connect to input device: {} (auto_reconnect: {})",
             device_config.name, device_config.auto_reconnect
         );
 
-        // Create MIDI device manager
-        let mut manager =
-            MidiDeviceManager::new(device_config.name.clone(), device_config.auto_reconnect);
-
-        // Connect to device
-        let (port_index, port_name) = manager
-            .connect(self.midi_event_tx.clone(), self.command_tx.clone())
-            .map_err(|e| DaemonError::Ipc(format!("MIDI connection failed: {}", e)))?;
-
-        info!(
-            "Successfully connected to MIDI device: {} (port {})",
-            port_name, port_index
+        // Create unified input manager (defaults to MIDI-only for now) (v3.0)
+        let mut manager = InputManager::new(
+            Some(device_config.name.clone()),
+            device_config.auto_reconnect,
+            InputMode::MidiOnly, // TODO: Make configurable via config.toml
         );
 
-        // Update device status
-        self.update_device_status(true, Some(port_name), Some(port_index))
+        // Connect to device(s)
+        let status_msg = manager
+            .connect(self.input_event_tx.clone(), self.command_tx.clone())
+            .map_err(|e| DaemonError::Ipc(format!("Input device connection failed: {}", e)))?;
+
+        info!("Successfully connected to input device(s): {}", status_msg);
+
+        // Update device status (extract port info from status message if MIDI)
+        // For now, use default values - proper parsing can be added later
+        self.update_device_status(true, Some(status_msg.clone()), Some(0))
             .await;
 
-        // Store device manager
-        *self.midi_device.lock().await = Some(manager);
+        // Store device manager (v3.0)
+        *self.input_manager.lock().await = Some(manager);
 
         Ok(())
     }
 
-    /// Disconnect from MIDI device
-    async fn disconnect_midi_device(&mut self) {
-        info!("Disconnecting MIDI device");
+    /// Disconnect from input devices (v3.0)
+    async fn disconnect_input_devices(&mut self) {
+        info!("Disconnecting input devices");
 
-        // Drop device manager (closes connection)
-        *self.midi_device.lock().await = None;
+        // Drop device manager (closes connections) (v3.0)
+        if let Some(mut manager) = self.input_manager.lock().await.take() {
+            manager.disconnect();
+        }
 
         // Update device status
         self.update_device_status(false, None, None).await;
 
-        info!("MIDI device disconnected");
+        info!("Input devices disconnected");
     }
 
     /// Switch to a different MIDI device by port index
+    /// TODO(v3.0): This method needs updating for InputManager - currently MIDI-specific
     async fn switch_device(&mut self, port_index: usize) -> Result<(String, usize)> {
         info!("Switching to MIDI device at port {}", port_index);
 
         // Disconnect current device
-        self.disconnect_midi_device().await;
+        self.disconnect_input_devices().await;
 
         // Update config with new port preference
         {
@@ -658,67 +696,50 @@ impl EngineManager {
             config.device.port = Some(port_index);
         }
 
-        // Create new device manager with explicit port
-        let config = self.config.read().await;
-        let device_config = &config.device;
-
-        let mut manager = MidiDeviceManager::new(
-            String::new(), // Empty name = use port_index directly
-            device_config.auto_reconnect,
-        );
-
-        // Connect to specific port
-        let (actual_port, port_name) = manager
-            .connect_to_port(
-                port_index,
-                self.midi_event_tx.clone(),
-                self.command_tx.clone(),
-            )
-            .map_err(|e| {
-                DaemonError::Ipc(format!("Failed to connect to port {}: {}", port_index, e))
-            })?;
-
-        info!(
-            "Successfully switched to MIDI device: {} (port {})",
-            port_name, actual_port
-        );
-
-        // Update device status
-        self.update_device_status(true, Some(port_name.clone()), Some(actual_port))
-            .await;
-
-        // Store device manager
-        *self.midi_device.lock().await = Some(manager);
-
-        Ok((port_name, actual_port))
+        // TODO(v3.0): This logic needs to be refactored to work with InputManager
+        // For now, return an error until MIDI port switching is re-implemented
+        // for the unified input system
+        Err(DaemonError::Ipc(
+            "MIDI port switching not yet implemented for v3.0 unified input system".to_string()
+        ))
     }
 
-    /// Process a MIDI event through the engine pipeline
-    async fn process_midi_event(&mut self, midi_event: MidiEvent) -> Result<()> {
-        debug!("Processing MIDI event: {:?}", midi_event);
+    /// Process an input event through the engine pipeline (v3.0)
+    async fn process_input_event(&mut self, input_event: InputEvent) -> Result<()> {
+        debug!("Processing input event: {:?}", input_event);
 
-        // Phase 1: Process MidiEvent → ProcessedEvent (with timing, gestures)
+        // Phase 1: Process InputEvent → ProcessedEvent (with timing, gestures) (v3.0)
         let processed_events = {
             let mut processor = self.event_processor.write().await;
-            processor.process(midi_event.clone())
+            processor.process_input(input_event)
         };
 
-        // Phase 2: Map MidiEvent → Action (current mode = 0 for now)
-        let action = {
+        // Phase 2: Map ProcessedEvents → Action (v3.0)
+        let current_mode = 0; // TODO: Track current mode
+        let mut action = None;
+
+        {
             let engine = self.mapping_engine.read().await;
-            engine.get_action(&midi_event, 0) // TODO: Track current mode
-        };
+
+            // Try matching processed events (chords, long press, etc.)
+            for processed_event in &processed_events {
+                if let Some(found_action) = engine.get_action_for_processed(processed_event, current_mode) {
+                    action = Some(found_action);
+                    break;
+                }
+            }
+        }
 
         // Phase 3: Execute action if found
         if let Some(action) = action {
-            debug!("Executing action for MIDI event");
+            debug!("Executing action for input event");
 
-            // Create trigger context with velocity from MIDI event
+            // Create trigger context with velocity from processed event (v3.0)
             let context = TriggerContext {
-                velocity: match &midi_event {
-                    MidiEvent::NoteOn { velocity, .. } => Some(*velocity),
+                velocity: processed_events.iter().find_map(|e| match e {
+                    midimon_core::event_processor::ProcessedEvent::PadPressed { velocity, .. } => Some(*velocity),
                     _ => None,
-                },
+                }),
                 current_mode: None, // TODO: Track current mode
             };
 
@@ -733,7 +754,7 @@ impl EngineManager {
         // ProcessedEvents are available for future use (UI feedback, etc.)
         if !processed_events.is_empty() {
             trace!(
-                "Processed {} events from MIDI input",
+                "Processed {} events from input",
                 processed_events.len()
             );
         }

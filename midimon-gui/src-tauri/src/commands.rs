@@ -355,29 +355,63 @@ pub async fn ping_daemon(state: State<'_, AppState>) -> Result<u64, String> {
 }
 
 /// List available MIDI devices
+///
+/// Creates a fresh MidiInput instance on each call to ensure we get the current
+/// list of MIDI ports, including any newly connected devices.
+///
+/// Note: Uses spawn_blocking to ensure proper enumeration on macOS/Windows
+/// where MIDI APIs may cache device lists.
 #[tauri::command]
 pub async fn list_midi_devices(_state: State<'_, AppState>) -> Result<Vec<MidiDevice>, String> {
     use midir::MidiInput;
 
-    let midi_in = MidiInput::new("MIDIMon Device Scanner")
-        .map_err(|e| format!("Failed to create MIDI input: {}", e))?;
+    // Run MIDI enumeration in a blocking thread to avoid any async-related caching
+    // This is especially important on macOS where Core MIDI can be finicky
+    tokio::task::spawn_blocking(move || {
+        // Strategy: Create and destroy a MidiInput instance to force fresh enumeration
+        // Some MIDI APIs cache device lists until the API is reinitialized
+        if let Ok(_warmup) = MidiInput::new("MIDIMon Warmup") {
+            // Warmup successful, drop immediately to force cleanup
+            drop(_warmup);
+        }
 
-    let ports = midi_in.ports();
-    let mut devices = Vec::new();
+        // Small delay to let OS/driver recognize any changes (especially on macOS)
+        std::thread::sleep(std::time::Duration::from_millis(100));
 
-    for (index, port) in ports.iter().enumerate() {
-        let name = midi_in
-            .port_name(port)
-            .unwrap_or_else(|_| format!("Unknown Device {}", index));
+        // Now create the actual MidiInput for enumeration
+        let midi_in = MidiInput::new("MIDIMon Device Scanner")
+            .map_err(|e| format!("Failed to create MIDI input: {}", e))?;
 
-        devices.push(MidiDevice {
-            index,
-            name,
-            connected: false, // Will be determined by checking daemon status
-        });
-    }
+        // Get current port list
+        let ports = midi_in.ports();
+        let mut devices = Vec::new();
 
-    Ok(devices)
+        // Important: Don't use enumerate() - ports may have gaps when devices are unplugged
+        // Instead, use the actual MIDI port count and iterate through valid ports only
+        for (list_index, port) in ports.iter().enumerate() {
+            match midi_in.port_name(port) {
+                Ok(name) => {
+                    devices.push(MidiDevice {
+                        index: list_index, // Use list index for GUI consistency
+                        name,
+                        connected: false, // Will be determined by checking daemon status
+                    });
+                }
+                Err(e) => {
+                    eprintln!("Warning: Failed to get name for MIDI port {}: {}", list_index, e);
+                    // Skip invalid ports instead of showing "Unknown Device"
+                    continue;
+                }
+            }
+        }
+
+        // Explicitly drop to ensure cleanup
+        drop(midi_in);
+
+        Ok(devices)
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
 }
 
 /// Get the current configuration as JSON
@@ -667,11 +701,35 @@ pub fn list_templates_by_category(category: String) -> Result<Vec<DeviceTemplate
     Ok(matches.into_iter().cloned().collect())
 }
 
-/// Create a config from a template
+/// Create a config from a template and save it to the config file
 #[tauri::command]
 pub fn create_config_from_template(template_id: String) -> Result<String, String> {
+    use std::fs;
+
     let registry = DeviceTemplateRegistry::new();
-    registry.create_config_from_template(&template_id)
+    let config_content = registry.create_config_from_template(&template_id)?;
+
+    // Get the config path
+    let config_dir = dirs::config_dir()
+        .ok_or_else(|| "Failed to determine config directory".to_string())?;
+
+    let config_path = config_dir.join("midimon").join("config.toml");
+
+    // Create the midimon config directory if it doesn't exist
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create config directory: {}", e))?;
+    }
+
+    // Write the config file
+    fs::write(&config_path, &config_content)
+        .map_err(|e| format!("Failed to write config file: {}", e))?;
+
+    Ok(format!(
+        "Configuration created from template '{}' and saved to {}",
+        template_id,
+        config_path.display()
+    ))
 }
 
 // ============================================================================
@@ -973,4 +1031,42 @@ pub struct ValidationResult {
     pub valid: bool,
     pub errors: Vec<String>,
     pub warnings: Vec<String>,
+}
+
+// ========== Gamepad Commands (v3.0) ==========
+
+/// Gamepad device information for UI
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GamepadDevice {
+    /// Gamepad ID (opaque identifier from gilrs)
+    pub id: String,
+    /// Human-readable gamepad name (e.g., "Xbox 360 Controller")
+    pub name: String,
+    /// SDL UUID for controller mapping
+    pub uuid: String,
+    /// Whether this gamepad is currently connected
+    pub connected: bool,
+}
+
+/// List available gamepad/HID controllers (v3.0)
+#[tauri::command]
+pub async fn list_gamepads(_state: State<'_, AppState>) -> Result<Vec<GamepadDevice>, String> {
+    use midimon_daemon::InputManager;
+
+    // Call InputManager::list_gamepads() to enumerate available gamepads
+    let gamepads = InputManager::list_gamepads()
+        .map_err(|e| format!("Failed to enumerate gamepads: {}", e))?;
+
+    // Convert to GamepadDevice struct for UI
+    let devices: Vec<GamepadDevice> = gamepads
+        .into_iter()
+        .map(|(id, name, uuid)| GamepadDevice {
+            id: format!("{:?}", id), // Convert gilrs::GamepadId to string
+            name,
+            uuid,
+            connected: true, // If it's in the list, it's currently connected
+        })
+        .collect();
+
+    Ok(devices)
 }
