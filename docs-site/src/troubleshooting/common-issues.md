@@ -631,6 +631,1088 @@ If note 50 is pressed but your profile only has notes 12-27, no LED will light.
 - Update profile to include note 50
 - Change hardware to send notes 12-27 (in Controller Editor)
 
+## Game Controllers (HID) Issues (v3.0+)
+
+### Overview
+
+MIDIMon v3.0 introduced support for all SDL2-compatible HID devices including gamepads (Xbox, PlayStation, Nintendo Switch Pro), joysticks, racing wheels, flight sticks, HOTAS controllers, and custom controllers. This section covers common issues specific to game controller integration.
+
+For gamepad configuration guidance, see the [Gamepad Support Guide](../guides/gamepad-support.md).
+
+### Gamepad Not Detected
+
+#### Symptoms
+
+- No gamepad shown in Event Console
+- `midimonctl status` doesn't list gamepad
+- Button presses have no effect
+- "No compatible gamepad detected" message
+
+#### Causes
+
+- USB/Bluetooth connection not established
+- System not recognizing controller
+- SDL2 compatibility issues
+- Insufficient permissions (macOS Input Monitoring)
+- Missing drivers (Windows)
+- Controller in incompatible mode
+
+#### Solutions
+
+##### 1. Verify Physical Connection
+
+**USB Connection**:
+```bash
+# macOS: Check USB device enumeration
+system_profiler SPUSBDataType | grep -i xbox
+system_profiler SPUSBDataType | grep -i playstation
+system_profiler SPUSBDataType | grep -i controller
+
+# Linux: Check USB devices
+lsusb | grep -i xbox
+lsusb | grep -i sony
+lsusb | grep -i nintendo
+
+# Windows: Device Manager
+# Devices and Printers > Game Controllers
+```
+
+**Bluetooth Connection**:
+- Verify controller is in pairing mode (usually hold PS/Xbox button + Share)
+- Check system Bluetooth settings show controller as connected
+- Try USB connection first to rule out Bluetooth issues
+- Some wireless adapters require specific drivers (Xbox Wireless Adapter on macOS)
+
+**If device not found**:
+- Try a different USB port (prefer USB 3.0)
+- Try a different USB cable (some cables are charge-only)
+- Power cycle the controller (turn off, wait 10 seconds, turn on)
+- Check controller battery is charged (wireless controllers)
+- Remove and re-pair Bluetooth connection
+
+##### 2. Check System Recognition
+
+**macOS**:
+```bash
+# Check via System Settings
+# System Settings > General > Game Controllers
+
+# Verify controller appears in system report
+system_profiler SPUSBDataType | grep -B 5 -A 10 "Xbox\|PlayStation\|Nintendo"
+```
+
+**Linux**:
+```bash
+# Check joystick devices
+ls -la /dev/input/js*
+# Expected: /dev/input/js0, /dev/input/js1, etc.
+
+# Test with jstest (install: sudo apt install joystick)
+jstest /dev/input/js0
+
+# Check evdev access
+ls -la /dev/input/event*
+
+# Verify permissions
+groups | grep input
+```
+
+**Windows**:
+```
+1. Open "Set up USB game controllers" (search in Start menu)
+2. Verify controller appears in list
+3. Click "Properties" to test buttons
+4. If shows "Unknown device", driver issue
+```
+
+##### 3. Verify SDL2 Compatibility
+
+MIDIMon uses SDL2 gamepad mappings. Most modern controllers are compatible, but some require specific configurations.
+
+**Test SDL2 detection**:
+```bash
+# Enable debug logging to see SDL2 detection
+DEBUG=1 midimon --foreground
+
+# Look for:
+[DEBUG] SDL2 initialized
+[DEBUG] Found gamepad: Xbox 360 Controller (ID: 0)
+[DEBUG] Gamepad mapping: 030000005e040000...(SDL2 GUID)
+```
+
+**Known compatible controllers**:
+- Xbox 360, Xbox One, Xbox Series X|S (all models)
+- PlayStation DualShock 4, DualSense (PS5)
+- Nintendo Switch Pro Controller
+- Steam Controller
+- Generic USB/Bluetooth gamepads with standard layout
+
+**If incompatible**:
+- Check [SDL_GameControllerDB](https://github.com/gabomdq/SDL_GameControllerDB) for your controller
+- Some controllers need to be in specific mode (XInput vs DirectInput on Windows)
+- Custom controllers may need manual SDL2 mapping file
+
+##### 4. Grant Input Monitoring Permission (macOS)
+
+Game controllers require Input Monitoring permission, just like MIDI HID devices.
+
+**Step-by-step**:
+1. Run MIDIMon:
+   ```bash
+   midimon --foreground
+   ```
+
+2. macOS shows permission dialog for Input Monitoring
+
+3. Click **Open System Settings**
+
+4. In **Privacy & Security** > **Input Monitoring**:
+   - Find `midimon` or `Terminal` (if running via cargo)
+   - Toggle switch to **ON**
+   - If already ON, toggle OFF then ON to reset
+
+5. Restart MIDIMon:
+   ```bash
+   midimon --foreground
+   ```
+
+**Verify permission**:
+```bash
+DEBUG=1 midimon --foreground
+```
+
+Look for:
+```
+[DEBUG] Input Monitoring permission: Granted
+[DEBUG] Gamepad access: Enabled
+```
+
+If you see "Input Monitoring permission denied", permission not granted.
+
+##### 5. Install/Verify Drivers
+
+**macOS**:
+- **Xbox controllers**: Generally work out-of-box
+- **Xbox Wireless Adapter**: Requires [360Controller](https://github.com/360Controller/360Controller/releases) driver
+- **PlayStation controllers**: Work via Bluetooth, some features need [DS4Windows](https://ryochan7.github.io/ds4windows-site/) equivalent for macOS
+- **Switch Pro**: Works out-of-box via USB or Bluetooth
+
+**Linux**:
+```bash
+# Install joystick/gamepad support
+sudo apt install joystick xboxdrv
+
+# Load xpad kernel module (Xbox controllers)
+sudo modprobe xpad
+
+# For Steam Controller
+sudo apt install steam-devices
+
+# Check kernel drivers loaded
+lsmod | grep -E "xpad|joydev|evdev"
+```
+
+**Windows**:
+- **Xbox controllers**: Use official Xbox drivers (usually automatic via Windows Update)
+- **PlayStation controllers**: Require [DS4Windows](https://ryochan7.github.io/ds4windows-site/) for full functionality
+- **Switch Pro**: Works but may need [BetterJoy](https://github.com/Davidobot/BetterJoy)
+- Check Device Manager for "Unknown device" under Game Controllers
+
+##### 6. Test with MIDIMon Event Console
+
+```bash
+# Start daemon
+midimon --foreground
+
+# In another terminal, watch events
+midimonctl events --follow
+```
+
+Press buttons on your gamepad - you should see:
+```
+[GAMEPAD] Button: 128 (A/Cross/B) | State: Pressed
+[GAMEPAD] Button: 128 | State: Released
+```
+
+**If no events appear**:
+- Controller not detected by SDL2
+- Permission issue (macOS)
+- Driver issue (Windows/Linux)
+- Controller needs reset (see next section)
+
+##### 7. Reset Controller
+
+Many connection issues resolve with a controller reset:
+
+**Xbox Controllers**:
+```
+1. Hold Xbox button for 10 seconds (powers off)
+2. Wait 10 seconds
+3. Press Xbox button to power on
+4. Reconnect to PC
+```
+
+**PlayStation Controllers**:
+```
+1. Find small reset button on back (near L2)
+2. Use paperclip, press and hold 5 seconds
+3. Reconnect via USB
+4. Re-pair Bluetooth if needed
+```
+
+**Switch Pro Controller**:
+```
+1. Press and hold Sync button (top left) for 5 seconds
+2. Release and press Home button
+3. Reconnect via USB or re-pair Bluetooth
+```
+
+### Buttons Not Triggering
+
+#### Symptoms
+
+- Controller detected but button presses don't trigger actions
+- Some buttons work, others don't
+- Event Console shows button events but mappings don't execute
+- Actions trigger randomly or on wrong buttons
+
+#### Causes
+
+- Button IDs don't match config (0-127 vs 128-255 range)
+- Wrong trigger type used
+- MIDI Learn didn't detect button
+- Mode mismatch
+- Trigger conditions not met
+
+#### Solutions
+
+##### 1. Verify Button ID Range
+
+**Critical**: Gamepad buttons use IDs **128-255**, not MIDI's 0-127 range.
+
+**Common mistake**:
+```toml
+# WRONG - This is a MIDI note, not gamepad button
+[modes.mappings.trigger]
+type = "Note"
+note = 0  # MIDI range (0-127)
+
+# CORRECT - Gamepad button ID
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 128  # Gamepad range (128-255)
+```
+
+**ID Ranges**:
+- **MIDI devices**: 0-127 (notes, CC)
+- **Gamepad buttons**: 128-255
+- No overlap, no conflicts
+
+##### 2. Use Event Console to Find Button IDs
+
+```bash
+# Start Event Console
+midimonctl events --follow --type gamepad
+```
+
+Press each button and note the ID:
+```
+[GAMEPAD] Button: 128 | State: Pressed  # A (Xbox) / Cross (PS) / B (Switch)
+[GAMEPAD] Button: 129 | State: Pressed  # B (Xbox) / Circle (PS) / A (Switch)
+[GAMEPAD] Button: 132 | State: Pressed  # D-Pad Up
+[GAMEPAD] Button: 136 | State: Pressed  # LB / L1 / L
+```
+
+Update your config with actual IDs:
+```toml
+[[modes.mappings]]
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 128  # Use the exact ID from Event Console
+[modes.mappings.action]
+type = "Keystroke"
+keys = "Return"
+```
+
+##### 3. Use MIDI Learn for Automatic Detection
+
+**GUI Method** (Recommended):
+1. Open MIDIMon GUI
+2. Navigate to mappings
+3. Click "Learn" button next to trigger field
+4. Press button on gamepad
+5. MIDIMon auto-generates correct trigger config
+
+**Pattern Detection**:
+- Press once → `GamepadButton`
+- Press twice quickly → `DoubleTap`
+- Hold button → `LongPress`
+- Press multiple buttons → `GamepadButtonChord`
+
+See [MIDI Learn Guide](../getting-started/midi-learn.md) for details.
+
+##### 4. Check Trigger Type Matches Input
+
+**Button triggers require GamepadButton type**:
+```toml
+# Face buttons, D-pad, shoulders, etc.
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 128
+```
+
+**Stick triggers require GamepadAnalogStick type**:
+```toml
+# Left/right stick movement
+[modes.mappings.trigger]
+type = "GamepadAnalogStick"
+axis = 130  # Right stick X-axis
+direction = "Clockwise"
+```
+
+**Trigger triggers require GamepadTrigger type**:
+```toml
+# L2/R2, LT/RT, ZL/ZR
+[modes.mappings.trigger]
+type = "GamepadTrigger"
+trigger = 133  # Right trigger
+threshold = 128
+```
+
+##### 5. Enable Debug Logging
+
+```bash
+DEBUG=1 midimon --foreground
+```
+
+Press buttons and watch for:
+
+**Good output** (button detected, mapping matched):
+```
+[GAMEPAD] Button 128 pressed (A/Cross/B)
+[DEBUG] Processed: GamepadButton(128)
+[DEBUG] Matched mapping: "Confirm Action" (mode: Default)
+[DEBUG] Executing action: Keystroke(keys: "Return")
+✓ Action executed successfully
+```
+
+**Bad output** (button detected, no mapping):
+```
+[GAMEPAD] Button 128 pressed (A/Cross/B)
+[DEBUG] Processed: GamepadButton(128)
+[DEBUG] No mapping matched for event
+```
+
+If no mapping matched:
+- Button ID mismatch (check config vs Event Console)
+- Wrong mode active
+- Wrong trigger type
+- Trigger conditions not met (velocity, timing)
+
+##### 6. Test with Simple Mapping
+
+Add a simple test mapping to verify basic functionality:
+
+```toml
+[[global_mappings]]
+description = "Test gamepad - A button"
+[global_mappings.trigger]
+type = "GamepadButton"
+button = 128  # A button (Xbox) / Cross (PS) / B (Switch)
+[global_mappings.action]
+type = "Shell"
+command = "echo 'Gamepad works!' && say 'Gamepad works'"
+```
+
+If this works, issue is with specific trigger/action configuration.
+
+### Analog Stick Drift / False Triggers
+
+#### Symptoms
+
+- Actions trigger without touching stick
+- Constant movement detected
+- Stick "stuck" in one direction
+- Unwanted repeated actions
+
+#### Causes
+
+- Hardware stick drift (worn potentiometers)
+- Dead zone too small
+- Threshold too sensitive
+- Stick calibration issue
+
+#### Solutions
+
+##### 1. Automatic Dead Zone (10%)
+
+MIDIMon automatically applies a 10% dead zone to prevent false triggers from stick drift.
+
+**How it works**:
+- Stick center: 128 (0-255 range)
+- Dead zone: 115-141 (10% in each direction)
+- Values in dead zone treated as 128 (neutral)
+
+This prevents small drift values from triggering actions.
+
+##### 2. Check Hardware Drift
+
+**Test stick in system settings**:
+- **macOS**: System Settings > Game Controllers > Properties
+- **Linux**: `jstest /dev/input/js0`
+- **Windows**: "Set up USB game controllers" > Properties > Test
+
+**Look for**:
+- Stick position drifts without touching
+- Values don't return to center (128)
+- Erratic movement when stationary
+
+If hardware drift exceeds 10% (values outside 115-141 range), hardware issue.
+
+##### 3. Increase Trigger Threshold
+
+Instead of analog stick trigger, use button-based threshold:
+
+```toml
+# Instead of this (too sensitive)
+[modes.mappings.trigger]
+type = "GamepadAnalogStick"
+axis = 130  # Right stick X
+direction = "Clockwise"
+
+# Use this (requires more movement)
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 135  # D-Pad right (more deliberate)
+```
+
+Or increase threshold for analog triggers:
+```toml
+[modes.mappings.trigger]
+type = "GamepadAnalogStick"
+axis = 130
+direction = "Clockwise"
+# Note: Dead zone is automatic, but ensure actions require significant movement
+```
+
+##### 4. Calibrate Controller
+
+**Windows**:
+```
+1. Open "Set up USB game controllers"
+2. Select your controller
+3. Click "Properties" > "Settings"
+4. Click "Calibrate"
+5. Follow calibration wizard
+```
+
+**Linux**:
+```bash
+# Install joystick calibration tool
+sudo apt install joystick
+
+# Run calibration
+jscal /dev/input/js0
+
+# Save calibration
+sudo jscal-store /dev/input/js0
+```
+
+**macOS**:
+- No built-in calibration tool
+- Consider third-party tools or controller-specific software
+- Hardware drift may require controller replacement
+
+##### 5. Hardware Solutions
+
+If drift persists after software fixes:
+- **Clean the stick**: Compressed air around stick base
+- **Replace stick module**: iFixit guides for most controllers
+- **Replace controller**: Modern controllers have drift issues (especially Joy-Cons, DualSense)
+- **Use D-pad instead**: More reliable for discrete directions
+
+### Analog Trigger Not Responding
+
+#### Symptoms
+
+- Pulling trigger has no effect
+- Some trigger positions work, others don't
+- Digital trigger press works but analog doesn't
+- Trigger fires at wrong pressure level
+
+#### Causes
+
+- Threshold too high (requires full pull)
+- Threshold too low (triggers immediately)
+- Wrong trigger type (digital vs analog)
+- Trigger axis ID incorrect
+- Hardware trigger issue
+
+#### Solutions
+
+##### 1. Adjust Threshold Value
+
+**Threshold range**: 0-255 (0 = not pressed, 255 = fully pressed)
+
+**Common thresholds**:
+```toml
+# Very sensitive (25% pull)
+threshold = 64
+
+# Medium sensitivity (50% pull) - RECOMMENDED
+threshold = 128
+
+# Requires deep pull (75%)
+threshold = 192
+
+# Almost full pull (90%)
+threshold = 230
+```
+
+**Start with medium and adjust**:
+```toml
+[modes.mappings.trigger]
+type = "GamepadTrigger"
+trigger = 133  # Right trigger
+threshold = 128  # Start here
+```
+
+If no response: Lower threshold (64, 32)
+If too sensitive: Raise threshold (192, 230)
+
+##### 2. Verify Trigger vs Button
+
+**Analog triggers** (L2/R2, LT/RT, ZL/ZR):
+```toml
+# Use GamepadTrigger for pressure sensitivity
+[modes.mappings.trigger]
+type = "GamepadTrigger"
+trigger = 132  # Left trigger (L2, LT, ZL)
+threshold = 128
+
+[modes.mappings.trigger]
+type = "GamepadTrigger"
+trigger = 133  # Right trigger (R2, RT, ZR)
+threshold = 128
+```
+
+**Digital triggers** (fully pressed):
+```toml
+# Use GamepadButton for on/off detection
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 143  # Left trigger digital (L2, LT, ZL)
+
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 144  # Right trigger digital (R2, RT, ZR)
+```
+
+**When to use which**:
+- **GamepadTrigger**: Variable pressure (volume control, throttle, gradual actions)
+- **GamepadButton**: On/off only (simpler, more reliable)
+
+##### 3. Test in Event Console
+
+```bash
+midimonctl events --follow --type gamepad
+```
+
+Pull trigger slowly and watch output:
+```
+[GAMEPAD] Trigger: 133 | Value: 0   # Not pressed
+[GAMEPAD] Trigger: 133 | Value: 64  # 25% pressed
+[GAMEPAD] Trigger: 133 | Value: 128 # 50% pressed
+[GAMEPAD] Trigger: 133 | Value: 192 # 75% pressed
+[GAMEPAD] Trigger: 133 | Value: 255 # Fully pressed
+```
+
+**If no events appear**:
+- Hardware trigger issue
+- Controller not sending analog data (check controller mode)
+- Driver issue (Windows: might be in DirectInput mode, need XInput)
+
+**If values don't reach 255**:
+- Trigger might have limited range
+- Lower threshold accordingly
+- Or use digital button trigger instead
+
+##### 4. Debug Trigger Detection
+
+```bash
+DEBUG=1 midimon --foreground
+```
+
+Pull trigger and look for:
+```
+[GAMEPAD] Trigger 133 value: 150
+[DEBUG] Threshold: 128 (met)
+[DEBUG] Matched mapping: "Volume Up"
+[DEBUG] Executing action: VolumeControl(Up)
+✓ Action executed
+```
+
+If threshold never met, value isn't reaching threshold:
+- Lower threshold: `threshold = 64`
+- Or check hardware with Event Console
+
+### Hybrid MIDI + Gamepad Conflicts
+
+#### Symptoms
+
+- MIDI or gamepad works alone, but not together
+- Wrong device responds to mapping
+- Actions trigger on wrong button/pad
+- Mode switching affects wrong device
+
+#### Causes
+
+- ID range overlap (using 0-127 for gamepad)
+- Config doesn't separate MIDI vs gamepad mappings
+- Trigger type mismatch
+- Device priority confusion
+
+#### Solutions
+
+##### 1. Understand ID Separation
+
+**No conflicts by design**:
+- **MIDI devices**: IDs 0-127 (notes, CC, pitch bend, aftertouch)
+- **Gamepad devices**: IDs 128-255 (buttons, sticks, triggers)
+
+**This works seamlessly**:
+```toml
+# MIDI mapping - Pad 0 (note 36)
+[[modes.mappings]]
+[modes.mappings.trigger]
+type = "Note"
+note = 36  # MIDI range (0-127)
+[modes.mappings.action]
+type = "Keystroke"
+keys = "1"
+
+# Gamepad mapping - A button
+[[modes.mappings]]
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 128  # Gamepad range (128-255)
+[modes.mappings.action]
+type = "Keystroke"
+keys = "2"
+```
+
+##### 2. Fix ID Range Errors
+
+**Common mistake - using MIDI IDs for gamepad**:
+```toml
+# WRONG - This triggers on MIDI note 10, not gamepad button
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 10  # Wrong range!
+
+# CORRECT - Gamepad button IDs start at 128
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 128  # A button
+```
+
+##### 3. Separate MIDI and Gamepad Modes
+
+Organize by device type for clarity:
+
+```toml
+[[modes]]
+name = "MIDI Controls"
+color = "blue"
+
+[[modes.mappings]]
+description = "MIDI Pad 1"
+[modes.mappings.trigger]
+type = "Note"
+note = 36
+
+[[modes]]
+name = "Gamepad Controls"
+color = "green"
+
+[[modes.mappings]]
+description = "Gamepad A Button"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 128
+```
+
+Switch modes based on which device you're using.
+
+##### 4. Mode Switching with Both Devices
+
+**Use different controls for mode switching**:
+
+```toml
+# MIDI encoder for mode switching
+[[global_mappings]]
+description = "Encoder: Next mode"
+[global_mappings.trigger]
+type = "EncoderTurn"
+cc = 1
+direction = "Clockwise"
+[global_mappings.action]
+type = "ModeChange"
+mode = "Next"
+
+# Gamepad chord for mode switching
+[[global_mappings]]
+description = "LB+RB: Next mode"
+[global_mappings.trigger]
+type = "GamepadButtonChord"
+buttons = [136, 137]  # LB + RB
+timeout_ms = 50
+[global_mappings.action]
+type = "ModeChange"
+mode = "Next"
+```
+
+This allows mode switching from either device without conflicts.
+
+##### 5. Verify with Event Console
+
+```bash
+midimonctl events --follow
+```
+
+Test both devices:
+```
+# Press MIDI pad
+[MIDI] NoteOn ch:0 note:36 vel:87
+
+# Press gamepad button
+[GAMEPAD] Button: 128 | State: Pressed
+```
+
+Ensure correct event type appears for each device.
+
+### Device Disconnection / Reconnection
+
+#### Symptoms
+
+- "Gamepad disconnected" message
+- Controller stops responding mid-session
+- Need to restart daemon after unplugging
+- Wireless controller loses connection
+
+#### Causes
+
+- Wireless interference or battery low
+- USB cable disconnected
+- Bluetooth timeout
+- System power management
+- Driver issue
+
+#### Solutions
+
+##### 1. Auto-Reconnection Behavior
+
+MIDIMon automatically handles reconnection:
+
+**What happens**:
+1. Controller disconnects (USB unplugged, Bluetooth drops, battery dies)
+2. Daemon logs: `[WARN] Gamepad disconnected (ID: 0)`
+3. Daemon continues running, monitoring for reconnection
+4. Controller reconnects
+5. Daemon logs: `[INFO] Gamepad reconnected (ID: 0)`
+6. Mappings resume automatically
+
+**No action needed** in most cases - just reconnect the controller.
+
+##### 2. Verify Auto-Reconnection
+
+```bash
+# Watch daemon logs
+DEBUG=1 midimon --foreground
+
+# Disconnect controller (unplug USB or power off)
+# You'll see:
+[WARN] Gamepad disconnected (ID: 0)
+[DEBUG] Polling for reconnection...
+
+# Reconnect controller
+# You'll see:
+[INFO] Gamepad detected: Xbox 360 Controller (ID: 0)
+[INFO] Gamepad reconnected successfully
+```
+
+##### 3. Manual Reconnection Steps
+
+If auto-reconnection fails:
+
+**USB Controllers**:
+```bash
+1. Unplug USB cable
+2. Wait 5 seconds
+3. Plug back in
+4. Check Event Console for events
+```
+
+**Bluetooth Controllers**:
+```bash
+1. Power off controller (hold PS/Xbox button)
+2. Open system Bluetooth settings
+3. Remove/forget the controller
+4. Put controller in pairing mode
+5. Re-pair to system
+6. Test in Event Console
+```
+
+##### 4. Daemon Restart (Last Resort)
+
+If reconnection doesn't work:
+
+```bash
+# Stop daemon
+midimonctl stop
+
+# Wait 2 seconds
+sleep 2
+
+# Start daemon
+midimon --foreground
+
+# Verify gamepad detected
+midimonctl status
+```
+
+##### 5. Prevent Wireless Disconnections
+
+**Check battery level**:
+- Low battery causes disconnections
+- Keep controllers charged
+- Use wired connection for critical work
+
+**Reduce interference**:
+- Keep controller within 10 feet of receiver
+- Avoid metal objects between controller and PC
+- Turn off other Bluetooth devices
+- Use USB connection if interference persists
+
+**Disable system power management**:
+
+**macOS**:
+```
+System Settings > Battery > Options
+Uncheck "Put hard disks to sleep when possible"
+```
+
+**Linux**:
+```bash
+# Disable USB autosuspend for controller
+echo -1 | sudo tee /sys/bus/usb/devices/.../power/autosuspend
+```
+
+**Windows**:
+```
+Device Manager > Universal Serial Bus controllers
+Right-click USB Root Hub > Properties > Power Management
+Uncheck "Allow the computer to turn off this device to save power"
+```
+
+### Platform-Specific Gamepad Issues
+
+#### macOS
+
+##### Xbox Wireless Adapter Not Working
+
+**Problem**: Xbox controller via Wireless Adapter not detected
+
+**Solution**:
+```bash
+# Install 360Controller driver
+# Download from: https://github.com/360Controller/360Controller/releases
+
+# Or via Homebrew
+brew install --cask 360controller
+
+# Restart system
+sudo reboot
+
+# Verify detection
+system_profiler SPUSBDataType | grep -i xbox
+```
+
+##### Permission Dialog Keeps Appearing
+
+**Problem**: Input Monitoring permission prompt appears repeatedly
+
+**Solution**:
+```bash
+# Grant permission to Terminal instead of midimon binary
+# This persists across rebuilds when running via cargo
+
+# Or code-sign the binary
+codesign --force --deep --sign - target/release/midimon
+```
+
+#### Linux
+
+##### Insufficient Permission to Access /dev/input
+
+**Problem**: `Permission denied` when accessing gamepad
+
+**Solution**:
+```bash
+# Add user to input group
+sudo usermod -a -G input $USER
+
+# Create udev rule for gamepads
+sudo tee /etc/udev/rules.d/50-gamepad.rules << 'EOF'
+# Xbox controllers
+SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", MODE="0666", GROUP="input"
+
+# PlayStation controllers
+SUBSYSTEM=="usb", ATTRS{idVendor}=="054c", MODE="0666", GROUP="input"
+
+# Nintendo controllers
+SUBSYSTEM=="usb", ATTRS{idVendor}=="057e", MODE="0666", GROUP="input"
+
+# Generic HID gamepads
+SUBSYSTEM=="input", ATTRS{name}=="*Controller*", MODE="0666", GROUP="input"
+SUBSYSTEM=="input", ATTRS{name}=="*Gamepad*", MODE="0666", GROUP="input"
+EOF
+
+# Reload udev rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+
+# Log out and back in (or reboot)
+```
+
+##### Joystick Device Not Created
+
+**Problem**: `/dev/input/js0` doesn't exist
+
+**Solution**:
+```bash
+# Load joydev kernel module
+sudo modprobe joydev
+
+# Make permanent (add to /etc/modules)
+echo "joydev" | sudo tee -a /etc/modules
+
+# Verify joystick devices
+ls -la /dev/input/js*
+```
+
+##### Xbox Controller Not Recognized
+
+**Problem**: Xbox controller via USB not working
+
+**Solution**:
+```bash
+# Install xboxdrv
+sudo apt install xboxdrv
+
+# Load xpad module
+sudo modprobe xpad
+
+# Test with jstest
+jstest /dev/input/js0
+```
+
+#### Windows
+
+##### Controller Shows as "Unknown Device"
+
+**Problem**: Device Manager shows gamepad as "Unknown device"
+
+**Solution**:
+```
+1. Open Device Manager
+2. Right-click "Unknown device"
+3. Select "Update driver"
+4. Choose "Search automatically for drivers"
+5. Or download from manufacturer:
+   - Xbox: Windows Update installs automatically
+   - PlayStation: Install DS4Windows
+   - Switch Pro: Install BetterJoy
+```
+
+##### DS4Windows Conflict
+
+**Problem**: PlayStation controller works in DS4Windows but not MIDIMon
+
+**Solution**:
+```
+DS4Windows emulates Xbox controller, which MIDIMon can detect.
+
+Option 1: Use DS4Windows (controller appears as Xbox)
+- Keep DS4Windows running
+- MIDIMon sees it as Xbox controller
+- Use Xbox button IDs (128-255)
+
+Option 2: Native PlayStation support
+- Close DS4Windows
+- Restart MIDIMon
+- Use native PlayStation support
+- Same button IDs (128-255) work with either
+```
+
+##### XInput vs DirectInput Mode
+
+**Problem**: Gamepad not detected in one mode
+
+**Solution**:
+```
+Some controllers have mode switches:
+- XInput mode: Modern Windows support (preferred)
+- DirectInput mode: Legacy support
+
+Look for X/D switch on controller or hold button combo:
+- Usually: Start + Back for 3 seconds switches mode
+- LED indicator changes when mode switches
+
+MIDIMon works best with XInput mode on Windows.
+```
+
+### Getting Additional Help
+
+If your gamepad issue isn't covered here:
+
+1. **Check Event Console**:
+   ```bash
+   midimonctl events --follow --type gamepad
+   ```
+   Verify button presses appear
+
+2. **Enable Debug Logging**:
+   ```bash
+   DEBUG=1 midimon --foreground
+   ```
+   Look for SDL2 detection messages
+
+3. **Collect Information**:
+   - OS version (macOS 14.2, Ubuntu 22.04, Windows 11)
+   - MIDIMon version: `midimon --version`
+   - Controller model (Xbox Series X, DualSense, etc.)
+   - Connection type (USB, Bluetooth, Wireless Adapter)
+   - Error messages from debug log
+   - Output of:
+     ```bash
+     midimonctl status
+     system_profiler SPUSBDataType | grep -i controller  # macOS
+     lsusb | grep -i controller  # Linux
+     ```
+
+4. **File GitHub Issue**:
+   - Include all collected information above
+   - Attach relevant portions of debug log
+   - Describe expected vs actual behavior
+   - See [Support Resources](../resources/support.md)
+
+**Related Documentation**:
+- [Gamepad Support Guide](../guides/gamepad-support.md) - Configuration reference
+- [Event Console Guide](../guides/event-console.md) - Real-time debugging
+- [MIDI Learn Guide](../getting-started/midi-learn.md) - Auto-detect buttons
+- [Device Templates](../guides/device-templates.md) - Pre-configured gamepad setups
+
 ## Platform-Specific Issues
 
 ### macOS: Permission Dialogs Keep Appearing
@@ -788,5 +1870,5 @@ If your issue isn't covered here:
 
 ---
 
-**Last Updated**: November 11, 2025
+**Last Updated**: November 21, 2025
 **Status**: Actively maintained
