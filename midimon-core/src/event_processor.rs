@@ -1,6 +1,7 @@
 // Copyright 2025 Amiable
 // SPDX-License-Identifier: MIT
 
+use crate::events::InputEvent; // Protocol-agnostic event processing (v3.0)
 use midi_msg::{ChannelVoiceMsg, ControlChange, MidiMsg};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -347,6 +348,191 @@ impl EventProcessor {
             }
 
             _ => {}
+        }
+
+        results
+    }
+
+    /// Process a protocol-agnostic InputEvent (v3.0)
+    ///
+    /// This method mirrors `process()` but handles InputEvent instead of MidiEvent,
+    /// enabling support for multiple input protocols (MIDI, HID gamepad, etc.) through
+    /// a unified processing pipeline.
+    ///
+    /// # Arguments
+    ///
+    /// * `event` - Protocol-agnostic input event (from MIDI, gamepad, etc.)
+    ///
+    /// # Returns
+    ///
+    /// Vector of ProcessedEvent results (short press, long press, chord detection, etc.)
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use midimon_core::{EventProcessor, events::InputEvent};
+    /// use std::time::Instant;
+    ///
+    /// let mut processor = EventProcessor::new();
+    ///
+    /// // Gamepad button press (button ID 128 = South/A/Cross/B)
+    /// let event = InputEvent::PadPressed {
+    ///     pad: 128,
+    ///     velocity: 100,
+    ///     time: Instant::now(),
+    /// };
+    ///
+    /// let processed = processor.process_input(event);
+    /// // Will detect velocity level, double-tap, chords, etc.
+    /// ```
+    pub fn process_input(&mut self, event: InputEvent) -> Vec<ProcessedEvent> {
+        let mut results = Vec::new();
+
+        match event {
+            InputEvent::PadPressed {
+                pad,
+                velocity,
+                time,
+            } => {
+                self.note_press_times.insert(pad, time);
+                self.held_notes.insert(pad, time);
+
+                // Check for double-tap
+                if let Some(&last_tap_time) = self.last_note_tap.get(&pad) {
+                    if time.duration_since(last_tap_time) < self.double_tap_timeout {
+                        results.push(ProcessedEvent::DoubleTap { note: pad });
+                        self.last_note_tap.remove(&pad);
+                    } else {
+                        self.last_note_tap.insert(pad, time);
+                    }
+                } else {
+                    self.last_note_tap.insert(pad, time);
+                }
+
+                // Detect velocity levels
+                let velocity_level = match velocity {
+                    0..=40 => VelocityLevel::Soft,
+                    41..=80 => VelocityLevel::Medium,
+                    81..=127 => VelocityLevel::Hard,
+                    _ => VelocityLevel::Medium,
+                };
+
+                results.push(ProcessedEvent::PadPressed {
+                    note: pad,
+                    velocity,
+                    velocity_level,
+                });
+
+                // Add to chord buffer
+                self.chord_buffer.push((pad, time));
+
+                // Check for chord (multiple pads pressed within chord_timeout)
+                self.chord_buffer
+                    .retain(|(_, t)| time.duration_since(*t) < self.chord_timeout);
+
+                if self.chord_buffer.len() > 1 {
+                    let notes: Vec<u8> = self.chord_buffer.iter().map(|(n, _)| *n).collect();
+                    results.push(ProcessedEvent::ChordDetected { notes });
+                }
+            }
+
+            InputEvent::PadReleased { pad, time } => {
+                if let Some(press_time) = self.note_press_times.remove(&pad) {
+                    let duration = time.duration_since(press_time);
+                    let duration_ms = duration.as_millis();
+
+                    results.push(ProcessedEvent::PadReleased {
+                        note: pad,
+                        hold_duration_ms: duration_ms,
+                    });
+
+                    if duration_ms < 200 {
+                        results.push(ProcessedEvent::ShortPress { note: pad });
+                    } else if duration_ms < 1000 {
+                        results.push(ProcessedEvent::MediumPress {
+                            note: pad,
+                            duration_ms,
+                        });
+                    } else {
+                        results.push(ProcessedEvent::LongPress {
+                            note: pad,
+                            duration_ms,
+                        });
+                    }
+                }
+                self.held_notes.remove(&pad);
+
+                // Remove from chord buffer
+                self.chord_buffer.retain(|(n, _)| *n != pad);
+            }
+
+            InputEvent::EncoderTurned {
+                encoder,
+                value,
+                ..
+            } => {
+                // Detect encoder direction
+                if let Some(&last_value) = self.last_cc_values.get(&encoder) {
+                    let direction = if value > last_value {
+                        EncoderDirection::Clockwise
+                    } else if value < last_value {
+                        EncoderDirection::CounterClockwise
+                    } else {
+                        // No change
+                        return results;
+                    };
+
+                    let delta = (value as i16 - last_value as i16).unsigned_abs() as u8;
+
+                    results.push(ProcessedEvent::EncoderTurned {
+                        cc: encoder,
+                        value,
+                        direction,
+                        delta,
+                    });
+                }
+                self.last_cc_values.insert(encoder, value);
+            }
+
+            InputEvent::PolyPressure { .. } => {
+                // Polyphonic aftertouch/pressure is received but not currently processed
+                // into high-level events. This is a placeholder for future support.
+            }
+
+            InputEvent::Aftertouch { pressure, .. } => {
+                results.push(ProcessedEvent::AftertouchChanged { pressure });
+            }
+
+            InputEvent::PitchBend { value, .. } => {
+                results.push(ProcessedEvent::PitchBendMoved { value });
+            }
+
+            InputEvent::ControlChange { control, value, .. } => {
+                // Generic control change - treat like encoder for now
+                if let Some(&last_value) = self.last_cc_values.get(&control) {
+                    let direction = if value > last_value {
+                        EncoderDirection::Clockwise
+                    } else if value < last_value {
+                        EncoderDirection::CounterClockwise
+                    } else {
+                        return results;
+                    };
+
+                    let delta = (value as i16 - last_value as i16).unsigned_abs() as u8;
+
+                    results.push(ProcessedEvent::EncoderTurned {
+                        cc: control,
+                        value,
+                        direction,
+                        delta,
+                    });
+                }
+                self.last_cc_values.insert(control, value);
+            }
+
+            InputEvent::ProgramChange { .. } => {
+                // Program change events are not currently processed into high-level events
+            }
         }
 
         results

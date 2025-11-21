@@ -439,6 +439,55 @@ fn validate_trigger(trigger: &Trigger) -> Result<(), ConfigError> {
         Trigger::PitchBend { .. } => {
             // Valid trigger, range validation is optional as values can be None
         }
+        // Gamepad triggers (v3.0)
+        Trigger::GamepadButton { button, .. } => {
+            if *button < 128 {
+                return Err(ConfigError::InvalidTrigger(format!(
+                    "Gamepad button ID out of range: {} (must be 128-255 to avoid MIDI conflicts)",
+                    button
+                )));
+            }
+        }
+        Trigger::GamepadButtonChord { buttons, .. } => {
+            for button in buttons {
+                if *button < 128 {
+                    return Err(ConfigError::InvalidTrigger(format!(
+                        "Gamepad button ID out of range: {} (must be 128-255 to avoid MIDI conflicts)",
+                        button
+                    )));
+                }
+            }
+            if buttons.is_empty() {
+                return Err(ConfigError::InvalidTrigger(
+                    "GamepadButtonChord must have at least one button".to_string(),
+                ));
+            }
+        }
+        Trigger::GamepadAnalogStick { axis, direction } => {
+            if *axis < 128 || *axis > 131 {
+                return Err(ConfigError::InvalidTrigger(format!(
+                    "Gamepad analog stick axis out of range: {} (must be 128-131)",
+                    axis
+                )));
+            }
+            if let Some(dir) = direction
+                && dir != "Clockwise"
+                && dir != "CounterClockwise"
+            {
+                return Err(ConfigError::InvalidTrigger(format!(
+                    "Invalid direction: '{}' (must be 'Clockwise' or 'CounterClockwise')",
+                    dir
+                )));
+            }
+        }
+        Trigger::GamepadTrigger { trigger, .. } => {
+            if *trigger != 132 && *trigger != 133 {
+                return Err(ConfigError::InvalidTrigger(format!(
+                    "Gamepad trigger ID out of range: {} (must be 132 or 133)",
+                    trigger
+                )));
+            }
+        }
     }
     Ok(())
 }

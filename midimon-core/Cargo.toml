@@ -17,6 +17,7 @@ serde.workspace = true
 serde_json.workspace = true  # Plugin system
 toml.workspace = true
 hidapi.workspace = true
+gilrs.workspace = true  # Gamepad/HID input (v3.0)
 quick-xml.workspace = true
 crossbeam-channel.workspace = true
 thiserror.workspace = true

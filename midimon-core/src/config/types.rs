@@ -227,6 +227,94 @@ pub enum Trigger {
         /// Minimum value to trigger (0-127)
         value_min: Option<u8>,
     },
+
+    // ===== Gamepad Triggers (v3.0) =====
+
+    /// Gamepad button press
+    ///
+    /// Triggers when a gamepad button is pressed. Button IDs use the range 128-255
+    /// to avoid conflicts with MIDI note numbers (0-127).
+    ///
+    /// # Examples
+    /// ```toml
+    /// [trigger]
+    /// type = "GamepadButton"
+    /// button = 128  # South button (A/Cross/B)
+    /// velocity_min = 1
+    /// ```
+    GamepadButton {
+        /// Gamepad button ID (128-255)
+        /// Face buttons: 128-131 (South/East/West/North)
+        /// D-Pad: 132-135 (Up/Down/Left/Right)
+        /// Shoulders: 136-137 (L1/R1)
+        /// Stick clicks: 138-139 (L3/R3)
+        /// Menu buttons: 140-142 (Start/Select/Guide)
+        /// Trigger buttons: 143-144 (L2/R2 digital)
+        button: u8,
+        /// Minimum velocity to trigger (0-127), None = any velocity
+        velocity_min: Option<u8>,
+    },
+
+    /// Gamepad button chord (multiple buttons pressed simultaneously)
+    ///
+    /// Triggers when all specified gamepad buttons are pressed within a narrow time window.
+    /// Similar to NoteChord but for gamepad buttons.
+    ///
+    /// # Examples
+    /// ```toml
+    /// [trigger]
+    /// type = "GamepadButtonChord"
+    /// buttons = [128, 129]  # South + East (A+B / Cross+Circle)
+    /// timeout_ms = 50
+    /// ```
+    GamepadButtonChord {
+        /// List of gamepad button IDs that form this chord (128-255)
+        buttons: Vec<u8>,
+        /// Time window in milliseconds for detecting simultaneous presses (default 50ms)
+        timeout_ms: Option<u64>,
+    },
+
+    /// Gamepad analog stick movement
+    ///
+    /// Triggers on analog stick axis movement. Axis IDs use the range 128-131:
+    /// - 128: Left stick X-axis
+    /// - 129: Left stick Y-axis
+    /// - 130: Right stick X-axis
+    /// - 131: Right stick Y-axis
+    ///
+    /// # Examples
+    /// ```toml
+    /// [trigger]
+    /// type = "GamepadAnalogStick"
+    /// axis = 128  # Left stick X-axis
+    /// direction = "Clockwise"  # Moving right
+    /// ```
+    GamepadAnalogStick {
+        /// Analog stick axis ID (128-131)
+        axis: u8,
+        /// Direction filter: "Clockwise" (right/up), "CounterClockwise" (left/down), or None for either
+        direction: Option<String>,
+    },
+
+    /// Gamepad analog trigger pull
+    ///
+    /// Triggers on analog trigger (L2/R2) pull. Trigger IDs:
+    /// - 132: Left trigger (L2/LT)
+    /// - 133: Right trigger (R2/RT)
+    ///
+    /// # Examples
+    /// ```toml
+    /// [trigger]
+    /// type = "GamepadTrigger"
+    /// trigger = 132  # Left trigger (L2/LT)
+    /// threshold = 64  # Minimum pull value (0-127)
+    /// ```
+    GamepadTrigger {
+        /// Analog trigger ID (132-133)
+        trigger: u8,
+        /// Minimum pull value to trigger (0-127), None = any value
+        threshold: Option<u8>,
+    },
 }
 
 /// Action configuration types

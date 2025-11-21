@@ -93,6 +93,7 @@ pub mod engine;
 pub mod error;
 pub mod event_processor;
 pub mod events;
+pub mod gamepad_events; // Gamepad/HID input mapping (v3.0)
 pub mod feedback;
 pub mod mapping; // Public for advanced event processing
 pub mod midi_output; // MIDI output management (v2.1)
