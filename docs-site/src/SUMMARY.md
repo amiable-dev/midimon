@@ -34,6 +34,11 @@
 
 - [Dynamic Workflows](tutorials/dynamic-workflows.md)
 
+# Inspiration
+
+- [Setup Gallery](inspiration/gallery.md)
+- [Success Stories](inspiration/success-stories.md)
+
 # Examples
 
 - [Logic Pro Integration](examples/logic-pro.md)

@@ -86,17 +86,91 @@ Transform your creative workflow in ways traditional macro tools can't:
 
 ## Who is MIDIMon For?
 
-### Music Producers
-Control DAWs, plugins, and effects with velocity-sensitive, multi-layer mappings.
+### 🎹 Music Producers & Live Performers
 
-### Software Developers
-Streamline coding workflows with mode-based hotkey systems and build tool shortcuts.
+**You have**: A MIDI controller (Maschine, Launchpad, APC Mini) that's not fully integrated into your workflow, or you're manually switching modes constantly during recording sessions.
 
-### Content Creators
-Manage streaming, recording, and editing with physical controllers or use your existing gamepad as a powerful macro pad.
+**MIDIMon gives you**: Velocity-sensitive DAW control, per-app profile switching, RGB LED feedback that shows your current state, and hot-reload that lets you tweak mappings mid-session.
 
-### Power Users
-Replace expensive macro pads with affordable MIDI controllers or repurpose your $30 Xbox controller for advanced automation.
+**Example workflow**:
+> "Soft press on pad 1 = loop record, medium press = one-shot sample, hard press = toggle reverb. One pad, three actions. I don't switch modes anymore—velocity does it for me."
+
+**[See Music Production Examples →](examples/music-production.md)**
+
+---
+
+### 💻 Software Developers & DevOps Engineers
+
+**You have**: Too many terminal windows open, countless keyboard shortcuts to remember, and repetitive git workflows that waste 20-30 minutes daily.
+
+**MIDIMon gives you**: One-button git operations, build/test triggers mapped to gamepad buttons, and context-aware shortcuts that change based on your active IDE.
+
+**Example workflow**:
+> "Press gamepad button A = git status. Hold for 2 seconds = commit and push with auto-generated message. My PlayStation controller saves me 30 minutes every day."
+
+**[See Developer Workflows →](examples/developer-workflows.md)**
+
+---
+
+### 🎮 Streamers & Content Creators
+
+**You have**: A $150-300 Stream Deck on your wishlist, or you're using keyboard shortcuts that break your flow during streams.
+
+**MIDIMon gives you**: Professional stream controls for free using your existing Xbox/PlayStation controller, with velocity-sensitive audio fading and button chords for complex actions.
+
+**Example workflow**:
+> "Xbox A button = switch scene, B = mute mic, triggers = analog audio fade in/out. I saved $300 by repurposing my gamepad instead of buying a Stream Deck."
+
+**[See Streaming Setup Guide →](examples/streaming.md)**
+
+---
+
+### 🎬 Video Editors & Post-Production
+
+**You have**: Keyboard-heavy editing workflows that strain your wrists, and you wish timeline scrubbing felt more natural.
+
+**MIDIMon gives you**: Analog pedal control for timeline speed and zoom, ergonomic button layouts on MIDI controllers or racing wheels, and hands-free transport control.
+
+**Example workflow**:
+> "My racing wheel's gas pedal controls timeline playback speed (0-200%). Brake pedal = zoom level. It sounds crazy, but it's incredibly intuitive and ergonomic."
+
+**[See Video Editing Examples →](examples/video-editing.md)**
+
+---
+
+### ⚡ Power Users & Automation Enthusiasts
+
+**You have**: Repetitive tasks you're sick of doing manually, forms that need filling out dozens of times daily, or app-specific shortcuts you can never remember.
+
+**MIDIMon gives you**: Context-aware shortcuts that change based on active application, form automation that fills entire forms with one button press, and MIDI Learn that makes configuration visual and instant.
+
+**Example workflow**:
+> "I mapped long-press to 'fill entire web form with saved data.' Double-tap = refresh page. Velocity determines scroll speed. Saved hours every week."
+
+**[See Automation Examples →](examples/automation.md)**
+
+---
+
+### 🕹️ Gamers Repurposing Controllers
+
+**You have**: A dusty Xbox controller, old racing wheel, or HOTAS setup that you barely use anymore.
+
+**MIDIMon gives you**: A second life for your gaming hardware as professional productivity tools. That $150 racing wheel becomes a $300 video editing controller.
+
+**Example workflow**:
+> "My Thrustmaster HOTAS from Star Citizen now controls my entire dev environment. 20+ shortcuts without touching the keyboard. Plus, it's just fun to use."
+
+**[See Gaming Hardware Repurposing →](guides/gamepad-support.md)**
+
+---
+
+## Not Sure Where to Start?
+
+**[Try the Quick Start Guide →](getting-started/quick-start.md)** - Set up your first mapping in 5 minutes
+
+**[Browse Device Templates →](guides/device-templates.md)** - Pre-built configs for popular controllers
+
+**[Explore Use Cases →](inspiration/success-stories.md)** - See how others use MIDIMon
 
 ## Why MIDIMon?
 
