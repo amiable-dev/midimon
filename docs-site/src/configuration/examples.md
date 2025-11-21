@@ -9,6 +9,7 @@ Real-world configuration patterns for common use cases. Each example is producti
 3. [Content Creation](#content-creation)
 4. [Repetition & Automation](#repetition--automation)
 5. [Advanced Patterns](#advanced-patterns)
+6. [Hybrid MIDI + Gamepad Configuration](#hybrid-midi--gamepad-configuration-v30)
 
 ## Basic Workflows
 
@@ -839,6 +840,903 @@ else_action = {
     ]
 }
 ```
+
+## Hybrid MIDI + Gamepad Configuration (v3.0+)
+
+MIDIMon v3.0 introduces support for Game Controllers (HID) alongside MIDI devices, enabling powerful hybrid workflows that combine the velocity-sensitive expressiveness of MIDI controllers with the ergonomic button layouts and analog sticks of gamepads, joysticks, racing wheels, flight sticks, HOTAS setups, and other game controllers.
+
+### Why Hybrid Mode?
+
+**Advantages**:
+- **Best of Both Worlds**: MIDI's velocity sensitivity + gamepad's ergonomic buttons and analog sticks
+- **No ID Conflicts**: MIDI uses IDs 0-127, gamepad uses 128-255
+- **Seamless Integration**: Both devices work simultaneously through unified event stream
+- **Device-Specific Strengths**: Use each device for what it does best
+
+**Common Use Cases**:
+- Music production with MIDI pads for recording + gamepad for DAW navigation
+- Live performance with MIDI keyboard + racing wheel pedals for effects control
+- Video editing with MIDI controller for timeline + gamepad for playback controls
+- Development with MIDI macro pad + gamepad for shortcuts and window management
+
+### Example 1: Music Production Workflow
+
+**Setup**: Maschine Mikro MK3 (MIDI) + Xbox Controller (Gamepad)
+
+This configuration demonstrates a complete music production workflow using both devices:
+- **MIDI Device**: Velocity-sensitive pads for recording, playback control, and instrument triggering
+- **Gamepad Device**: Ergonomic navigation, shortcuts, and transport controls
+
+```toml
+# Hybrid MIDI + Gamepad Configuration for Music Production
+# Device: Maschine Mikro MK3 (MIDI) + Xbox Controller (Gamepad)
+# Author: MIDIMon Examples
+# Version: 3.0
+
+[device]
+name = "Hybrid Production"
+auto_connect = true
+
+[advanced_settings]
+chord_timeout_ms = 50
+double_tap_timeout_ms = 300
+hold_threshold_ms = 2000
+
+###########################################
+# Mode 0: Production (Default)
+###########################################
+
+[[modes]]
+name = "Production"
+color = "blue"
+
+# ========================================
+# MIDI CONTROLLER MAPPINGS (IDs 0-127)
+# ========================================
+
+# --- Recording Controls (MIDI Pads) ---
+
+[[modes.mappings]]
+description = "Record (soft press)"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 60  # MIDI Pad 1
+ranges = [{ min = 0, max = 40 }]
+[modes.mappings.action]
+type = "Keystroke"
+keys = "r"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Record with count-in (medium press)"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 60
+ranges = [{ min = 41, max = 80 }]
+[modes.mappings.action]
+type = "Sequence"
+actions = [
+    { type = "Keystroke", keys = "k", modifiers = ["cmd"] },  # Enable count-in
+    { type = "Delay", ms = 100 },
+    { type = "Keystroke", keys = "r", modifiers = ["cmd"] }   # Start recording
+]
+
+[[modes.mappings]]
+description = "Punch record (hard press)"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 60
+ranges = [{ min = 81, max = 127 }]
+[modes.mappings.action]
+type = "Keystroke"
+keys = "r"
+modifiers = ["cmd", "shift"]
+
+# --- Playback Controls (MIDI Pads) ---
+
+[[modes.mappings]]
+description = "Play/Pause"
+[modes.mappings.trigger]
+type = "Note"
+note = 61  # MIDI Pad 2
+[modes.mappings.action]
+type = "Keystroke"
+keys = "space"
+
+[[modes.mappings]]
+description = "Stop"
+[modes.mappings.trigger]
+type = "Note"
+note = 62  # MIDI Pad 3
+[modes.mappings.action]
+type = "Keystroke"
+keys = "return"
+
+[[modes.mappings]]
+description = "Loop toggle"
+[modes.mappings.trigger]
+type = "Note"
+note = 63  # MIDI Pad 4
+[modes.mappings.action]
+type = "Keystroke"
+keys = "l"
+modifiers = ["cmd"]
+
+# --- Track Operations (MIDI Pads) ---
+
+[[modes.mappings]]
+description = "New track"
+[modes.mappings.trigger]
+type = "Note"
+note = 64  # MIDI Pad 5
+[modes.mappings.action]
+type = "Keystroke"
+keys = "t"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Duplicate track"
+[modes.mappings.trigger]
+type = "Note"
+note = 65  # MIDI Pad 6
+[modes.mappings.action]
+type = "Keystroke"
+keys = "d"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Delete track"
+[modes.mappings.trigger]
+type = "LongPress"
+note = 66  # MIDI Pad 7 (hold to delete)
+hold_duration_ms = 1500
+[modes.mappings.action]
+type = "Keystroke"
+keys = "delete"
+modifiers = ["cmd"]
+
+# --- Quick Save (MIDI Pad) ---
+
+[[modes.mappings]]
+description = "Quick save"
+[modes.mappings.trigger]
+type = "Note"
+note = 67  # MIDI Pad 8
+[modes.mappings.action]
+type = "Keystroke"
+keys = "s"
+modifiers = ["cmd"]
+
+# --- Volume Control (MIDI Encoder) ---
+
+[[modes.mappings]]
+description = "Volume up"
+[modes.mappings.trigger]
+type = "EncoderTurn"
+encoder = 0
+direction = "Clockwise"
+[modes.mappings.action]
+type = "VolumeControl"
+action = "Up"
+
+[[modes.mappings]]
+description = "Volume down"
+[modes.mappings.trigger]
+type = "EncoderTurn"
+encoder = 0
+direction = "CounterClockwise"
+[modes.mappings.action]
+type = "VolumeControl"
+action = "Down"
+
+# ========================================
+# GAMEPAD CONTROLLER MAPPINGS (IDs 128-255)
+# ========================================
+
+# --- DAW Shortcuts (Face Buttons) ---
+
+[[modes.mappings]]
+description = "Copy (A button)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 128  # A (Xbox) / Cross (PS)
+[modes.mappings.action]
+type = "Keystroke"
+keys = "c"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Paste (B button)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 129  # B (Xbox) / Circle (PS)
+[modes.mappings.action]
+type = "Keystroke"
+keys = "v"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Undo (X button)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 130  # X (Xbox) / Square (PS)
+[modes.mappings.action]
+type = "Keystroke"
+keys = "z"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Redo (Y button)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 131  # Y (Xbox) / Triangle (PS)
+[modes.mappings.action]
+type = "Keystroke"
+keys = "z"
+modifiers = ["cmd", "shift"]
+
+# --- Track Navigation (D-Pad) ---
+
+[[modes.mappings]]
+description = "Previous track"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 132  # D-Pad Up
+[modes.mappings.action]
+type = "Keystroke"
+keys = "up"
+
+[[modes.mappings]]
+description = "Next track"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 133  # D-Pad Down
+[modes.mappings.action]
+type = "Keystroke"
+keys = "down"
+
+[[modes.mappings]]
+description = "Jump to start"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 134  # D-Pad Left
+[modes.mappings.action]
+type = "Keystroke"
+keys = "return"
+
+[[modes.mappings]]
+description = "Jump to end"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 135  # D-Pad Right
+[modes.mappings.action]
+type = "Keystroke"
+keys = "end"
+
+# --- Zoom Controls (Shoulder Buttons) ---
+
+[[modes.mappings]]
+description = "Zoom out (LB)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 136  # LB (Xbox) / L1 (PS)
+[modes.mappings.action]
+type = "Keystroke"
+keys = "-"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Zoom in (RB)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 137  # RB (Xbox) / R1 (PS)
+[modes.mappings.action]
+type = "Keystroke"
+keys = "="
+modifiers = ["cmd"]
+
+# --- Timeline Scroll (Left Analog Stick) ---
+
+[[modes.mappings]]
+description = "Scroll timeline left"
+[modes.mappings.trigger]
+type = "GamepadAxisTurn"
+axis = 128  # Left Stick X
+direction = "Negative"
+threshold = 0.3
+[modes.mappings.action]
+type = "Keystroke"
+keys = "left"
+
+[[modes.mappings]]
+description = "Scroll timeline right"
+[modes.mappings.trigger]
+type = "GamepadAxisTurn"
+axis = 128  # Left Stick X
+direction = "Positive"
+threshold = 0.3
+[modes.mappings.action]
+type = "Keystroke"
+keys = "right"
+
+# --- Mixer Navigation (Right Analog Stick) ---
+
+[[modes.mappings]]
+description = "Scroll mixer up"
+[modes.mappings.trigger]
+type = "GamepadAxisTurn"
+axis = 131  # Right Stick Y
+direction = "Negative"
+threshold = 0.3
+[modes.mappings.action]
+type = "Keystroke"
+keys = "pageup"
+
+[[modes.mappings]]
+description = "Scroll mixer down"
+[modes.mappings.trigger]
+type = "GamepadAxisTurn"
+axis = 131  # Right Stick Y
+direction = "Positive"
+threshold = 0.3
+[modes.mappings.action]
+type = "Keystroke"
+keys = "pagedown"
+
+# --- Quick Actions (Triggers) ---
+
+[[modes.mappings]]
+description = "Fade in (LT analog)"
+[modes.mappings.trigger]
+type = "GamepadAxisTurn"
+axis = 132  # Left Trigger
+direction = "Positive"
+threshold = 0.5
+[modes.mappings.action]
+type = "Keystroke"
+keys = "f"
+modifiers = ["cmd", "shift"]
+
+[[modes.mappings]]
+description = "Fade out (RT analog)"
+[modes.mappings.trigger]
+type = "GamepadAxisTurn"
+axis = 133  # Right Trigger
+direction = "Positive"
+threshold = 0.5
+[modes.mappings.action]
+type = "Keystroke"
+keys = "g"
+modifiers = ["cmd", "shift"]
+
+# --- Quick Markers (Stick Clicks) ---
+
+[[modes.mappings]]
+description = "Add marker (L3)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 138  # Left Stick Click
+[modes.mappings.action]
+type = "Keystroke"
+keys = "m"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Next marker (R3)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 139  # Right Stick Click
+[modes.mappings.action]
+type = "Keystroke"
+keys = "'"
+modifiers = ["cmd"]
+
+# ========================================
+# HYBRID CHORD MAPPINGS (MIDI + Gamepad)
+# ========================================
+
+[[modes.mappings]]
+description = "Emergency save (MIDI Pad 1 + Gamepad Start)"
+[modes.mappings.trigger]
+type = "NoteChord"
+notes = [60, 140]  # MIDI note 60 + Gamepad Start button
+timeout_ms = 100
+[modes.mappings.action]
+type = "Sequence"
+actions = [
+    { type = "Keystroke", keys = "s", modifiers = ["cmd"] },
+    { type = "Delay", ms = 100 },
+    { type = "Text", text = "Project saved!" }
+]
+
+###########################################
+# Mode 1: Media Control
+###########################################
+
+[[modes]]
+name = "Media"
+color = "purple"
+
+# --- Media Playback (Gamepad Face Buttons) ---
+
+[[modes.mappings]]
+description = "Play/Pause (A)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 128
+[modes.mappings.action]
+type = "Keystroke"
+keys = "space"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Next track (B)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 129
+[modes.mappings.action]
+type = "Keystroke"
+keys = "right"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Previous track (X)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 130
+[modes.mappings.action]
+type = "Keystroke"
+keys = "left"
+modifiers = ["cmd"]
+
+# --- Volume (MIDI Pads with Velocity) ---
+
+[[modes.mappings]]
+description = "Volume control (velocity-based)"
+[modes.mappings.trigger]
+type = "VelocityRange"
+note = 60
+ranges = [
+    { min = 0, max = 40, action = { type = "VolumeControl", action = "Down" } },
+    { min = 41, max = 80, action = { type = "VolumeControl", action = "Set", volume = 50 } },
+    { min = 81, max = 127, action = { type = "VolumeControl", action = "Up" } }
+]
+
+###########################################
+# Mode 2: Navigation
+###########################################
+
+[[modes]]
+name = "Navigation"
+color = "green"
+
+# --- Window Management (Gamepad) ---
+
+[[modes.mappings]]
+description = "Switch apps (D-Pad Left/Right)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 135  # D-Pad Right
+[modes.mappings.action]
+type = "Keystroke"
+keys = "tab"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Mission Control (D-Pad Up)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 132
+[modes.mappings.action]
+type = "Keystroke"
+keys = "up"
+modifiers = ["ctrl"]
+
+# --- Quick Launch (MIDI Pads) ---
+
+[[modes.mappings]]
+description = "Launch DAW"
+[modes.mappings.trigger]
+type = "Note"
+note = 60
+[modes.mappings.action]
+type = "Launch"
+app = "Logic Pro"
+
+[[modes.mappings]]
+description = "Launch Browser"
+[modes.mappings.trigger]
+type = "Note"
+note = 61
+[modes.mappings.action]
+type = "Launch"
+app = "Google Chrome"
+
+###########################################
+# GLOBAL MAPPINGS (All Modes)
+###########################################
+
+[[global_mappings]]
+description = "Mode switch: Encoder right = next mode"
+[global_mappings.trigger]
+type = "EncoderTurn"
+encoder = 0
+direction = "Clockwise"
+[global_mappings.action]
+type = "ModeChange"
+mode = "Next"
+
+[[global_mappings]]
+description = "Mode switch: Encoder left = previous mode"
+[global_mappings.trigger]
+type = "EncoderTurn"
+encoder = 0
+direction = "CounterClockwise"
+[global_mappings.action]
+type = "ModeChange"
+mode = "Previous"
+
+[[global_mappings]]
+description = "Emergency exit (Gamepad Select + Start)"
+[global_mappings.trigger]
+type = "GamepadButtonChord"
+buttons = [141, 140]  # Select + Start
+timeout_ms = 50
+[global_mappings.action]
+type = "Shell"
+command = "pkill midimon"
+
+[[global_mappings]]
+description = "Quick mute (MIDI Pad 16 + Gamepad B)"
+[global_mappings.trigger]
+type = "NoteChord"
+notes = [75, 129]  # MIDI note 75 + Gamepad B button
+timeout_ms = 100
+[global_mappings.action]
+type = "VolumeControl"
+action = "Mute"
+```
+
+### Example 2: Live Performance with Racing Wheel
+
+**Setup**: MIDI Keyboard (61 keys) + Logitech G29 Racing Wheel
+
+This creative configuration uses a racing wheel's pedals for real-time effects control during live performance:
+
+```toml
+# Hybrid MIDI Keyboard + Racing Wheel Configuration
+# Use Case: Live electronic music performance with tactile effects control
+# Device: MIDI Keyboard + Racing Wheel (pedals for effects)
+# Version: 3.0
+
+[device]
+name = "Performance Rig"
+auto_connect = true
+
+[advanced_settings]
+chord_timeout_ms = 50
+double_tap_timeout_ms = 300
+hold_threshold_ms = 2000
+
+[[modes]]
+name = "Performance"
+color = "red"
+
+# ========================================
+# MIDI KEYBOARD (Standard note playing)
+# ========================================
+
+# Notes 0-127 pass through to DAW for instrument playing
+# (Configure pass-through in your DAW)
+
+# --- Quick Octave Shift (MIDI CC or Program Change) ---
+
+[[modes.mappings]]
+description = "Octave up"
+[modes.mappings.trigger]
+type = "Note"
+note = 127  # Highest note
+[modes.mappings.action]
+type = "Keystroke"
+keys = "up"
+modifiers = ["shift"]
+
+[[modes.mappings]]
+description = "Octave down"
+[modes.mappings.trigger]
+type = "Note"
+note = 0  # Lowest note
+[modes.mappings.action]
+type = "Keystroke"
+keys = "down"
+modifiers = ["shift"]
+
+# ========================================
+# RACING WHEEL PEDALS (Effects Control)
+# ========================================
+
+# --- Gas Pedal: Reverb/Delay Mix (Analog Control) ---
+
+[[modes.mappings]]
+description = "Increase reverb (gas pedal pressed)"
+[modes.mappings.trigger]
+type = "GamepadAxisTurn"
+axis = 133  # Right Trigger (gas pedal)
+direction = "Positive"
+threshold = 0.2
+[modes.mappings.action]
+type = "Keystroke"
+keys = "1"  # DAW macro: increase reverb send
+
+# --- Brake Pedal: Filter Cutoff (Analog Control) ---
+
+[[modes.mappings]]
+description = "Lower filter cutoff (brake pedal pressed)"
+[modes.mappings.trigger]
+type = "GamepadAxisTurn"
+axis = 132  # Left Trigger (brake pedal)
+direction = "Positive"
+threshold = 0.2
+[modes.mappings.action]
+type = "Keystroke"
+keys = "2"  # DAW macro: decrease filter cutoff
+
+# --- Clutch Pedal: Distortion Amount (if 3-pedal wheel) ---
+
+[[modes.mappings]]
+description = "Add distortion (clutch pedal)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 143  # Clutch pedal (digital threshold)
+[modes.mappings.action]
+type = "Keystroke"
+keys = "3"  # DAW macro: enable distortion
+
+# --- Wheel Buttons: Scene Launcher ---
+
+[[modes.mappings]]
+description = "Launch scene 1 (wheel button 1)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 128  # Button on wheel
+[modes.mappings.action]
+type = "Keystroke"
+keys = "1"
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Launch scene 2 (wheel button 2)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 129
+[modes.mappings.action]
+type = "Keystroke"
+keys = "2"
+modifiers = ["cmd"]
+
+# --- Shifter Paddles: Loop Control ---
+
+[[modes.mappings]]
+description = "Loop start (left paddle)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 136  # Left shoulder
+[modes.mappings.action]
+type = "Keystroke"
+keys = "["
+modifiers = ["cmd"]
+
+[[modes.mappings]]
+description = "Loop end (right paddle)"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 137  # Right shoulder
+[modes.mappings.action]
+type = "Keystroke"
+keys = "]"
+modifiers = ["cmd"]
+
+# --- Hybrid Chord: Panic Stop (Keyboard + Wheel) ---
+
+[[modes.mappings]]
+description = "All sound off (MIDI note + wheel center button)"
+[modes.mappings.trigger]
+type = "NoteChord"
+notes = [60, 142]  # Middle C + wheel center/guide button
+timeout_ms = 100
+[modes.mappings.action]
+type = "Sequence"
+actions = [
+    { type = "Keystroke", keys = "space" },  # Stop playback
+    { type = "VolumeControl", action = "Mute" },  # Mute audio
+    { type = "Delay", ms = 100 },
+    { type = "Text", text = "EMERGENCY STOP ACTIVATED" }
+]
+
+[[global_mappings]]
+description = "Emergency exit"
+[global_mappings.trigger]
+type = "GamepadButtonChord"
+buttons = [141, 140]  # Select + Start on wheel
+timeout_ms = 50
+[global_mappings.action]
+type = "Shell"
+command = "pkill midimon"
+```
+
+### Setup Instructions
+
+#### 1. Verify Device Connections
+
+Before starting, ensure both devices are recognized:
+
+```bash
+# Check MIDI devices
+cargo run --bin test_midi
+
+# Check gamepad devices
+cargo run --bin gamepad_diagnostic
+
+# You should see both devices listed
+```
+
+#### 2. Configure Hybrid Mode
+
+In your `config.toml`, hybrid mode is enabled automatically when you use both MIDI (0-127) and gamepad (128-255) IDs in your mappings.
+
+#### 3. Test Individual Mappings
+
+Start MIDIMon and test each device separately:
+
+```bash
+# Start in debug mode to see events
+DEBUG=1 midimon --foreground
+
+# Test MIDI pads/keys (you'll see note events 0-127)
+# Test gamepad buttons (you'll see button events 128-255)
+```
+
+#### 4. Mode Switching
+
+The examples above use the MIDI encoder for mode switching. Alternatively, you can use gamepad buttons:
+
+```toml
+[[global_mappings]]
+description = "Mode switch with gamepad Start button"
+[global_mappings.trigger]
+type = "GamepadButton"
+button = 140  # Start button
+[global_mappings.action]
+type = "ModeChange"
+mode = "Next"
+```
+
+### Troubleshooting Hybrid Mode
+
+#### Both Devices Not Responding
+
+1. **Check connection**:
+   ```bash
+   # List devices
+   cargo run --bin test_midi
+   cargo run --bin gamepad_diagnostic
+   ```
+
+2. **Verify auto_connect**:
+   ```toml
+   [device]
+   auto_connect = true  # Must be enabled
+   ```
+
+3. **Check daemon logs**:
+   ```bash
+   DEBUG=1 midimon --foreground
+   # Look for "Connected to MIDI device" and "Connected to gamepad"
+   ```
+
+#### Only MIDI or Only Gamepad Working
+
+1. **Verify ID ranges**: MIDI must use 0-127, gamepad must use 128-255
+2. **Check for ID conflicts**: No overlapping IDs between devices
+3. **Test individually**:
+   ```bash
+   # MIDI-only config
+   cargo run --release 2  # Replace 2 with your MIDI port number
+
+   # Gamepad-only config
+   # (Remove MIDI mappings temporarily)
+   ```
+
+#### Hybrid Chords Not Triggering
+
+1. **Increase chord timeout**:
+   ```toml
+   [advanced_settings]
+   chord_timeout_ms = 100  # Increase from 50ms
+   ```
+
+2. **Check button IDs**: Verify you're using correct MIDI note + gamepad button ID
+3. **Use `NoteChord` for MIDI+gamepad**: Not `GamepadButtonChord`
+
+#### Latency Issues
+
+1. **Reduce chord_timeout_ms** for faster single-button response
+2. **Check system load**: Hybrid mode uses minimal CPU but check for other processes
+3. **Update drivers**: Ensure gamepad drivers are up to date
+
+### Advanced Hybrid Techniques
+
+#### 1. Device-Specific Modes
+
+Create modes optimized for each device:
+
+```toml
+[[modes]]
+name = "MIDI Focus"  # Heavy MIDI use
+color = "blue"
+# 80% MIDI mappings, 20% gamepad
+
+[[modes]]
+name = "Gamepad Focus"  # Heavy gamepad use
+color = "green"
+# 20% MIDI mappings, 80% gamepad
+```
+
+#### 2. Layered Control
+
+Use one device to modify the other's behavior:
+
+```toml
+# Hold gamepad LB to make MIDI pads switch modes instead of triggering actions
+[[modes.mappings]]
+description = "Mode 1 (MIDI Pad 1 + LB held)"
+[modes.mappings.trigger]
+type = "NoteChord"
+notes = [60, 136]  # Pad 1 + LB
+timeout_ms = 50
+[modes.mappings.action]
+type = "ModeChange"
+mode = 1
+```
+
+#### 3. Analog Precision Control
+
+Use gamepad analog triggers for precise parameter control:
+
+```toml
+# Fine volume control with trigger pressure
+[[modes.mappings]]
+description = "Precise volume (RT analog)"
+[modes.mappings.trigger]
+type = "GamepadAxisTurn"
+axis = 133  # Right Trigger
+direction = "Positive"
+threshold = 0.1  # Very sensitive
+[modes.mappings.action]
+type = "VolumeControl"
+action = "Set"
+volume = 50  # Map to analog value in future versions
+```
+
+### Performance Considerations
+
+**Hybrid Mode Overhead**:
+- CPU: <1% additional overhead
+- Latency: <1ms additional latency
+- Memory: ~2-5MB for gamepad library
+
+**Best Practices**:
+1. Use MIDI for velocity-sensitive, musical tasks
+2. Use gamepad for navigation, shortcuts, and ergonomic controls
+3. Avoid excessive chord mappings (keep under 20 total)
+4. Test thoroughly before live use
+
+### See Also
+
+- [Gamepad Support Guide](../guides/gamepad-support.md) - Complete gamepad documentation
+- [Gamepad API Reference](../reference/gamepad-api.md) - Technical API details
+- [Action Types Reference](../reference/action-types.md) - All available actions
+- [Trigger Types](../reference/trigger-types.md) - All trigger configurations
 
 ## Performance Tips
 
