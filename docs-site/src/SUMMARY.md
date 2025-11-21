@@ -41,6 +41,11 @@
 
 # Examples
 
+- [Music Production](examples/music-production.md)
+- [Developer Workflows](examples/developer-workflows.md)
+- [Streaming](examples/streaming.md)
+- [Video Editing](examples/video-editing.md)
+- [Automation & Power Users](examples/automation.md)
 - [Logic Pro Integration](examples/logic-pro.md)
 - [Ableton Live Integration](examples/ableton-live.md)
 
