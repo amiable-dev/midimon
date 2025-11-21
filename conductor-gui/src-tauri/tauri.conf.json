@@ -13,8 +13,8 @@
     "targets": ["dmg", "app"],
     "copyright": "Copyright 2025 Amiable",
     "category": "DeveloperTool",
-    "shortDescription": "MIDI Controller Mapping System",
-    "longDescription": "Transform MIDI devices into advanced macro pads with velocity sensitivity, long press detection, and visual configuration",
+    "shortDescription": "Multi-Protocol Input Mapping System",
+    "longDescription": "Transform MIDI controllers, gamepads, and other input devices into advanced automation platforms with velocity sensitivity, timing detection, and visual configuration",
     "macOS": {
       "minimumSystemVersion": "10.15"
     }
