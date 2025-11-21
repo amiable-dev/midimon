@@ -58,6 +58,7 @@
 - [CLI Commands](reference/cli-commands.md)
 - [Config File Schema](reference/config-schema.md)
 - [Environment Variables](reference/environment.md)
+- [Gamepad API (Rust)](reference/gamepad-api.md)
 
 # Device Support
 
@@ -70,6 +71,7 @@
 
 - [Development Setup](development/setup.md)
 - [Architecture Overview](development/architecture.md)
+- [InputManager Architecture](development/input-manager-architecture.md)
 - [Plugin Development](development/plugin-development.md)
 - [WASM Plugins](development/wasm-plugins.md)
   - [WASM Plugin Development](development/wasm-plugin-development.md)
