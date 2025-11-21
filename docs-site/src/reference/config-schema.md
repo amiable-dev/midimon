@@ -1,6 +1,6 @@
 # Configuration Schema Reference
 
-Complete reference for MIDIMon's TOML configuration file format. Covers both MIDI and Game Controllers (HID) with detailed field descriptions, examples, and validation rules.
+Complete reference for Conductor's TOML configuration file format. Covers both MIDI and Game Controllers (HID) with detailed field descriptions, examples, and validation rules.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ Complete reference for MIDIMon's TOML configuration file format. Covers both MID
 
 ## File Structure
 
-A MIDIMon configuration file consists of these top-level sections:
+A Conductor configuration file consists of these top-level sections:
 
 ```toml
 [device]                    # Device configuration
@@ -171,7 +171,7 @@ description = "Global action"
 
 ## Trigger Types
 
-Triggers define when an action should execute. MIDIMon supports MIDI triggers (ID range 0-127) and Gamepad triggers (ID range 128-255).
+Triggers define when an action should execute. Conductor supports MIDI triggers (ID range 0-127) and Gamepad triggers (ID range 128-255).
 
 ### MIDI Triggers
 
@@ -758,7 +758,7 @@ hold_threshold_ms = 2000        # Standard long press (2s)
 
 ## ID Range Allocation
 
-MIDIMon uses non-overlapping ID ranges to prevent conflicts between input protocols.
+Conductor uses non-overlapping ID ranges to prevent conflicts between input protocols.
 
 ### Current Allocation
 
@@ -1164,7 +1164,7 @@ keys = "q"
 
 ## Validation Rules
 
-MIDIMon validates configurations at load time. Common validation errors:
+Conductor validates configurations at load time. Common validation errors:
 
 ### ID Range Violations
 

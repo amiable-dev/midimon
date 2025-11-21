@@ -19,7 +19,7 @@ By the end, you'll build a complete workflow that transforms your MIDI controlle
 
 ## Prerequisites
 
-- MIDIMon installed and configured
+- Conductor installed and configured
 - Basic TOML editing skills (or use the GUI)
 - A MIDI controller connected
 - Understanding of basic triggers and actions

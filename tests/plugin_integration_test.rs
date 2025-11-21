@@ -5,8 +5,8 @@
 //!
 //! Tests plugin discovery, loading, and execution through the daemon's plugin manager.
 
-use midimon_core::plugin::{Capability, TriggerContext};
-use midimon_daemon::plugin_manager::PluginManager;
+use conductor_core::plugin::{Capability, TriggerContext};
+use conductor_daemon::plugin_manager::PluginManager;
 
 #[test]
 fn test_plugin_discovery() {

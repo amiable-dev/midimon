@@ -4,7 +4,7 @@ Unique controller configurations for DaVinci Resolve, Final Cut Pro, and Adobe P
 
 ## Overview
 
-MIDIMon enables creative, ergonomic video editing workflows that traditional keyboard shortcuts can't match. Use racing wheel pedals for analog timeline control, MIDI pads for quick cuts, and gamepads for timeline navigation.
+Conductor enables creative, ergonomic video editing workflows that traditional keyboard shortcuts can't match. Use racing wheel pedals for analog timeline control, MIDI pads for quick cuts, and gamepads for timeline navigation.
 
 **What You'll Learn**:
 - Racing wheel pedals for timeline speed & zoom (analog control!)

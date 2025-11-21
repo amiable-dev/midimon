@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-Get MIDIMon v3.0+ up and running in under 5 minutes using the visual GUI.
+Get Conductor v3.0+ up and running in under 5 minutes using the visual GUI.
 
 ## Prerequisites
 
@@ -10,28 +10,28 @@ Get MIDIMon v3.0+ up and running in under 5 minutes using the visual GUI.
   - Game controller (Xbox, PlayStation, Switch Pro, joystick, racing wheel, HOTAS, or any SDL2-compatible HID device)
 - **10 minutes** for installation (3-5 minutes for gamepad setup with templates)
 
-## Step 1: Download MIDIMon
+## Step 1: Download Conductor
 
-Visit the [GitHub Releases page](https://github.com/amiable-dev/midimon/releases/latest) and download:
+Visit the [GitHub Releases page](https://github.com/amiable-dev/conductor/releases/latest) and download:
 
 **For most users** (recommended):
-- `midimon-gui-macos-universal.tar.gz` - GUI application (includes daemon)
+- `conductor-gui-macos-universal.tar.gz` - GUI application (includes daemon)
 
 **For CLI-only users**:
-- `midimon-aarch64-apple-darwin.tar.gz` (Apple Silicon)
-- `midimon-x86_64-apple-darwin.tar.gz` (Intel)
+- `conductor-aarch64-apple-darwin.tar.gz` (Apple Silicon)
+- `conductor-x86_64-apple-darwin.tar.gz` (Intel)
 
 ## Step 2: Install the GUI
 
 ```bash
 # Extract the downloaded file
-tar xzf midimon-gui-macos-universal.tar.gz
+tar xzf conductor-gui-macos-universal.tar.gz
 
 # Move to Applications folder
-mv "MIDIMon GUI.app" /Applications/
+mv "Conductor GUI.app" /Applications/
 
 # Open the app
-open /Applications/"MIDIMon GUI.app"
+open /Applications/"Conductor GUI.app"
 ```
 
 **First launch**: macOS will ask for permissions. Grant **Input Monitoring** permission when prompted (required for LED control and device access).
@@ -40,7 +40,7 @@ open /Applications/"MIDIMon GUI.app"
 
 1. **Plug in your MIDI controller** via USB
 
-2. **In the MIDIMon GUI**, go to the **Device Connection** panel
+2. **In the Conductor GUI**, go to the **Device Connection** panel
 
 3. Your device should appear in the list. Click **Connect**
 
@@ -128,7 +128,7 @@ Skip manual configuration with built-in device templates:
 
 ## Quick Start with Game Controllers (v3.0+)
 
-MIDIMon v3.0+ supports game controllers (gamepads, joysticks, racing wheels, HOTAS, etc.) as macro input devices alongside MIDI controllers. You can use them individually or together!
+Conductor v3.0+ supports game controllers (gamepads, joysticks, racing wheels, HOTAS, etc.) as macro input devices alongside MIDI controllers. You can use them individually or together!
 
 ### Supported Device Types
 
@@ -149,7 +149,7 @@ The quickest way to set up an Xbox, PlayStation, or Switch Pro controller:
    - Linux: `ls /dev/input/js*`
    - Windows: Devices and Printers
 
-3. **Open MIDIMon GUI** → **Device Templates**
+3. **Open Conductor GUI** → **Device Templates**
 
 4. **Filter by "🎮 Game Controllers"**
 
@@ -172,13 +172,13 @@ For non-gamepad controllers (flight sticks, racing wheels, HOTAS):
 
 2. **Verify system recognition** (same commands as above)
 
-3. **Open MIDIMon GUI** → **MIDI Learn**
+3. **Open Conductor GUI** → **MIDI Learn**
 
 4. **Create mappings using MIDI Learn**:
    - Click "Add Mapping"
    - Click "Learn" next to Trigger
    - Press a button or move an axis on your controller
-   - MIDIMon auto-detects the input
+   - Conductor auto-detects the input
    - Choose an action (Keystroke, Launch, Shell, etc.)
    - Click "Save"
 
@@ -275,7 +275,7 @@ You can use MIDI controllers and gamepads **simultaneously**:
 1. Check USB/Bluetooth connection
 2. Verify system recognition (see commands above)
 3. Try USB instead of Bluetooth (or vice versa)
-4. Restart MIDIMon daemon: `midimonctl stop && midimonctl reload`
+4. Restart Conductor daemon: `conductorctl stop && conductorctl reload`
 
 **Buttons not working**:
 1. Use MIDI Learn to verify button IDs (should be 128-255)
@@ -283,18 +283,18 @@ You can use MIDI controllers and gamepads **simultaneously**:
 3. Ensure no conflicting mappings exist
 
 **Analog stick too sensitive**:
-- MIDIMon uses a 10% automatic dead zone
+- Conductor uses a 10% automatic dead zone
 - For more precision, use discrete buttons (D-Pad) instead of analog sticks
 
 For more details, see the [Gamepad Support Guide](../guides/gamepad-support.md).
 
 ## Step 7: Enable Auto-Start (Optional)
 
-Run MIDIMon automatically when you log in:
+Run Conductor automatically when you log in:
 
 1. Go to **Settings** → **General**
 
-2. Enable **"Start MIDIMon on login"**
+2. Enable **"Start Conductor on login"**
 
 3. Click **Save**
 
@@ -306,26 +306,26 @@ For advanced users who prefer terminal control:
 
 ```bash
 # Check daemon status
-midimonctl status
+conductorctl status
 
 # Reload configuration (hot-reload in 0-10ms)
-midimonctl reload
+conductorctl reload
 
 # Stop daemon
-midimonctl stop
+conductorctl stop
 
 # Validate config without reloading
-midimonctl validate
+conductorctl validate
 
 # Ping daemon (check latency)
-midimonctl ping
+conductorctl ping
 ```
 
 See [Daemon & CLI Guide](../guides/daemon.md) for full details.
 
 ## Per-App Profiles (Automatic Profile Switching)
 
-MIDIMon v2.0.0 can automatically switch configurations based on which application is active:
+Conductor v2.0.0 can automatically switch configurations based on which application is active:
 
 1. Go to **Per-App Profiles** in the GUI
 
@@ -333,7 +333,7 @@ MIDIMon v2.0.0 can automatically switch configurations based on which applicatio
    - Application: Select an app (e.g., "Visual Studio Code")
    - Profile: Select a config profile
 
-3. When you switch to that application, MIDIMon automatically loads the configured profile
+3. When you switch to that application, Conductor automatically loads the configured profile
 
 4. **Example use cases**:
    - **Logic Pro**: Pads control DAW functions (play, record, etc.)
@@ -370,8 +370,8 @@ This is invaluable for troubleshooting "why isn't my mapping working?"
 
 2. **Restart the daemon**:
    ```bash
-   midimonctl stop
-   open /Applications/"MIDIMon GUI.app"
+   conductorctl stop
+   open /Applications/"Conductor GUI.app"
    ```
 
 3. **Check Audio MIDI Setup**:
@@ -385,7 +385,7 @@ This is invaluable for troubleshooting "why isn't my mapping working?"
 
 2. **Grant Input Monitoring permission**:
    - System Settings → Privacy & Security → Input Monitoring
-   - Enable for "MIDIMon GUI"
+   - Enable for "Conductor GUI"
 
 3. **Check LED scheme** in GUI Settings
 
@@ -401,7 +401,7 @@ This is invaluable for troubleshooting "why isn't my mapping working?"
 
 4. **Reload config**:
    ```bash
-   midimonctl reload
+   conductorctl reload
    ```
 
 ### Permission Denied (macOS)
@@ -409,10 +409,10 @@ This is invaluable for troubleshooting "why isn't my mapping working?"
 If you see "Permission denied" errors:
 
 1. **System Settings** → **Privacy & Security** → **Input Monitoring**
-2. Add **"MIDIMon GUI"** to the list
+2. Add **"Conductor GUI"** to the list
 3. Restart the GUI app
 
-## 🎉 Congratulations! You're Now a MIDIMon Power User
+## 🎉 Congratulations! You're Now a Conductor Power User
 
 You've just unlocked:
 - ✅ Visual configuration with Input Learn
@@ -438,10 +438,10 @@ You've just unlocked:
 - **[Context-Aware Mappings](../guides/context-aware.md)** - App-based, time-based, conditional actions
 
 #### 🤝 Join the Community
-- **[GitHub Discussions](https://github.com/amiable/midimon/discussions)** - Ask questions, share configs
-- **[Report Issues](https://github.com/amiable/midimon/issues)** - Found a bug? Request a feature?
-- **[Contribute](../development/contributing.md)** - Help make MIDIMon better
+- **[GitHub Discussions](https://github.com/amiable/conductor/discussions)** - Ask questions, share configs
+- **[Report Issues](https://github.com/amiable/conductor/issues)** - Found a bug? Request a feature?
+- **[Contribute](../development/contributing.md)** - Help make Conductor better
 
 **Need help?** Check the [FAQ](../troubleshooting/faq.md) or [Troubleshooting Guide](../troubleshooting/common-issues.md).
 
-**Loving MIDIMon?** ⭐ Star us on [GitHub](https://github.com/amiable/midimon) to support the project!
+**Loving Conductor?** ⭐ Star us on [GitHub](https://github.com/amiable/conductor) to support the project!

@@ -2,20 +2,20 @@
 
 ## Introduction
 
-MIDIMon uses a single `config.toml` file to define all device settings, modes, mappings, and advanced behavior. This file uses TOML (Tom's Obvious, Minimal Language) - a human-friendly configuration format that's easy to read and edit.
+Conductor uses a single `config.toml` file to define all device settings, modes, mappings, and advanced behavior. This file uses TOML (Tom's Obvious, Minimal Language) - a human-friendly configuration format that's easy to read and edit.
 
 This guide provides a comprehensive overview of the configuration structure, required sections, validation, and best practices.
 
 ## Configuration File Location
 
-By default, MIDIMon looks for `config.toml` in the current working directory:
+By default, Conductor looks for `config.toml` in the current working directory:
 
 ```bash
 # Current directory
 ./config.toml
 
 # Or specify a custom location
-midimon --config /path/to/my-config.toml
+conductor --config /path/to/my-config.toml
 ```
 
 **Tip**: Keep your `config.toml` in the project root directory for simplicity.
@@ -115,7 +115,7 @@ keys = "a"
 modifiers = []
 ```
 
-Without these, MIDIMon will start but won't do anything useful.
+Without these, Conductor will start but won't do anything useful.
 
 ### Optional Sections
 
@@ -247,7 +247,7 @@ note = 0
 hold_duration_ms = 3000
 [global_mappings.action]
 type = "Shell"
-command = "killall midimon"
+command = "killall conductor"
 
 [[global_mappings]]
 description = "Volume up"
@@ -494,7 +494,7 @@ note = 0
 hold_duration_ms = 3000
 [global_mappings.action]
 type = "Shell"
-command = "killall midimon"
+command = "killall conductor"
 
 [[global_mappings]]
 description = "Next mode"
@@ -537,7 +537,7 @@ operation = "Down"
 
 ### Loading Process
 
-When MIDIMon starts, it:
+When Conductor starts, it:
 
 1. **Locates** `config.toml`
 2. **Parses** TOML syntax
@@ -606,7 +606,7 @@ Duplicate mode name: 'Default'
 
 #### No Mappings Defined
 
-**Warning** (not an error, but MIDIMon won't do anything):
+**Warning** (not an error, but Conductor won't do anything):
 ```
 Warning: No mappings defined. Controller won't trigger any actions.
 ```
@@ -615,7 +615,7 @@ Warning: No mappings defined. Controller won't trigger any actions.
 
 ### Validation Checklist
 
-Before running MIDIMon, verify:
+Before running Conductor, verify:
 
 - [ ] TOML syntax is valid (use `cargo check` or online TOML validator)
 - [ ] At least one `[[modes]]` section exists
@@ -736,9 +736,9 @@ max_velocity = 127
 **Note**: Config hot-reloading is not yet implemented in the current version. To reload config changes:
 
 ```bash
-# Current workaround: Restart MIDIMon
-killall midimon
-./target/release/midimon 2
+# Current workaround: Restart Conductor
+killall conductor
+./target/release/conductor 2
 ```
 
 **Planned feature** (Phase 2):
@@ -758,7 +758,7 @@ killall midimon
 
 ### Config Not Loading
 
-**Problem**: MIDIMon says "Config file not found"
+**Problem**: Conductor says "Config file not found"
 
 **Solutions**:
 ```bash
@@ -769,7 +769,7 @@ ls -la config.toml
 pwd
 
 # Specify full path
-./midimon --config /full/path/to/config.toml
+./conductor --config /full/path/to/config.toml
 ```
 
 ---

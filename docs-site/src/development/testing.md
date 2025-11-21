@@ -1,6 +1,6 @@
 # Testing Guide
 
-This guide covers testing strategies for MIDIMon, including hardware-independent testing using the MIDI device simulator.
+This guide covers testing strategies for Conductor, including hardware-independent testing using the MIDI device simulator.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ This guide covers testing strategies for MIDIMon, including hardware-independent
 
 ## MIDI Device Simulator
 
-The MIDI device simulator allows comprehensive testing of MIDIMon without requiring physical hardware. It simulates all MIDI events and complex user interactions with precise timing control.
+The MIDI device simulator allows comprehensive testing of Conductor without requiring physical hardware. It simulates all MIDI events and complex user interactions with precise timing control.
 
 ### Features
 
@@ -124,7 +124,7 @@ Nextest provides:
 
 ## End-to-End Test Suite
 
-The E2E test suite (`tests/e2e_tests.rs`) provides comprehensive validation of the complete MIDIMon pipeline from MIDI input through event processing, mapping, and action execution. See [Integration Test Suites](#integration-test-suites) section below for full documentation of all E2E workflows, test architecture, and writing E2E tests.
+The E2E test suite (`tests/e2e_tests.rs`) provides comprehensive validation of the complete Conductor pipeline from MIDI input through event processing, mapping, and action execution. See [Integration Test Suites](#integration-test-suites) section below for full documentation of all E2E workflows, test architecture, and writing E2E tests.
 
 ### Quick Start
 
@@ -137,7 +137,7 @@ cargo test --test e2e_tests
 
 ## Code Coverage
 
-MIDIMon uses `cargo-llvm-cov` for code coverage tracking. The project maintains a minimum coverage threshold of 0.35% (baseline) with a Phase 1 target of 85%.
+Conductor uses `cargo-llvm-cov` for code coverage tracking. The project maintains a minimum coverage threshold of 0.35% (baseline) with a Phase 1 target of 85%.
 
 ### Installing Coverage Tools
 
@@ -251,7 +251,7 @@ Coverage is automatically tracked on every pull request:
 3. **PR Comments** show coverage delta (increase/decrease)
 4. **Status Checks** fail if coverage drops below threshold
 
-View current coverage: [![codecov](https://codecov.io/gh/amiable-dev/midimon/branch/main/graph/badge.svg)](https://codecov.io/gh/amiable-dev/midimon)
+View current coverage: [![codecov](https://codecov.io/gh/amiable-dev/conductor/branch/main/graph/badge.svg)](https://codecov.io/gh/amiable-dev/conductor)
 
 ### Local Coverage Workflow
 
@@ -814,7 +814,7 @@ Ensure velocities match expected ranges:
 
 ## Integration Test Suites
 
-MIDIMon includes comprehensive integration test suites that verify complete feature sets without requiring physical hardware.
+Conductor includes comprehensive integration test suites that verify complete feature sets without requiring physical hardware.
 
 ### Event Processing Tests (AMI-117)
 
@@ -918,7 +918,7 @@ cargo test --test action_orchestration_tests
 
 Location: `tests/e2e_tests.rs`
 
-Comprehensive E2E testing of the complete MIDIMon pipeline (MIDI Input → Event Processing → Mapping → Action Execution):
+Comprehensive E2E testing of the complete Conductor pipeline (MIDI Input → Event Processing → Mapping → Action Execution):
 
 **Critical Workflows (20 tests)**:
 - Simple pad press → keystroke
@@ -1014,11 +1014,11 @@ All integration tests run automatically in GitHub Actions:
 
 ## Game Controllers (HID) Testing (v3.0+)
 
-MIDIMon v3.0 added support for all SDL2-compatible HID devices (gamepads, joysticks, racing wheels, flight sticks, HOTAS, and custom controllers). This section covers comprehensive testing strategies for gamepad functionality.
+Conductor v3.0 added support for all SDL2-compatible HID devices (gamepads, joysticks, racing wheels, flight sticks, HOTAS, and custom controllers). This section covers comprehensive testing strategies for gamepad functionality.
 
 ### Overview
 
-Game controller testing in MIDIMon covers three main areas:
+Game controller testing in Conductor covers three main areas:
 
 1. **Unit Tests**: Component-level testing of InputManager, GamepadDeviceManager, and event conversion
 2. **Integration Tests**: Multi-component testing of hybrid mode, event streams, and device lifecycle
@@ -1047,7 +1047,7 @@ Example test:
 ```rust
 #[test]
 fn test_input_manager_gamepad_only_mode() {
-    use midimon_daemon::input_manager::{InputManager, InputMode};
+    use conductor_daemon::input_manager::{InputManager, InputMode};
 
     let manager = InputManager::new(
         None,  // No MIDI device
@@ -1083,7 +1083,7 @@ Example test:
 ```rust
 #[test]
 fn test_gamepad_connection_lifecycle() {
-    use midimon_daemon::gamepad_device::GamepadDeviceManager;
+    use conductor_daemon::gamepad_device::GamepadDeviceManager;
     use tokio::sync::mpsc;
 
     let (event_tx, _event_rx) = mpsc::channel(1024);
@@ -1116,7 +1116,7 @@ Test conversion of gamepad events to InputEvent format:
 - Trigger pull → `InputEvent::EncoderTurned` (analog triggers)
 - D-pad press → `InputEvent::PadPressed` (direction buttons)
 
-Example test (from `midimon-core/tests/gamepad_input_test.rs`):
+Example test (from `conductor-core/tests/gamepad_input_test.rs`):
 
 ```rust
 #[test]
@@ -1165,7 +1165,7 @@ Example test:
 ```rust
 #[test]
 fn test_gamepad_id_range_no_midi_collision() {
-    use midimon_core::events::InputEvent;
+    use conductor_core::events::InputEvent;
     use std::time::Instant;
 
     let time = Instant::now();
@@ -1269,7 +1269,7 @@ Example integration test:
 ```rust
 #[test]
 async fn test_hybrid_mode_event_stream() {
-    use midimon_daemon::input_manager::{InputManager, InputMode};
+    use conductor_daemon::input_manager::{InputManager, InputMode};
     use tokio::sync::mpsc;
 
     let (event_tx, mut event_rx) = mpsc::channel(1024);
@@ -1314,7 +1314,7 @@ Example test:
 ```rust
 #[test]
 fn test_event_ordering_with_timestamps() {
-    use midimon_core::events::InputEvent;
+    use conductor_core::events::InputEvent;
     use std::time::{Duration, Instant};
 
     let base_time = Instant::now();
@@ -1360,7 +1360,7 @@ Example test:
 ```rust
 #[test]
 async fn test_gamepad_reconnection_logic() {
-    use midimon_daemon::gamepad_device::GamepadDeviceManager;
+    use conductor_daemon::gamepad_device::GamepadDeviceManager;
     use tokio::sync::mpsc;
     use std::time::Duration;
 
@@ -1419,7 +1419,7 @@ Example test:
 ```rust
 #[test]
 fn test_mode_switching_midi_to_hybrid() {
-    use midimon_daemon::input_manager::{InputManager, InputMode};
+    use conductor_daemon::input_manager::{InputManager, InputMode};
 
     // Start with MIDI only
     let mut manager = InputManager::new(
@@ -1455,7 +1455,7 @@ Manual testing with physical game controllers is essential for validating real-w
 
 **Test Procedure**:
 1. Connect physical gamepad via USB or Bluetooth
-2. Launch MIDIMon daemon with gamepad support
+2. Launch Conductor daemon with gamepad support
 3. Verify gamepad detected and connected
 4. Check logs for connection confirmation
 
@@ -1467,7 +1467,7 @@ cargo run --release -- --input-mode gamepad
 cargo run --release -- --input-mode both
 
 # Check logs for connection status
-tail -f ~/.midimon/daemon.log
+tail -f ~/.conductor/daemon.log
 ```
 
 **Expected Output**:
@@ -1577,7 +1577,7 @@ Test gamepad template loading:
 
 **Test Procedure**:
 1. Create gamepad template file (TOML)
-2. Place in `~/.midimon/templates/` directory
+2. Place in `~/.conductor/templates/` directory
 3. Select template in GUI
 4. Verify mappings loaded correctly
 5. Test button mappings from template
@@ -1585,7 +1585,7 @@ Test gamepad template loading:
 
 **Example Template** (Xbox controller):
 ```toml
-# ~/.midimon/templates/xbox-series-controller.toml
+# ~/.conductor/templates/xbox-series-controller.toml
 
 [device]
 name = "Xbox Series Controller"
@@ -1607,13 +1607,13 @@ action = { Keystroke = { key = "Escape", modifiers = [] } }
 **Verification Commands**:
 ```bash
 # List available templates
-midimonctl templates list
+conductorctl templates list
 
 # Load template
-midimonctl templates load xbox-series-controller
+conductorctl templates load xbox-series-controller
 
 # Verify template active
-midimonctl status
+conductorctl status
 ```
 
 **Manual Test Checklist**:
@@ -1714,7 +1714,7 @@ Test gamepad support across different operating systems:
 
 **Permissions**:
 - Input Monitoring permissions required (System Settings → Privacy & Security)
-- Grant permissions to Terminal or MIDIMon daemon
+- Grant permissions to Terminal or Conductor daemon
 
 **Testing Approach**:
 - Use physical controllers only
@@ -1801,7 +1801,7 @@ vJoyConf.exe
 
 ### Test Coverage Requirements
 
-MIDIMon maintains high test coverage standards for gamepad functionality:
+Conductor maintains high test coverage standards for gamepad functionality:
 
 #### Core Functionality Coverage (Target: 90%+)
 
@@ -1848,7 +1848,7 @@ Example edge case test:
 ```rust
 #[test]
 fn test_no_gamepad_connected_error() {
-    use midimon_daemon::gamepad_device::GamepadDeviceManager;
+    use conductor_daemon::gamepad_device::GamepadDeviceManager;
     use tokio::sync::mpsc;
 
     let (event_tx, _event_rx) = mpsc::channel(1024);
@@ -1945,7 +1945,7 @@ For unit tests without physical devices:
 ```rust
 #[cfg(test)]
 mod simulated_events {
-    use midimon_core::events::InputEvent;
+    use conductor_core::events::InputEvent;
     use std::time::Instant;
 
     pub fn simulate_button_press(button: u8) -> InputEvent {
@@ -2024,7 +2024,7 @@ mod test_data {
 
 The GUI Event Console is invaluable for debugging gamepad events:
 
-1. Open MIDIMon GUI
+1. Open Conductor GUI
 2. Navigate to "Event Console" tab
 3. Press gamepad buttons/move sticks
 4. Observe live event stream with IDs and values
@@ -2043,10 +2043,10 @@ Enable debug logging for gamepad module:
 
 ```bash
 # Set RUST_LOG environment variable
-export RUST_LOG=midimon_daemon::gamepad_device=debug
+export RUST_LOG=conductor_daemon::gamepad_device=debug
 
-# Or for all MIDIMon modules
-export RUST_LOG=midimon=debug
+# Or for all Conductor modules
+export RUST_LOG=conductor=debug
 
 # Run daemon
 cargo run --release
@@ -2054,11 +2054,11 @@ cargo run --release
 
 **Log Output Example**:
 ```
-[DEBUG midimon_daemon::gamepad_device] Gamepad 0 connected: Xbox Series Controller
-[DEBUG midimon_daemon::gamepad_device] Polling thread started for gamepad 0
-[DEBUG midimon_daemon::gamepad_device] Button pressed: South (128) velocity 100
-[DEBUG midimon_daemon::gamepad_device] Axis movement: LeftX (128) value 95 delta 31
-[DEBUG midimon_daemon::gamepad_device] Button released: South (128)
+[DEBUG conductor_daemon::gamepad_device] Gamepad 0 connected: Xbox Series Controller
+[DEBUG conductor_daemon::gamepad_device] Polling thread started for gamepad 0
+[DEBUG conductor_daemon::gamepad_device] Button pressed: South (128) velocity 100
+[DEBUG conductor_daemon::gamepad_device] Axis movement: LeftX (128) value 95 delta 31
+[DEBUG conductor_daemon::gamepad_device] Button released: South (128)
 ```
 
 #### gilrs Event Debugging
@@ -2268,7 +2268,7 @@ Additional examples in specialized test suites:
 - `tests/event_processing_tests.rs`: Aftertouch and pitch bend
 - `tests/action_tests.rs`: Application launch and volume control
 - `tests/action_orchestration_tests.rs`: Action sequences and conditionals
-- `midimon-core/tests/gamepad_input_test.rs`: Game controller event processing
+- `conductor-core/tests/gamepad_input_test.rs`: Game controller event processing
 
 ## Support
 
@@ -2276,5 +2276,5 @@ For questions or issues with testing:
 - Check existing integration tests for examples
 - Use the interactive CLI tool to experiment
 - Review the simulator source code in `tests/midi_simulator.rs`
-- Check gamepad tests in `midimon-core/tests/gamepad_input_test.rs`
+- Check gamepad tests in `conductor-core/tests/gamepad_input_test.rs`
 - Open an issue on GitHub with test failure details

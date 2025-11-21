@@ -2,35 +2,35 @@
 
 ## Overview
 
-This guide walks through installing and configuring MIDIMon v3.0.0 on macOS. MIDIMon now includes multi-protocol input support (MIDI controllers + game controllers), a background daemon service, and a modern Tauri-based GUI for visual configuration.
+This guide walks through installing and configuring Conductor v3.0.0 on macOS. Conductor now includes multi-protocol input support (MIDI controllers + game controllers), a background daemon service, and a modern Tauri-based GUI for visual configuration.
 
 **Installation Options**:
-- **Option 1 (Recommended)**: Download pre-built GUI app + daemon binaries from [GitHub Releases](https://github.com/amiable-dev/midimon/releases)
+- **Option 1 (Recommended)**: Download pre-built GUI app + daemon binaries from [GitHub Releases](https://github.com/amiable-dev/conductor/releases)
 - **Option 2**: Build from source (developers/advanced users)
 
 Installation takes approximately 10-15 minutes.
 
 ## Option 1: Install Pre-Built Binaries (Recommended)
 
-### 1. Download MIDIMon
+### 1. Download Conductor
 
-Visit the [Releases Page](https://github.com/amiable-dev/midimon/releases/latest) and download:
+Visit the [Releases Page](https://github.com/amiable-dev/conductor/releases/latest) and download:
 
 **For GUI + Daemon (Recommended)**:
-- `midimon-gui-macos-universal.tar.gz` - GUI application with daemon
-- **OR** download daemon separately: `midimon-aarch64-apple-darwin.tar.gz` (Apple Silicon) or `midimon-x86_64-apple-darwin.tar.gz` (Intel)
+- `conductor-gui-macos-universal.tar.gz` - GUI application with daemon
+- **OR** download daemon separately: `conductor-aarch64-apple-darwin.tar.gz` (Apple Silicon) or `conductor-x86_64-apple-darwin.tar.gz` (Intel)
 
 ### 2. Install the GUI Application
 
 ```bash
 # Extract the GUI app
-tar xzf midimon-gui-macos-universal.tar.gz
+tar xzf conductor-gui-macos-universal.tar.gz
 
 # Move to Applications folder
-mv "MIDIMon GUI.app" /Applications/
+mv "Conductor GUI.app" /Applications/
 
 # Open the app
-open /Applications/"MIDIMon GUI.app"
+open /Applications/"Conductor GUI.app"
 ```
 
 ### 3. Install the Daemon Binary (Optional - GUI includes daemon)
@@ -39,16 +39,16 @@ If you want to use the daemon independently:
 
 ```bash
 # Extract daemon binary
-tar xzf midimon-*.tar.gz
+tar xzf conductor-*.tar.gz
 
 # Make it executable
-chmod +x midimon
+chmod +x conductor
 
 # Move to PATH
-sudo mv midimon /usr/local/bin/
+sudo mv conductor /usr/local/bin/
 
 # Verify installation
-midimon --version
+conductor --version
 ```
 
 **Skip to [Configuring macOS Permissions](#configuring-macos-permissions)**
@@ -61,7 +61,7 @@ midimon --version
 
 #### 1. Hardware Requirements
 
-MIDIMon v3.0 supports two types of input devices:
+Conductor v3.0 supports two types of input devices:
 
 **MIDI Controllers**:
 - Native Instruments Maschine Mikro MK3 (recommended, full RGB LED support)
@@ -75,13 +75,13 @@ MIDIMon v3.0 supports two types of input devices:
 - HOTAS: Hands On Throttle And Stick systems
 - Custom Controllers: Any SDL2-compatible HID device
 
-You need at least one MIDI controller OR one game controller to use MIDIMon. Both can be used simultaneously.
+You need at least one MIDI controller OR one game controller to use Conductor. Both can be used simultaneously.
 
 #### 2. Software Requirements
 
 **Rust Toolchain** (for building from source):
 
-MIDIMon is written in Rust and requires the Rust compiler and Cargo build system.
+Conductor is written in Rust and requires the Rust compiler and Cargo build system.
 
 **Check if Rust is already installed**:
 ```bash
@@ -122,7 +122,7 @@ npm --version   # Should show: 10.x.x
 
 **SDL2 Library** (for game controllers):
 
-SDL2 is included via the `gilrs` v0.10 Rust crate. No additional installation required - it's built into MIDIMon automatically.
+SDL2 is included via the `gilrs` v0.10 Rust crate. No additional installation required - it's built into Conductor automatically.
 
 #### 3. Platform-Specific Requirements
 
@@ -181,8 +181,8 @@ No additional drivers are required for gamepad support.
 cd ~/projects  # or wherever you keep code
 
 # Clone the repository
-git clone https://github.com/amiable-dev/midimon.git
-cd midimon
+git clone https://github.com/amiable-dev/conductor.git
+cd conductor
 ```
 
 #### 2. Build the Daemon
@@ -193,15 +193,15 @@ cd midimon
 cargo build --release --workspace
 
 # Or build just the daemon binary
-cargo build --release --package midimon-daemon
+cargo build --release --package conductor-daemon
 ```
 
-The release build takes 2-5 minutes on modern hardware and produces an optimized binary (~3-5MB) in `target/release/midimon`.
+The release build takes 2-5 minutes on modern hardware and produces an optimized binary (~3-5MB) in `target/release/conductor`.
 
 **Build output**:
 ```
-   Compiling midimon-core v2.0.0 (/Users/you/projects/midimon/midimon-core)
-   Compiling midimon-daemon v2.0.0 (/Users/you/projects/midimon/midimon-daemon)
+   Compiling conductor-core v2.0.0 (/Users/you/projects/conductor/conductor-core)
+   Compiling conductor-daemon v2.0.0 (/Users/you/projects/conductor/conductor-daemon)
     Finished release [optimized] target(s) in 2m 14s
 ```
 
@@ -209,7 +209,7 @@ The release build takes 2-5 minutes on modern hardware and produces an optimized
 
 ```bash
 # Install frontend dependencies
-cd midimon-gui/ui
+cd conductor-gui/ui
 npm ci
 
 # Build the frontend
@@ -220,20 +220,20 @@ cd ../src-tauri
 cargo build --release
 
 # The GUI app bundle will be at:
-# midimon-gui/src-tauri/target/release/bundle/macos/MIDIMon GUI.app
+# conductor-gui/src-tauri/target/release/bundle/macos/Conductor GUI.app
 ```
 
 #### 4. Verify the Build
 
 ```bash
 # Test daemon binary
-./target/release/midimon --version
+./target/release/conductor --version
 
 # Or run it
-./target/release/midimon
+./target/release/conductor
 
 # Test GUI (if built)
-open midimon-gui/src-tauri/target/release/bundle/macos/"MIDIMon GUI.app"
+open conductor-gui/src-tauri/target/release/bundle/macos/"Conductor GUI.app"
 ```
 
 ## Setting Up Configuration
@@ -242,9 +242,9 @@ open midimon-gui/src-tauri/target/release/bundle/macos/"MIDIMon GUI.app"
 
 v2.0.0 includes a visual configuration editor:
 
-1. **Open MIDIMon GUI**:
+1. **Open Conductor GUI**:
    ```bash
-   open /Applications/"MIDIMon GUI.app"
+   open /Applications/"Conductor GUI.app"
    ```
 
 2. **Connect your MIDI device** in the device panel
@@ -255,7 +255,7 @@ v2.0.0 includes a visual configuration editor:
    - The trigger config auto-fills
    - Assign an action (keystroke, launch app, etc.)
 
-4. **Save configuration** - automatically writes to `~/.config/midimon/config.toml`
+4. **Save configuration** - automatically writes to `~/.config/conductor/config.toml`
 
 See [GUI Quick Start](../getting-started/gui-quick-start.md) for detailed tutorial.
 
@@ -263,13 +263,13 @@ See [GUI Quick Start](../getting-started/gui-quick-start.md) for detailed tutori
 
 If you prefer to edit `config.toml` manually:
 
-**Config location**: `~/.config/midimon/config.toml`
+**Config location**: `~/.config/conductor/config.toml`
 
 **Create a minimal config**:
 ```bash
-mkdir -p ~/.config/midimon
+mkdir -p ~/.config/conductor
 
-cat > ~/.config/midimon/config.toml << 'EOF'
+cat > ~/.config/conductor/config.toml << 'EOF'
 [device]
 name = "Mikro"
 auto_connect = true
@@ -296,7 +296,7 @@ note = 0
 hold_duration_ms = 3000
 [global_mappings.action]
 type = "Shell"
-command = "killall midimon"
+command = "killall conductor"
 EOF
 ```
 
@@ -376,11 +376,11 @@ Or manually navigate:
 - Controller name displayed (e.g., "Xbox Wireless Controller")
 - Button test interface available
 
-#### Check via MIDIMon Status
+#### Check via Conductor Status
 
 ```bash
-# Start MIDIMon and check status
-midimonctl status
+# Start Conductor and check status
+conductorctl status
 
 # Look for gamepad in device list
 # Example output:
@@ -390,11 +390,11 @@ midimonctl status
 
 #### Test Gamepad Events
 
-Use MIDIMon's event console to verify gamepad inputs:
+Use Conductor's event console to verify gamepad inputs:
 
 ```bash
-# Start MIDIMon with debug logging
-DEBUG=1 midimon --foreground
+# Start Conductor with debug logging
+DEBUG=1 conductor --foreground
 ```
 
 Press buttons on your gamepad. You should see:
@@ -408,7 +408,7 @@ If nothing appears:
 - Check USB or Bluetooth connection
 - Verify controller appears in System Settings → Game Controllers
 - Try reconnecting the controller
-- Restart MIDIMon
+- Restart Conductor
 - Check battery level (wireless controllers)
 
 #### Platform-Specific Troubleshooting
@@ -431,19 +431,19 @@ If nothing appears:
 macOS requires explicit permission for applications to access HID devices like the Maschine Mikro MK3 and game controllers.
 
 **Grant permission**:
-1. Run MIDIMon once:
+1. Run Conductor once:
    ```bash
    cargo run --release 2
    ```
 
-2. macOS will show a permission dialog: **"midimon would like to receive keystrokes from any application"**
+2. macOS will show a permission dialog: **"conductor would like to receive keystrokes from any application"**
 
 3. Click **Open System Settings** or manually navigate:
    - Open **System Settings** → **Privacy & Security** → **Input Monitoring**
-   - Find `midimon` (or `Terminal` if running via `cargo run`)
+   - Find `conductor` (or `Terminal` if running via `cargo run`)
    - Toggle the switch to **ON**
 
-4. Restart MIDIMon:
+4. Restart Conductor:
    ```bash
    cargo run --release 2
    ```
@@ -477,20 +477,20 @@ Some actions (e.g., controlling other apps programmatically) may require Accessi
 
 1. Go to **System Settings** → **Privacy & Security** → **Accessibility**
 2. Click the **+** button
-3. Navigate to `target/release/midimon` (or add `Terminal`)
+3. Navigate to `target/release/conductor` (or add `Terminal`)
 4. Click **Open**
 
 This is optional and only needed for specific advanced features.
 
-## Running MIDIMon
+## Running Conductor
 
 ### Using the GUI (Recommended)
 
-The simplest way to run MIDIMon v2.0.0:
+The simplest way to run Conductor v2.0.0:
 
 1. **Launch the GUI**:
    ```bash
-   open /Applications/"MIDIMon GUI.app"
+   open /Applications/"Conductor GUI.app"
    ```
 
 2. **The daemon starts automatically** in the background
@@ -502,7 +502,7 @@ The simplest way to run MIDIMon v2.0.0:
    - Pause/resume/reload from the GUI
 
 4. **Control via menu bar** (when daemon is running):
-   - Click the MIDIMon icon in menu bar
+   - Click the Conductor icon in menu bar
    - Quick actions: Pause, Reload Config, Open GUI, Quit
 
 ### Using the Daemon CLI
@@ -512,39 +512,39 @@ For headless operation or scripting:
 **Start the daemon**:
 ```bash
 # Start daemon in foreground
-midimon
+conductor
 
 # Start daemon in background
-midimon &
+conductor &
 
 # Or use launchd (see Auto-Start section below)
 ```
 
-**Control the daemon** with `midimonctl`:
+**Control the daemon** with `conductorctl`:
 ```bash
 # Check status
-midimonctl status
+conductorctl status
 
 # Reload configuration
-midimonctl reload
+conductorctl reload
 
 # Stop daemon
-midimonctl stop
+conductorctl stop
 
 # Validate config without reloading
-midimonctl validate
+conductorctl validate
 
 # Ping daemon (latency check)
-midimonctl ping
+conductorctl ping
 ```
 
 **Output formats**:
 ```bash
 # Human-readable output (default)
-midimonctl status
+conductorctl status
 
 # JSON output (for scripting)
-midimonctl status --json
+conductorctl status --json
 ```
 
 ### Legacy CLI Options (Daemon)
@@ -553,23 +553,23 @@ The daemon binary still supports v1.0.0 CLI arguments:
 
 ```bash
 # With LED lighting scheme
-midimon --led reactive
+conductor --led reactive
 
 # With device profile
-midimon --profile ~/Downloads/my-profile.ncmm3
+conductor --profile ~/Downloads/my-profile.ncmm3
 
 # With debug logging
-DEBUG=1 midimon
+DEBUG=1 conductor
 ```
 
 ## Auto-Start on Login
 
 ### Option 1: GUI Auto-Start (Recommended)
 
-The MIDIMon GUI includes built-in auto-start functionality:
+The Conductor GUI includes built-in auto-start functionality:
 
-1. Open **MIDIMon GUI** → **Settings**
-2. Enable **"Start MIDIMon on login"**
+1. Open **Conductor GUI** → **Settings**
+2. Enable **"Start Conductor on login"**
 3. Click **Save**
 
 This creates a LaunchAgent automatically and handles daemon startup.
@@ -583,17 +583,17 @@ For daemon-only auto-start (no GUI):
 ```bash
 mkdir -p ~/Library/LaunchAgents
 
-cat > ~/Library/LaunchAgents/com.midimon.daemon.plist << 'EOF'
+cat > ~/Library/LaunchAgents/com.conductor.daemon.plist << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.midimon.daemon</string>
+    <string>com.conductor.daemon</string>
 
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/bin/midimon</string>
+        <string>/usr/local/bin/conductor</string>
     </array>
 
     <key>RunAtLoad</key>
@@ -606,10 +606,10 @@ cat > ~/Library/LaunchAgents/com.midimon.daemon.plist << 'EOF'
     </dict>
 
     <key>StandardOutPath</key>
-    <string>/tmp/midimon.log</string>
+    <string>/tmp/conductor.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/tmp/midimon.err</string>
+    <string>/tmp/conductor.err</string>
 
     <key>EnvironmentVariables</key>
     <dict>
@@ -624,53 +624,53 @@ EOF
 #### 2. Load the LaunchAgent
 
 ```bash
-launchctl load ~/Library/LaunchAgents/com.midimon.daemon.plist
+launchctl load ~/Library/LaunchAgents/com.conductor.daemon.plist
 ```
 
 #### 3. Verify It's Running
 
 ```bash
 # Check launchd
-launchctl list | grep midimon
+launchctl list | grep conductor
 
 # Check daemon status
-midimonctl status
+conductorctl status
 ```
 
 You should see:
 ```
-MIDIMon Daemon Status:
+Conductor Daemon Status:
   State: Running
   Uptime: 2m 15s
-  Config: /Users/you/.config/midimon/config.toml
-  IPC Socket: /tmp/midimon.sock
+  Config: /Users/you/.config/conductor/config.toml
+  IPC Socket: /tmp/conductor.sock
 ```
 
 #### 4. Control the LaunchAgent
 
 ```bash
 # Stop
-launchctl unload ~/Library/LaunchAgents/com.midimon.daemon.plist
+launchctl unload ~/Library/LaunchAgents/com.conductor.daemon.plist
 
 # Start
-launchctl load ~/Library/LaunchAgents/com.midimon.daemon.plist
+launchctl load ~/Library/LaunchAgents/com.conductor.daemon.plist
 
 # Restart
-launchctl unload ~/Library/LaunchAgents/com.midimon.daemon.plist
-launchctl load ~/Library/LaunchAgents/com.midimon.daemon.plist
+launchctl unload ~/Library/LaunchAgents/com.conductor.daemon.plist
+launchctl load ~/Library/LaunchAgents/com.conductor.daemon.plist
 ```
 
 #### 5. Check Logs
 
 ```bash
 # Standard output
-tail -f /tmp/midimon.log
+tail -f /tmp/conductor.log
 
 # Errors
-tail -f /tmp/midimon.err
+tail -f /tmp/conductor.err
 
 # Or use daemon status
-midimonctl status --json | jq
+conductorctl status --json | jq
 ```
 
 ## Post-Installation Steps
@@ -720,15 +720,15 @@ See [Device Profiles Documentation](../DEVICE_PROFILES.md) for details.
 
 ### Apple Silicon (M1/M2/M3)
 
-MIDIMon works natively on Apple Silicon:
+Conductor works natively on Apple Silicon:
 
 ```bash
 # Build for current architecture
 cargo build --release
 
 # Binary will be ARM64 (aarch64) on M1/M2/M3
-file target/release/midimon
-# Output: target/release/midimon: Mach-O 64-bit executable arm64
+file target/release/conductor
+# Output: target/release/conductor: Mach-O 64-bit executable arm64
 ```
 
 No special configuration needed - all dependencies support ARM64.
@@ -747,16 +747,16 @@ cargo build --release --target aarch64-apple-darwin
 
 # Combine into universal binary
 lipo -create \
-    target/x86_64-apple-darwin/release/midimon \
-    target/aarch64-apple-darwin/release/midimon \
-    -output midimon-universal
+    target/x86_64-apple-darwin/release/conductor \
+    target/aarch64-apple-darwin/release/conductor \
+    -output conductor-universal
 ```
 
 ### Shared Device Access
 
-MIDIMon uses `macos-shared-device` feature in `hidapi` to allow concurrent access with NI Controller Editor. This means:
+Conductor uses `macos-shared-device` feature in `hidapi` to allow concurrent access with NI Controller Editor. This means:
 
-- ✅ You can run MIDIMon and Controller Editor simultaneously
+- ✅ You can run Conductor and Controller Editor simultaneously
 - ✅ Both can control LEDs without conflicts
 - ✅ Both receive MIDI input
 
@@ -810,7 +810,7 @@ cargo build --release
 3. Check USB cable and connection
 4. Try running with sudo (not recommended long-term):
    ```bash
-   sudo ./target/release/midimon 2
+   sudo ./target/release/conductor 2
    ```
 
 ---
@@ -821,8 +821,8 @@ cargo build --release
 1. Check Input Monitoring permission
 2. Verify binary has correct permissions:
    ```bash
-   ls -l target/release/midimon
-   chmod +x target/release/midimon
+   ls -l target/release/conductor
+   chmod +x target/release/conductor
    ```
 
 ---
@@ -836,7 +836,7 @@ cargo build --release
 2. Verify controller appears in System Settings → Game Controllers
 3. Grant Input Monitoring permission
 4. Try reconnecting the controller
-5. Check debug output: `DEBUG=1 midimon --foreground`
+5. Check debug output: `DEBUG=1 conductor --foreground`
 
 ---
 
@@ -888,11 +888,11 @@ cargo build --release
 
 ### Gamepad-Specific Issues
 
-**Controller works in games but not MIDIMon**:
-1. Ensure MIDIMon has Input Monitoring permission
+**Controller works in games but not Conductor**:
+1. Ensure Conductor has Input Monitoring permission
 2. Check that controller is SDL2-compatible
 3. Try USB connection instead of Bluetooth
-4. Restart MIDIMon after connecting controller
+4. Restart Conductor after connecting controller
 
 **Bluetooth pairing issues**:
 1. Forget device in Bluetooth settings
@@ -912,7 +912,7 @@ For more troubleshooting help, see [Gamepad Support Guide](../guides/gamepad-sup
 
 ## Next Steps
 
-Now that MIDIMon v3.0.0 is installed and running:
+Now that Conductor v3.0.0 is installed and running:
 
 ### For GUI Users
 1. **Learn the GUI**: Read [GUI Quick Start Guide](../getting-started/gui-quick-start.md)
@@ -923,7 +923,7 @@ Now that MIDIMon v3.0.0 is installed and running:
 
 ### For CLI Users
 1. **Daemon Control**: Read [Daemon & Hot-Reload Guide](../guides/daemon.md)
-2. **CLI Reference**: See [midimonctl Commands](../reference/cli.md)
+2. **CLI Reference**: See [conductorctl Commands](../reference/cli.md)
 3. **Manual Configuration**: Check [Configuration Overview](../configuration/overview.md)
 4. **Advanced Actions**: Explore [Actions Reference](../reference/actions.md)
 

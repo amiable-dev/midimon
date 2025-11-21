@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug or unexpected behavior in MIDIMon
+description: Report a bug or unexpected behavior in Conductor
 title: "[Bug]: "
 labels: ["bug", "needs-triage"]
 body:
@@ -80,8 +80,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: MIDIMon Version
-      description: What version of MIDIMon are you using?
+      label: Conductor Version
+      description: What version of Conductor are you using?
       placeholder: "e.g., v0.1.0-monolithic or commit hash"
     validations:
       required: true
@@ -146,7 +146,7 @@ body:
       options:
         - label: I have searched existing issues to ensure this is not a duplicate
           required: true
-        - label: I have tested with the latest version of MIDIMon
+        - label: I have tested with the latest version of Conductor
           required: true
         - label: I have included log output with DEBUG=1
           required: false

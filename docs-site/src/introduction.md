@@ -2,13 +2,13 @@
 
 **What if every button on your Xbox controller could be a keyboard shortcut? What if tapping a MIDI pad softly did one thing, and hitting it hard did something else?**
 
-MIDIMon is the missing link between your game controllers, MIDI devices, and your computer. It's open-source, blazingly fast (<1ms latency), and lets you create workflows that expensive macro pads can't touch.
+Conductor is the missing link between your game controllers, MIDI devices, and your computer. It's open-source, blazingly fast (<1ms latency), and lets you create workflows that expensive macro pads can't touch.
 
 **v3.0 is here**: MIDI + gamepads in one workflow. Use your $30 Xbox controller as a 15-button macro pad, or combine a MIDI controller with a racing wheel for creative hybrid setups.
 
 ✨ **The Killer Feature**: Velocity sensitivity. Press soft = copy, press hard = paste. One pad, multiple actions. Mind. Blown.
 
-## What's Possible with MIDIMon
+## What's Possible with Conductor
 
 Transform your creative workflow in ways traditional macro tools can't:
 
@@ -84,13 +84,13 @@ Transform your creative workflow in ways traditional macro tools can't:
 - CPU usage: **<1%** idle, **<5%** active
 - Binary size: **3-5MB** (optimized)
 
-## Who is MIDIMon For?
+## Who is Conductor For?
 
 ### 🎹 Music Producers & Live Performers
 
 **You have**: A MIDI controller (Maschine, Launchpad, APC Mini) that's not fully integrated into your workflow, or you're manually switching modes constantly during recording sessions.
 
-**MIDIMon gives you**: Velocity-sensitive DAW control, per-app profile switching, RGB LED feedback that shows your current state, and hot-reload that lets you tweak mappings mid-session.
+**Conductor gives you**: Velocity-sensitive DAW control, per-app profile switching, RGB LED feedback that shows your current state, and hot-reload that lets you tweak mappings mid-session.
 
 **Example workflow**:
 > "Soft press on pad 1 = loop record, medium press = one-shot sample, hard press = toggle reverb. One pad, three actions. I don't switch modes anymore—velocity does it for me."
@@ -103,7 +103,7 @@ Transform your creative workflow in ways traditional macro tools can't:
 
 **You have**: Too many terminal windows open, countless keyboard shortcuts to remember, and repetitive git workflows that waste 20-30 minutes daily.
 
-**MIDIMon gives you**: One-button git operations, build/test triggers mapped to gamepad buttons, and context-aware shortcuts that change based on your active IDE.
+**Conductor gives you**: One-button git operations, build/test triggers mapped to gamepad buttons, and context-aware shortcuts that change based on your active IDE.
 
 **Example workflow**:
 > "Press gamepad button A = git status. Hold for 2 seconds = commit and push with auto-generated message. My PlayStation controller saves me 30 minutes every day."
@@ -116,7 +116,7 @@ Transform your creative workflow in ways traditional macro tools can't:
 
 **You have**: A $150-300 Stream Deck on your wishlist, or you're using keyboard shortcuts that break your flow during streams.
 
-**MIDIMon gives you**: Professional stream controls for free using your existing Xbox/PlayStation controller, with velocity-sensitive audio fading and button chords for complex actions.
+**Conductor gives you**: Professional stream controls for free using your existing Xbox/PlayStation controller, with velocity-sensitive audio fading and button chords for complex actions.
 
 **Example workflow**:
 > "Xbox A button = switch scene, B = mute mic, triggers = analog audio fade in/out. I saved $300 by repurposing my gamepad instead of buying a Stream Deck."
@@ -129,7 +129,7 @@ Transform your creative workflow in ways traditional macro tools can't:
 
 **You have**: Keyboard-heavy editing workflows that strain your wrists, and you wish timeline scrubbing felt more natural.
 
-**MIDIMon gives you**: Analog pedal control for timeline speed and zoom, ergonomic button layouts on MIDI controllers or racing wheels, and hands-free transport control.
+**Conductor gives you**: Analog pedal control for timeline speed and zoom, ergonomic button layouts on MIDI controllers or racing wheels, and hands-free transport control.
 
 **Example workflow**:
 > "My racing wheel's gas pedal controls timeline playback speed (0-200%). Brake pedal = zoom level. It sounds crazy, but it's incredibly intuitive and ergonomic."
@@ -142,7 +142,7 @@ Transform your creative workflow in ways traditional macro tools can't:
 
 **You have**: Repetitive tasks you're sick of doing manually, forms that need filling out dozens of times daily, or app-specific shortcuts you can never remember.
 
-**MIDIMon gives you**: Context-aware shortcuts that change based on active application, form automation that fills entire forms with one button press, and MIDI Learn that makes configuration visual and instant.
+**Conductor gives you**: Context-aware shortcuts that change based on active application, form automation that fills entire forms with one button press, and MIDI Learn that makes configuration visual and instant.
 
 **Example workflow**:
 > "I mapped long-press to 'fill entire web form with saved data.' Double-tap = refresh page. Velocity determines scroll speed. Saved hours every week."
@@ -155,7 +155,7 @@ Transform your creative workflow in ways traditional macro tools can't:
 
 **You have**: A dusty Xbox controller, old racing wheel, or HOTAS setup that you barely use anymore.
 
-**MIDIMon gives you**: A second life for your gaming hardware as professional productivity tools. That $150 racing wheel becomes a $300 video editing controller.
+**Conductor gives you**: A second life for your gaming hardware as professional productivity tools. That $150 racing wheel becomes a $300 video editing controller.
 
 **Example workflow**:
 > "My Thrustmaster HOTAS from Star Citizen now controls my entire dev environment. 20+ shortcuts without touching the keyboard. Plus, it's just fun to use."
@@ -170,11 +170,11 @@ Transform your creative workflow in ways traditional macro tools can't:
 
 **[Browse Device Templates →](guides/device-templates.md)** - Pre-built configs for popular controllers
 
-**[Explore Use Cases →](inspiration/success-stories.md)** - See how others use MIDIMon
+**[Explore Use Cases →](inspiration/success-stories.md)** - See how others use Conductor
 
-## Why MIDIMon?
+## Why Conductor?
 
-Unlike existing MIDI mapping tools, MIDIMon provides:
+Unlike existing MIDI mapping tools, Conductor provides:
 
 - **Multi-Protocol Support**: Use MIDI controllers AND gamepads in the same workflow (v3.0+)
 - **Advanced Timing**: Long press, double-tap, chord detection out of the box
@@ -237,7 +237,7 @@ Ready to dive in? Check out the [Quick Start Guide](getting-started/quick-start.
 
 ## Project Status
 
-MIDIMon is currently at **v3.0** with multi-protocol input support, production-ready daemon infrastructure, and visual GUI configuration.
+Conductor is currently at **v3.0** with multi-protocol input support, production-ready daemon infrastructure, and visual GUI configuration.
 
 **What's New in v3.0**:
 - 🎮 **HID Gamepad Support**: Xbox, PlayStation, Switch Pro controllers
@@ -257,14 +257,14 @@ See the [Roadmap](resources/roadmap.md) for planned features and [Changelog](res
 
 ## Community
 
-- **GitHub**: [https://github.com/amiable-dev/midimon](https://github.com/amiable-dev/midimon)
-- **Discussions**: [https://github.com/amiable-dev/midimon/discussions](https://github.com/amiable-dev/midimon/discussions)
-- **Issues**: [https://github.com/amiable-dev/midimon/issues](https://github.com/amiable-dev/midimon/issues)
+- **GitHub**: [https://github.com/amiable-dev/conductor](https://github.com/amiable-dev/conductor)
+- **Discussions**: [https://github.com/amiable-dev/conductor/discussions](https://github.com/amiable-dev/conductor/discussions)
+- **Issues**: [https://github.com/amiable-dev/conductor/issues](https://github.com/amiable-dev/conductor/issues)
 
 ## License
 
-MIDIMon is open source software licensed under the **MIT License**. See [LICENSE](https://github.com/amiable-dev/midimon/blob/main/LICENSE) for details.
+Conductor is open source software licensed under the **MIT License**. See [LICENSE](https://github.com/amiable-dev/conductor/blob/main/LICENSE) for details.
 
 ---
 
-**Next**: [Install MIDIMon](installation/macos.md) | [Quick Start](getting-started/quick-start.md)
+**Next**: [Install Conductor](installation/macos.md) | [Quick Start](getting-started/quick-start.md)

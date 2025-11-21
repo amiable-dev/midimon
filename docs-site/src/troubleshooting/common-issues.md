@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers the most frequently encountered issues when using MIDIMon, along with step-by-step solutions. For detailed diagnostic procedures, see [Diagnostics Guide](diagnostics.md).
+This guide covers the most frequently encountered issues when using Conductor, along with step-by-step solutions. For detailed diagnostic procedures, see [Diagnostics Guide](diagnostics.md).
 
 ## MIDI Device Not Found
 
@@ -91,7 +91,7 @@ rm ~/Library/Preferences/ByHost/com.apple.audio.AudioMIDISetup.*
 # List MIDI devices using system_profiler
 system_profiler SPUSBDataType | grep -B 10 -A 10 MIDI
 
-# Test with midimon diagnostic
+# Test with conductor diagnostic
 cargo run --bin test_midi
 ```
 
@@ -147,7 +147,7 @@ cargo run --bin midi_diagnostic 2
 
 **Step-by-step**:
 
-1. Run MIDIMon:
+1. Run Conductor:
    ```bash
    cargo run --release 2
    ```
@@ -157,11 +157,11 @@ cargo run --bin midi_diagnostic 2
 3. Click **Open System Settings**
 
 4. In **Privacy & Security** → **Input Monitoring**:
-   - Find `midimon` or `Terminal` (if running via cargo)
+   - Find `conductor` or `Terminal` (if running via cargo)
    - Toggle switch to **ON**
    - If switch is already ON, toggle OFF then ON again
 
-5. Restart MIDIMon:
+5. Restart Conductor:
    ```bash
    cargo run --release 2
    ```
@@ -254,7 +254,7 @@ See [Device Profiles Documentation](../DEVICE_PROFILES.md) for complete guide.
 
 If Controller Editor is running simultaneously:
 
-**macOS**: MIDIMon uses shared device access (should work)
+**macOS**: Conductor uses shared device access (should work)
 
 **Verify**:
 ```bash
@@ -263,7 +263,7 @@ hidapi = { version = "2.4", features = ["macos-shared-device"] }
 ```
 
 If LEDs work when Controller Editor is closed but not when it's running:
-- Update to latest MIDIMon version
+- Update to latest Conductor version
 - Rebuild from source: `cargo build --release`
 
 ### Advanced Debugging
@@ -325,7 +325,7 @@ If they don't match, update config.toml with correct note numbers.
 
 #### 2. Check Active Mode
 
-MIDIMon prints the current mode to console:
+Conductor prints the current mode to console:
 
 ```
 Mode changed: Default -> Developer
@@ -578,7 +578,7 @@ for page in A B C D E F G H; do
     echo "Testing page $page"
     cargo run --release 2 --profile profile.ncmm3 --pad-page $page
     sleep 5
-    killall midimon
+    killall conductor
 done
 ```
 
@@ -635,7 +635,7 @@ If note 50 is pressed but your profile only has notes 12-27, no LED will light.
 
 ### Overview
 
-MIDIMon v3.0 introduced support for all SDL2-compatible HID devices including gamepads (Xbox, PlayStation, Nintendo Switch Pro), joysticks, racing wheels, flight sticks, HOTAS controllers, and custom controllers. This section covers common issues specific to game controller integration.
+Conductor v3.0 introduced support for all SDL2-compatible HID devices including gamepads (Xbox, PlayStation, Nintendo Switch Pro), joysticks, racing wheels, flight sticks, HOTAS controllers, and custom controllers. This section covers common issues specific to game controller integration.
 
 For gamepad configuration guidance, see the [Gamepad Support Guide](../guides/gamepad-support.md).
 
@@ -644,7 +644,7 @@ For gamepad configuration guidance, see the [Gamepad Support Guide](../guides/ga
 #### Symptoms
 
 - No gamepad shown in Event Console
-- `midimonctl status` doesn't list gamepad
+- `conductorctl status` doesn't list gamepad
 - Button presses have no effect
 - "No compatible gamepad detected" message
 
@@ -727,12 +727,12 @@ groups | grep input
 
 ##### 3. Verify SDL2 Compatibility
 
-MIDIMon uses SDL2 gamepad mappings. Most modern controllers are compatible, but some require specific configurations.
+Conductor uses SDL2 gamepad mappings. Most modern controllers are compatible, but some require specific configurations.
 
 **Test SDL2 detection**:
 ```bash
 # Enable debug logging to see SDL2 detection
-DEBUG=1 midimon --foreground
+DEBUG=1 conductor --foreground
 
 # Look for:
 [DEBUG] SDL2 initialized
@@ -757,9 +757,9 @@ DEBUG=1 midimon --foreground
 Game controllers require Input Monitoring permission, just like MIDI HID devices.
 
 **Step-by-step**:
-1. Run MIDIMon:
+1. Run Conductor:
    ```bash
-   midimon --foreground
+   conductor --foreground
    ```
 
 2. macOS shows permission dialog for Input Monitoring
@@ -767,18 +767,18 @@ Game controllers require Input Monitoring permission, just like MIDI HID devices
 3. Click **Open System Settings**
 
 4. In **Privacy & Security** > **Input Monitoring**:
-   - Find `midimon` or `Terminal` (if running via cargo)
+   - Find `conductor` or `Terminal` (if running via cargo)
    - Toggle switch to **ON**
    - If already ON, toggle OFF then ON to reset
 
-5. Restart MIDIMon:
+5. Restart Conductor:
    ```bash
-   midimon --foreground
+   conductor --foreground
    ```
 
 **Verify permission**:
 ```bash
-DEBUG=1 midimon --foreground
+DEBUG=1 conductor --foreground
 ```
 
 Look for:
@@ -818,14 +818,14 @@ lsmod | grep -E "xpad|joydev|evdev"
 - **Switch Pro**: Works but may need [BetterJoy](https://github.com/Davidobot/BetterJoy)
 - Check Device Manager for "Unknown device" under Game Controllers
 
-##### 6. Test with MIDIMon Event Console
+##### 6. Test with Conductor Event Console
 
 ```bash
 # Start daemon
-midimon --foreground
+conductor --foreground
 
 # In another terminal, watch events
-midimonctl events --follow
+conductorctl events --follow
 ```
 
 Press buttons on your gamepad - you should see:
@@ -912,7 +912,7 @@ button = 128  # Gamepad range (128-255)
 
 ```bash
 # Start Event Console
-midimonctl events --follow --type gamepad
+conductorctl events --follow --type gamepad
 ```
 
 Press each button and note the ID:
@@ -937,11 +937,11 @@ keys = "Return"
 ##### 3. Use MIDI Learn for Automatic Detection
 
 **GUI Method** (Recommended):
-1. Open MIDIMon GUI
+1. Open Conductor GUI
 2. Navigate to mappings
 3. Click "Learn" button next to trigger field
 4. Press button on gamepad
-5. MIDIMon auto-generates correct trigger config
+5. Conductor auto-generates correct trigger config
 
 **Pattern Detection**:
 - Press once → `GamepadButton`
@@ -982,7 +982,7 @@ threshold = 128
 ##### 5. Enable Debug Logging
 
 ```bash
-DEBUG=1 midimon --foreground
+DEBUG=1 conductor --foreground
 ```
 
 Press buttons and watch for:
@@ -1046,7 +1046,7 @@ If this works, issue is with specific trigger/action configuration.
 
 ##### 1. Automatic Dead Zone (10%)
 
-MIDIMon automatically applies a 10% dead zone to prevent false triggers from stick drift.
+Conductor automatically applies a 10% dead zone to prevent false triggers from stick drift.
 
 **How it works**:
 - Stick center: 128 (0-255 range)
@@ -1215,7 +1215,7 @@ button = 144  # Right trigger digital (R2, RT, ZR)
 ##### 3. Test in Event Console
 
 ```bash
-midimonctl events --follow --type gamepad
+conductorctl events --follow --type gamepad
 ```
 
 Pull trigger slowly and watch output:
@@ -1240,7 +1240,7 @@ Pull trigger slowly and watch output:
 ##### 4. Debug Trigger Detection
 
 ```bash
-DEBUG=1 midimon --foreground
+DEBUG=1 conductor --foreground
 ```
 
 Pull trigger and look for:
@@ -1377,7 +1377,7 @@ This allows mode switching from either device without conflicts.
 ##### 5. Verify with Event Console
 
 ```bash
-midimonctl events --follow
+conductorctl events --follow
 ```
 
 Test both devices:
@@ -1412,7 +1412,7 @@ Ensure correct event type appears for each device.
 
 ##### 1. Auto-Reconnection Behavior
 
-MIDIMon automatically handles reconnection:
+Conductor automatically handles reconnection:
 
 **What happens**:
 1. Controller disconnects (USB unplugged, Bluetooth drops, battery dies)
@@ -1428,7 +1428,7 @@ MIDIMon automatically handles reconnection:
 
 ```bash
 # Watch daemon logs
-DEBUG=1 midimon --foreground
+DEBUG=1 conductor --foreground
 
 # Disconnect controller (unplug USB or power off)
 # You'll see:
@@ -1469,16 +1469,16 @@ If reconnection doesn't work:
 
 ```bash
 # Stop daemon
-midimonctl stop
+conductorctl stop
 
 # Wait 2 seconds
 sleep 2
 
 # Start daemon
-midimon --foreground
+conductor --foreground
 
 # Verify gamepad detected
-midimonctl status
+conductorctl status
 ```
 
 ##### 5. Prevent Wireless Disconnections
@@ -1544,11 +1544,11 @@ system_profiler SPUSBDataType | grep -i xbox
 
 **Solution**:
 ```bash
-# Grant permission to Terminal instead of midimon binary
+# Grant permission to Terminal instead of conductor binary
 # This persists across rebuilds when running via cargo
 
 # Or code-sign the binary
-codesign --force --deep --sign - target/release/midimon
+codesign --force --deep --sign - target/release/conductor
 ```
 
 #### Linux
@@ -1637,20 +1637,20 @@ jstest /dev/input/js0
 
 ##### DS4Windows Conflict
 
-**Problem**: PlayStation controller works in DS4Windows but not MIDIMon
+**Problem**: PlayStation controller works in DS4Windows but not Conductor
 
 **Solution**:
 ```
-DS4Windows emulates Xbox controller, which MIDIMon can detect.
+DS4Windows emulates Xbox controller, which Conductor can detect.
 
 Option 1: Use DS4Windows (controller appears as Xbox)
 - Keep DS4Windows running
-- MIDIMon sees it as Xbox controller
+- Conductor sees it as Xbox controller
 - Use Xbox button IDs (128-255)
 
 Option 2: Native PlayStation support
 - Close DS4Windows
-- Restart MIDIMon
+- Restart Conductor
 - Use native PlayStation support
 - Same button IDs (128-255) work with either
 ```
@@ -1669,7 +1669,7 @@ Look for X/D switch on controller or hold button combo:
 - Usually: Start + Back for 3 seconds switches mode
 - LED indicator changes when mode switches
 
-MIDIMon works best with XInput mode on Windows.
+Conductor works best with XInput mode on Windows.
 ```
 
 ### Getting Additional Help
@@ -1678,25 +1678,25 @@ If your gamepad issue isn't covered here:
 
 1. **Check Event Console**:
    ```bash
-   midimonctl events --follow --type gamepad
+   conductorctl events --follow --type gamepad
    ```
    Verify button presses appear
 
 2. **Enable Debug Logging**:
    ```bash
-   DEBUG=1 midimon --foreground
+   DEBUG=1 conductor --foreground
    ```
    Look for SDL2 detection messages
 
 3. **Collect Information**:
    - OS version (macOS 14.2, Ubuntu 22.04, Windows 11)
-   - MIDIMon version: `midimon --version`
+   - Conductor version: `conductor --version`
    - Controller model (Xbox Series X, DualSense, etc.)
    - Connection type (USB, Bluetooth, Wireless Adapter)
    - Error messages from debug log
    - Output of:
      ```bash
-     midimonctl status
+     conductorctl status
      system_profiler SPUSBDataType | grep -i controller  # macOS
      lsusb | grep -i controller  # Linux
      ```
@@ -1726,7 +1726,7 @@ If your gamepad issue isn't covered here:
 
 **Alternative**: Code-sign the binary:
 ```bash
-codesign --force --deep --sign - target/release/midimon
+codesign --force --deep --sign - target/release/conductor
 ```
 
 ### macOS: "Cannot be opened because the developer cannot be verified"
@@ -1734,7 +1734,7 @@ codesign --force --deep --sign - target/release/midimon
 **Solution**:
 ```bash
 # Remove quarantine attribute
-xattr -d com.apple.quarantine target/release/midimon
+xattr -d com.apple.quarantine target/release/conductor
 
 # Or allow in System Settings
 # Right-click binary → Open → Allow
@@ -1748,7 +1748,7 @@ xattr -d com.apple.quarantine target/release/midimon
 
 1. Add udev rules:
 ```bash
-sudo tee /etc/udev/rules.d/50-midimon.rules << 'EOF'
+sudo tee /etc/udev/rules.d/50-conductor.rules << 'EOF'
 # Native Instruments Maschine Mikro MK3
 SUBSYSTEM=="usb", ATTRS{idVendor}=="17cc", ATTRS{idProduct}=="1600", MODE="0666", GROUP="plugdev"
 SUBSYSTEM=="usb", ATTRS{bInterfaceClass}=="01", ATTRS{bInterfaceSubClass}=="03", MODE="0666", GROUP="plugdev"
@@ -1785,7 +1785,7 @@ cargo run --release 2
 
 ### High CPU Usage
 
-**Symptom**: MIDIMon using >10% CPU
+**Symptom**: Conductor using >10% CPU
 
 **Causes**:
 - Debug logging enabled
@@ -1821,7 +1821,7 @@ cargo run --release 2
    ```bash
    # Debug builds are 20-30% slower
    cargo build --release
-   ./target/release/midimon 2
+   ./target/release/conductor 2
    ```
 
 ### High Latency (Delayed Response)
@@ -1862,7 +1862,7 @@ If your issue isn't covered here:
    ```
 4. Collect information:
    - macOS/Linux/Windows version
-   - MIDIMon version: `cargo --version`
+   - Conductor version: `cargo --version`
    - Device model
    - Error messages (full output)
    - Debug log output

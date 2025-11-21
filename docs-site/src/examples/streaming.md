@@ -401,9 +401,9 @@ modifiers = ["ctrl", "shift"]
 
 | Setup | Hardware | Cost | Savings |
 |-------|----------|------|---------|
-| **MIDIMon** | Xbox Controller (owned) | $0 | $150-300 |
-| **MIDIMon** | New Xbox Controller | $30-60 | $90-270 |
-| **MIDIMon** | PlayStation DualSense | $60-70 | $80-240 |
+| **Conductor** | Xbox Controller (owned) | $0 | $150-300 |
+| **Conductor** | New Xbox Controller | $30-60 | $90-270 |
+| **Conductor** | PlayStation DualSense | $60-70 | $80-240 |
 | **Stream Deck** | Stream Deck Mini | $79.99 | - |
 | **Stream Deck** | Stream Deck MK.2 | $149.99 | - |
 | **Stream Deck** | Stream Deck XL | $249.99 | - |

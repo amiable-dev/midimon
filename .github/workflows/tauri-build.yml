@@ -23,11 +23,11 @@ jobs:
           - platform: 'macos-latest'
             os: macos-latest
             target: universal-apple-darwin
-            artifact: midimon-gui_universal.app.tar.gz
+            artifact: conductor-gui_universal.app.tar.gz
           - platform: 'ubuntu-latest'
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact: midimon-gui_amd64.AppImage.tar.gz
+            artifact: conductor-gui_amd64.AppImage.tar.gz
 
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: midimon-gui/ui/package-lock.json
+          cache-dependency-path: conductor-gui/ui/package-lock.json
 
       - name: Install system dependencies (Ubuntu)
         if: runner.os == 'Linux'
@@ -75,17 +75,17 @@ jobs:
           key: ${{ runner.os }}-cargo-build-tauri-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install frontend dependencies
-        working-directory: midimon-gui/ui
+        working-directory: conductor-gui/ui
         run: npm ci
 
       - name: Build Tauri app
-        working-directory: midimon-gui
+        working-directory: conductor-gui
         run: |
           cd ui
           npm run build
 
       - name: Build Tauri backend
-        working-directory: midimon-gui/src-tauri
+        working-directory: conductor-gui/src-tauri
         run: |
           cargo build --release --verbose
 
@@ -93,18 +93,18 @@ jobs:
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: midimon-gui-macos
-          path: midimon-gui/src-tauri/target/release/bundle/macos/*.app
+          name: conductor-gui-macos
+          path: conductor-gui/src-tauri/target/release/bundle/macos/*.app
           if-no-files-found: warn
 
       - name: Upload artifact (Linux)
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: midimon-gui-linux
+          name: conductor-gui-linux
           path: |
-            midimon-gui/src-tauri/target/release/bundle/appimage/*.AppImage
-            midimon-gui/src-tauri/target/release/bundle/deb/*.deb
+            conductor-gui/src-tauri/target/release/bundle/appimage/*.AppImage
+            conductor-gui/src-tauri/target/release/bundle/deb/*.deb
           if-no-files-found: warn
 
   tauri-test:
@@ -125,7 +125,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: midimon-gui/ui/package-lock.json
+          cache-dependency-path: conductor-gui/ui/package-lock.json
 
       - name: Install system dependencies (Ubuntu)
         if: runner.os == 'Linux'
@@ -159,15 +159,15 @@ jobs:
           key: ${{ runner.os }}-cargo-build-tauri-test-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install frontend dependencies
-        working-directory: midimon-gui/ui
+        working-directory: conductor-gui/ui
         run: npm ci
 
       - name: Run Tauri backend tests
-        working-directory: midimon-gui/src-tauri
+        working-directory: conductor-gui/src-tauri
         run: cargo test --verbose
 
       - name: Check frontend for errors
-        working-directory: midimon-gui/ui
+        working-directory: conductor-gui/ui
         run: |
           npm run build
 
@@ -187,7 +187,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: midimon-gui/ui/package-lock.json
+          cache-dependency-path: conductor-gui/ui/package-lock.json
 
       - name: Install system dependencies
         run: |
@@ -214,17 +214,17 @@ jobs:
           key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Check Rust formatting
-        working-directory: midimon-gui/src-tauri
+        working-directory: conductor-gui/src-tauri
         run: cargo fmt --all -- --check
 
       - name: Run Clippy
-        working-directory: midimon-gui/src-tauri
+        working-directory: conductor-gui/src-tauri
         run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Install frontend dependencies
-        working-directory: midimon-gui/ui
+        working-directory: conductor-gui/ui
         run: npm ci
 
       - name: Check frontend build
-        working-directory: midimon-gui/ui
+        working-directory: conductor-gui/ui
         run: npm run build

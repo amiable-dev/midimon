@@ -1,5 +1,5 @@
 [book]
-title = "MIDIMon Documentation"
+title = "Conductor Documentation"
 authors = ["Amiable Dev"]
 language = "en"
 src = "src"
@@ -12,9 +12,9 @@ create-missing = true
 [output.html]
 default-theme = "light"
 preferred-dark-theme = "navy"
-git-repository-url = "https://github.com/amiable-dev/midimon"
-edit-url-template = "https://github.com/amiable-dev/midimon/edit/main/docs-site/src/{path}"
-site-url = "/midimon/"
+git-repository-url = "https://github.com/amiable-dev/conductor"
+edit-url-template = "https://github.com/amiable-dev/conductor/edit/main/docs-site/src/{path}"
+site-url = "/conductor/"
 cname = ""
 
 [output.html.fold]

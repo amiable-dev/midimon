@@ -1,6 +1,6 @@
 # LED Feedback Configuration
 
-MIDIMon provides rich LED feedback for MIDI controllers with comprehensive support for RGB control (HID devices) and basic on/off control (MIDI devices).
+Conductor provides rich LED feedback for MIDI controllers with comprehensive support for RGB control (HID devices) and basic on/off control (MIDI devices).
 
 ## Quick Start
 

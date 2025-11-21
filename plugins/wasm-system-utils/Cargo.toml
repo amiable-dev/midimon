@@ -1,5 +1,5 @@
 [package]
-name = "midimon-wasm-system-utils"
+name = "conductor-wasm-system-utils"
 version = "0.1.0"
 edition = "2021"
 authors = ["Amiable Team"]

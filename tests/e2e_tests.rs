@@ -22,7 +22,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 // Re-use types from the main crate for testing
-use midimon::event_processor::{
+use conductor::event_processor::{
     EncoderDirection as MidiDirection, EventProcessor, MidiEvent, ProcessedEvent, VelocityLevel,
 };
 

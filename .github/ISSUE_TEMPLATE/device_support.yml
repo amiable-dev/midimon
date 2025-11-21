@@ -103,7 +103,7 @@ body:
       label: MIDI Implementation
       description: |
         MIDI note numbers, CC numbers, and channels (if known)
-        Check the device manual or use MIDIMon's midi_diagnostic tool
+        Check the device manual or use Conductor's midi_diagnostic tool
       placeholder: |
         Pads send MIDI notes 36-51 on channel 1
         Knobs send CC 20-27 on channel 1
@@ -126,7 +126,7 @@ body:
     id: testing
     attributes:
       label: Testing Availability
-      description: If you own the device, can you help test MIDIMon with it?
+      description: If you own the device, can you help test Conductor with it?
       options:
         - "Yes - Available for regular testing"
         - "Yes - Limited availability"
@@ -163,13 +163,13 @@ body:
       description: Are there other tools that support this device?
       placeholder: |
         - Tool X supports this via...
-        - Similar to device Y which MIDIMon already supports
+        - Similar to device Y which Conductor already supports
 
   - type: textarea
     id: use-case
     attributes:
       label: Your Use Case
-      description: How would you use this device with MIDIMon?
+      description: How would you use this device with Conductor?
       placeholder: |
         I want to use this device for...
         My workflow requires...

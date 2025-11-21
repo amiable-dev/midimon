@@ -1,6 +1,6 @@
-# Contributing to MIDIMon
+# Contributing to Conductor
 
-Thank you for your interest in contributing to MIDIMon! We welcome contributions of all kinds - from bug reports and documentation improvements to new features and hardware support.
+Thank you for your interest in contributing to Conductor! We welcome contributions of all kinds - from bug reports and documentation improvements to new features and hardware support.
 
 ## Table of Contents
 
@@ -20,7 +20,7 @@ This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDU
 
 ### 🐛 Bug Reports
 
-Found a bug? Please open a [GitHub issue](https://github.com/amiable-dev/midimon/issues/new) with:
+Found a bug? Please open a [GitHub issue](https://github.com/amiable-dev/conductor/issues/new) with:
 - Clear description of the issue
 - Steps to reproduce
 - Expected vs actual behavior
@@ -29,7 +29,7 @@ Found a bug? Please open a [GitHub issue](https://github.com/amiable-dev/midimon
 
 ### 💡 Feature Requests
 
-Have an idea? We'd love to hear it! Open a [GitHub Discussion](https://github.com/amiable-dev/midimon/discussions/new?category=ideas) with:
+Have an idea? We'd love to hear it! Open a [GitHub Discussion](https://github.com/amiable-dev/conductor/discussions/new?category=ideas) with:
 - Clear description of the proposed feature
 - Use cases and benefits
 - Potential implementation approaches (optional)
@@ -47,21 +47,21 @@ Documentation improvements are always welcome:
 ### 🔧 Code Contributions
 
 Ready to write code? Check out:
-- [Good First Issues](https://github.com/amiable-dev/midimon/labels/good-first-issue)
-- [Help Wanted](https://github.com/amiable-dev/midimon/labels/help-wanted)
+- [Good First Issues](https://github.com/amiable-dev/conductor/labels/good-first-issue)
+- [Help Wanted](https://github.com/amiable-dev/conductor/labels/help-wanted)
 - Incomplete feature implementations
 
 ### 🎹 Device Support
 
 Help us support more MIDI controllers:
-- Test MIDIMon with your device
+- Test Conductor with your device
 - Create device profiles (.ncmm3 or config templates)
 - Document device-specific quirks or features
 - Implement LED feedback for new devices
 
 ### 🔌 WASM Plugins
 
-Extend MIDIMon's functionality with sandboxed WASM plugins:
+Extend Conductor's functionality with sandboxed WASM plugins:
 - Create plugins for media control (Spotify, iTunes, etc.)
 - Build system utility plugins (screenshots, clipboard, etc.)
 - Develop DAW integration plugins (Logic Pro, Ableton, etc.)
@@ -91,9 +91,9 @@ See the [Plugin Development Guide](docs/WASM_PLUGIN_DEVELOPMENT_GUIDE.md) for co
 
 1. **Fork and Clone**
    ```bash
-   git fork amiable-dev/midimon
-   git clone https://github.com/YOUR_USERNAME/midimon.git
-   cd midimon
+   git fork amiable-dev/conductor
+   git clone https://github.com/YOUR_USERNAME/conductor.git
+   cd conductor
    ```
 
 2. **Build the Project**
@@ -106,7 +106,7 @@ See the [Plugin Development Guide](docs/WASM_PLUGIN_DEVELOPMENT_GUIDE.md) for co
    cargo test
    ```
 
-4. **Run MIDIMon**
+4. **Run Conductor**
    ```bash
    # List available MIDI ports
    cargo run --release
@@ -278,7 +278,7 @@ cargo tarpaulin --workspace
 
 ### GitHub Discussions
 
-Use [Discussions](https://github.com/amiable-dev/midimon/discussions) for:
+Use [Discussions](https://github.com/amiable-dev/conductor/discussions) for:
 - Questions about usage
 - Feature ideas and proposals
 - General community chat
@@ -286,7 +286,7 @@ Use [Discussions](https://github.com/amiable-dev/midimon/discussions) for:
 
 ### GitHub Issues
 
-Use [Issues](https://github.com/amiable-dev/midimon/issues) for:
+Use [Issues](https://github.com/amiable-dev/conductor/issues) for:
 - Bug reports
 - Approved feature requests
 - Documentation improvements
@@ -308,7 +308,7 @@ Real-time chat for:
 
 New to open source? No problem! Here's how to get started:
 
-1. **Look for Good First Issues**: We label beginner-friendly issues with [good-first-issue](https://github.com/amiable-dev/midimon/labels/good-first-issue)
+1. **Look for Good First Issues**: We label beginner-friendly issues with [good-first-issue](https://github.com/amiable-dev/conductor/labels/good-first-issue)
 2. **Read the Docs**: Familiarize yourself with the project structure
 3. **Set Up Development**: Follow the development setup guide
 4. **Ask Questions**: Don't hesitate to ask in Discussions
@@ -317,8 +317,8 @@ New to open source? No problem! Here's how to get started:
 
 ## License
 
-By contributing to MIDIMon, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+By contributing to Conductor, you agree that your contributions will be licensed under the [MIT License](LICENSE).
 
 ---
 
-Thank you for contributing to MIDIMon! 🎹
+Thank you for contributing to Conductor! 🎹

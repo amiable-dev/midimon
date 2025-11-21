@@ -782,6 +782,127 @@ dependencies = [
 ]
 
 [[package]]
+name = "conductor"
+version = "4.0.0"
+dependencies = [
+ "chrono",
+ "conductor-core",
+ "conductor-daemon",
+ "dirs 5.0.1",
+ "enigo",
+ "proptest",
+ "rstest",
+ "serde_json",
+ "toml 0.9.8",
+]
+
+[[package]]
+name = "conductor-core"
+version = "4.0.0"
+dependencies = [
+ "alsa",
+ "anyhow",
+ "chrono",
+ "conductor-daemon",
+ "coremidi",
+ "criterion",
+ "crossbeam-channel",
+ "dirs 5.0.1",
+ "ed25519-dalek",
+ "gilrs",
+ "hex",
+ "hidapi",
+ "libloading 0.8.9",
+ "midi-msg",
+ "midir",
+ "proptest",
+ "quick-xml 0.37.5",
+ "rand 0.8.5",
+ "regex",
+ "reqwest",
+ "rstest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.17",
+ "tokio",
+ "toml 0.9.8",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "wasmtime",
+ "wasmtime-wasi",
+]
+
+[[package]]
+name = "conductor-daemon"
+version = "4.0.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "cocoa 0.25.0",
+ "colored",
+ "conductor-core",
+ "crossbeam-channel",
+ "ctrlc",
+ "dirs 5.0.1",
+ "ed25519-dalek",
+ "enigo",
+ "gilrs",
+ "hex",
+ "hidapi",
+ "interprocess",
+ "libc",
+ "midi-msg",
+ "midir",
+ "notify",
+ "notify-debouncer-full",
+ "objc",
+ "rand 0.8.5",
+ "rstest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.17",
+ "tokio",
+ "toml 0.8.23",
+ "tracing",
+ "tracing-subscriber",
+ "tray-icon 0.19.3",
+ "uuid",
+]
+
+[[package]]
+name = "conductor-gui"
+version = "4.0.0"
+dependencies = [
+ "anyhow",
+ "cocoa 0.26.1",
+ "conductor-core",
+ "conductor-daemon",
+ "dirs 5.0.1",
+ "midi-msg",
+ "midir",
+ "objc",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-shell",
+ "tempfile",
+ "thiserror 2.0.17",
+ "tokio",
+ "toml 0.8.23",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3276,127 +3397,6 @@ dependencies = [
  "log",
  "micromath",
  "strum",
-]
-
-[[package]]
-name = "midimon"
-version = "2.7.0"
-dependencies = [
- "chrono",
- "dirs 5.0.1",
- "enigo",
- "midimon-core",
- "midimon-daemon",
- "proptest",
- "rstest",
- "serde_json",
- "toml 0.9.8",
-]
-
-[[package]]
-name = "midimon-core"
-version = "2.7.0"
-dependencies = [
- "alsa",
- "anyhow",
- "chrono",
- "coremidi",
- "criterion",
- "crossbeam-channel",
- "dirs 5.0.1",
- "ed25519-dalek",
- "gilrs",
- "hex",
- "hidapi",
- "libloading 0.8.9",
- "midi-msg",
- "midimon-daemon",
- "midir",
- "proptest",
- "quick-xml 0.37.5",
- "rand 0.8.5",
- "regex",
- "reqwest",
- "rstest",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror 2.0.17",
- "tokio",
- "toml 0.9.8",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "wasmtime",
- "wasmtime-wasi",
-]
-
-[[package]]
-name = "midimon-daemon"
-version = "2.7.0"
-dependencies = [
- "anyhow",
- "chrono",
- "clap",
- "cocoa 0.25.0",
- "colored",
- "crossbeam-channel",
- "ctrlc",
- "dirs 5.0.1",
- "ed25519-dalek",
- "enigo",
- "gilrs",
- "hex",
- "hidapi",
- "interprocess",
- "libc",
- "midi-msg",
- "midimon-core",
- "midir",
- "notify",
- "notify-debouncer-full",
- "objc",
- "rand 0.8.5",
- "rstest",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror 2.0.17",
- "tokio",
- "toml 0.8.23",
- "tracing",
- "tracing-subscriber",
- "tray-icon 0.19.3",
- "uuid",
-]
-
-[[package]]
-name = "midimon-gui"
-version = "2.7.0"
-dependencies = [
- "anyhow",
- "cocoa 0.26.1",
- "dirs 5.0.1",
- "midi-msg",
- "midimon-core",
- "midimon-daemon",
- "midir",
- "objc",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-shell",
- "tempfile",
- "thiserror 2.0.17",
- "tokio",
- "toml 0.8.23",
- "tracing",
- "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]

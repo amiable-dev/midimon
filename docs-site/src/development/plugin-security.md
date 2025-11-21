@@ -3,7 +3,7 @@
 **Since:** v2.7
 **Status:** Production-ready
 
-MIDIMon provides enterprise-grade security for WASM plugins through cryptographic signatures, resource limiting, and filesystem sandboxing.
+Conductor provides enterprise-grade security for WASM plugins through cryptographic signatures, resource limiting, and filesystem sandboxing.
 
 ## Security Architecture
 
@@ -50,31 +50,31 @@ Plugin signing uses **Ed25519 digital signatures** to ensure:
 - **Integrity**: Plugin hasn't been tampered with
 - **Non-repudiation**: Developer cannot deny signing
 
-### CLI Tool: midimon-sign
+### CLI Tool: conductor-sign
 
 #### Installation
 
 ```bash
 # Build with signing support
-cargo build --package midimon-daemon \
-  --bin midimon-sign \
+cargo build --package conductor-daemon \
+  --bin conductor-sign \
   --features plugin-signing \
   --release
 ```
 
-Binary location: `target/release/midimon-sign`
+Binary location: `target/release/conductor-sign`
 
 ### Signing Workflow
 
 #### 1. Generate Keypair
 
 ```bash
-midimon-sign generate-key ~/.midimon/my-plugin-key
+conductor-sign generate-key ~/.conductor/my-plugin-key
 ```
 
 **Output:**
-- `~/.midimon/my-plugin-key.private` (32 bytes, keep secure!)
-- `~/.midimon/my-plugin-key.public` (hex-encoded)
+- `~/.conductor/my-plugin-key.private` (32 bytes, keep secure!)
+- `~/.conductor/my-plugin-key.public` (hex-encoded)
 - Public key displayed in terminal
 
 **Example output:**
@@ -82,8 +82,8 @@ midimon-sign generate-key ~/.midimon/my-plugin-key
 Generating Ed25519 keypair...
 ✓ Keypair generated successfully!
 
-Private key: /Users/you/.midimon/my-plugin-key.private
-Public key:  /Users/you/.midimon/my-plugin-key.public
+Private key: /Users/you/.conductor/my-plugin-key.private
+Public key:  /Users/you/.conductor/my-plugin-key.public
 
 Public key (hex): 3dab8dbfaeb804085e879791d395d6afabe268535a2bc98ea70afa1edd291cca
 
@@ -93,7 +93,7 @@ Public key (hex): 3dab8dbfaeb804085e879791d395d6afabe268535a2bc98ea70afa1edd291c
 #### 2. Sign Plugin
 
 ```bash
-midimon-sign sign my_plugin.wasm ~/.midimon/my-plugin-key \
+conductor-sign sign my_plugin.wasm ~/.conductor/my-plugin-key \
   --name "Your Name" \
   --email "you@example.com"
 ```
@@ -120,7 +120,7 @@ midimon-sign sign my_plugin.wasm ~/.midimon/my-plugin-key \
 #### 3. Verify Signature
 
 ```bash
-midimon-sign verify my_plugin.wasm
+conductor-sign verify my_plugin.wasm
 ```
 
 **Example output:**
@@ -144,24 +144,24 @@ Signature Details:
 
 **Add trusted key:**
 ```bash
-midimon-sign trust add 3dab8dbfaeb804085e879791d395d6afabe268535a2bc98ea70afa1edd291cca "Official Plugin"
+conductor-sign trust add 3dab8dbfaeb804085e879791d395d6afabe268535a2bc98ea70afa1edd291cca "Official Plugin"
 ```
 
 **List trusted keys:**
 ```bash
-midimon-sign trust list
+conductor-sign trust list
 ```
 
 **Remove trusted key:**
 ```bash
-midimon-sign trust remove 3dab8dbf...
+conductor-sign trust remove 3dab8dbf...
 ```
 
-**Trusted keys file:** `~/.config/midimon/trusted_keys.toml`
+**Trusted keys file:** `~/.config/conductor/trusted_keys.toml`
 
 ## Trust Models
 
-MIDIMon supports three trust levels:
+Conductor supports three trust levels:
 
 ### Level 1: Unsigned (Development)
 
@@ -219,7 +219,7 @@ config.allow_self_signed = false;  // Default
 1. **Protect Private Keys**
    ```bash
    # Set secure permissions
-   chmod 600 ~/.midimon/my-plugin-key.private
+   chmod 600 ~/.conductor/my-plugin-key.private
 
    # Never commit to version control
    echo "*.private" >> .gitignore
@@ -229,9 +229,9 @@ config.allow_self_signed = false;  // Default
    ```bash
    # Include signing in your release script
    cargo build --target wasm32-wasip1 --release
-   midimon-sign sign \
+   conductor-sign sign \
      target/wasm32-wasip1/release/my_plugin.wasm \
-     ~/.midimon/my-key \
+     ~/.conductor/my-key \
      --name "Your Name" --email "you@example.com"
    ```
 
@@ -243,8 +243,8 @@ config.allow_self_signed = false;  // Default
 4. **Use Separate Keys per Project**
    ```bash
    # One key per plugin project
-   midimon-sign generate-key ~/.midimon/plugin-a-key
-   midimon-sign generate-key ~/.midimon/plugin-b-key
+   conductor-sign generate-key ~/.conductor/plugin-a-key
+   conductor-sign generate-key ~/.conductor/plugin-b-key
    ```
 
 ### For End Users
@@ -252,7 +252,7 @@ config.allow_self_signed = false;  // Default
 1. **Verify Before Trust**
    ```bash
    # Always verify signature first
-   midimon-sign verify downloaded_plugin.wasm
+   conductor-sign verify downloaded_plugin.wasm
 
    # Check developer information
    # Only trust if matches expected developer
@@ -262,21 +262,21 @@ config.allow_self_signed = false;  // Default
    ```bash
    # Only add keys from verified sources
    # Check plugin author's website for official key
-   midimon-sign trust add <key> "Official Project Name"
+   conductor-sign trust add <key> "Official Project Name"
    ```
 
 3. **Audit Trusted Keys**
    ```bash
    # Regularly review trusted keys
-   midimon-sign trust list
+   conductor-sign trust list
 
    # Remove unused keys
-   midimon-sign trust remove <key>
+   conductor-sign trust remove <key>
    ```
 
 4. **Use Strict Mode in Production**
    ```toml
-   # ~/.config/midimon/config.toml
+   # ~/.config/conductor/config.toml
    [wasm]
    require_signature = true
    allow_self_signed = false  # Strict mode
@@ -315,7 +315,7 @@ pub extern "C" fn execute(...) -> i32 {
         std::thread::sleep(Duration::from_millis(1));
     }
 }
-// MIDIMon automatically terminates after ~100ms
+// Conductor automatically terminates after ~100ms
 ```
 
 ### Memory Limits
@@ -371,17 +371,17 @@ Plugins with `Filesystem` capability can only access a specific directory:
 
 **macOS:**
 ```
-~/Library/Application Support/midimon/plugin-data/
+~/Library/Application Support/conductor/plugin-data/
 ```
 
 **Linux:**
 ```
-~/.local/share/midimon/plugin-data/
+~/.local/share/conductor/plugin-data/
 ```
 
 **Windows:**
 ```
-%APPDATA%\midimon\plugin-data\
+%APPDATA%\conductor\plugin-data\
 ```
 
 ### What's Blocked
@@ -403,7 +403,7 @@ std::fs::write("~/other-file.txt", data)?;
 
 ### How It Works
 
-1. **WASI Preopening**: MIDIMon pre-opens the plugin data directory
+1. **WASI Preopening**: Conductor pre-opens the plugin data directory
 2. **Path Mapping**: All plugin paths mapped to sandbox root
 3. **Validation**: WASI runtime blocks access outside preopened directories
 4. **No Escape**: Path traversal attempts automatically blocked
@@ -513,7 +513,7 @@ granted_capabilities = ["Network", "Filesystem"]
 - [ ] Enable strict mode in production
 - [ ] Regularly audit trusted keys
 - [ ] Review capability requests
-- [ ] Keep MIDIMon updated
+- [ ] Keep Conductor updated
 
 ## Troubleshooting
 
@@ -526,7 +526,7 @@ ls -la my_plugin.wasm.sig
 
 **Verify signature manually:**
 ```bash
-midimon-sign verify my_plugin.wasm
+conductor-sign verify my_plugin.wasm
 ```
 
 **Common causes:**
@@ -539,12 +539,12 @@ midimon-sign verify my_plugin.wasm
 
 **List trusted keys:**
 ```bash
-midimon-sign trust list
+conductor-sign trust list
 ```
 
 **Add key:**
 ```bash
-midimon-sign trust add <public-key> "Plugin Name"
+conductor-sign trust add <public-key> "Plugin Name"
 ```
 
 **Verify key matches:**
@@ -582,7 +582,7 @@ For maximum security, use hardware keys (YubiKey, etc.):
 # (Implementation depends on HSM/hardware)
 
 # Sign using hardware key
-midimon-sign sign my_plugin.wasm \
+conductor-sign sign my_plugin.wasm \
   --hardware-key /dev/yubikey \
   --name "Your Name" --email "you@example.com"
 ```
@@ -591,10 +591,10 @@ midimon-sign sign my_plugin.wasm \
 
 ```bash
 # Generate new key
-midimon-sign generate-key ~/.midimon/my-plugin-key-v2
+conductor-sign generate-key ~/.conductor/my-plugin-key-v2
 
 # Sign with new key
-midimon-sign sign my_plugin.wasm ~/.midimon/my-plugin-key-v2 \
+conductor-sign sign my_plugin.wasm ~/.conductor/my-plugin-key-v2 \
   --name "Your Name" --email "you@example.com"
 
 # Announce rotation to users
@@ -607,11 +607,11 @@ For critical plugins, require multiple signatures:
 
 ```bash
 # Sign with first key
-midimon-sign sign my_plugin.wasm ~/.midimon/key1 \
+conductor-sign sign my_plugin.wasm ~/.conductor/key1 \
   --name "Developer 1" --email "dev1@example.com"
 
 # Co-sign with second key
-midimon-sign cosign my_plugin.wasm ~/.midimon/key2 \
+conductor-sign cosign my_plugin.wasm ~/.conductor/key2 \
   --name "Developer 2" --email "dev2@example.com"
 
 # Verify requires both signatures

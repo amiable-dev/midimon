@@ -17,17 +17,17 @@ Per-app profiles enable context-aware MIDI control:
 
 ```bash
 # macOS: Grant Accessibility permissions
-# System Settings → Privacy & Security → Accessibility → MIDIMon
+# System Settings → Privacy & Security → Accessibility → Conductor
 
 # Verify app detection is working
-midimonctl frontmost-app
+conductorctl frontmost-app
 ```
 
 ### 2. Create Profiles
 
 #### Via GUI
 
-1. Open MIDIMon GUI
+1. Open Conductor GUI
 2. Navigate to **Devices** tab
 3. Click **🔄 Profiles**
 4. Click **+ New Profile**
@@ -37,10 +37,10 @@ midimonctl frontmost-app
 
 #### Via Config File
 
-Create separate profile files in `~/.config/midimon/profiles/`:
+Create separate profile files in `~/.config/conductor/profiles/`:
 
 ```bash
-~/.config/midimon/profiles/
+~/.config/conductor/profiles/
 ├── default.toml          # Fallback profile
 ├── vscode.toml           # VS Code mappings
 ├── photoshop.toml        # Photoshop mappings
@@ -61,7 +61,7 @@ Map applications to profiles:
 
 #### Config Method
 
-Edit `~/.config/midimon/app_profiles.toml`:
+Edit `~/.config/conductor/app_profiles.toml`:
 
 ```toml
 [app_associations]
@@ -75,7 +75,7 @@ Edit `~/.config/midimon/app_profiles.toml`:
 
 ### Profile Structure
 
-Each profile is a complete MIDIMon configuration:
+Each profile is a complete Conductor configuration:
 
 ```toml
 # profiles/vscode.toml
@@ -147,7 +147,7 @@ action = "Up"
 
 ### App Name Matching
 
-MIDIMon matches application names flexibly:
+Conductor matches application names flexibly:
 
 ```toml
 # All of these will match Visual Studio Code
@@ -173,7 +173,7 @@ Use wildcards for partial matching:
 When app detection is enabled:
 
 1. Focus changes to new application
-2. MIDIMon detects the frontmost app
+2. Conductor detects the frontmost app
 3. Looks up associated profile
 4. Loads and activates profile
 5. LED feedback shows profile change (optional)
@@ -193,12 +193,12 @@ Force a specific profile:
 #### CLI Method
 
 ```bash
-midimonctl switch-profile vscode
+conductorctl switch-profile vscode
 ```
 
 ### Default Fallback
 
-If no profile matches the current app, MIDIMon uses:
+If no profile matches the current app, Conductor uses:
 
 1. `default` profile (if exists)
 2. Main `config.toml`
@@ -331,7 +331,7 @@ Share or back up profiles:
 #### CLI Method
 
 ```bash
-midimonctl export-profile vscode > vscode-profile.toml
+conductorctl export-profile vscode > vscode-profile.toml
 ```
 
 ### Import Profiles
@@ -348,7 +348,7 @@ Load profiles from files:
 #### CLI Method
 
 ```bash
-midimonctl import-profile vscode-profile.toml
+conductorctl import-profile vscode-profile.toml
 ```
 
 ### Profile Validation
@@ -356,7 +356,7 @@ midimonctl import-profile vscode-profile.toml
 Test profiles before activating:
 
 ```bash
-midimonctl validate-profile vscode
+conductorctl validate-profile vscode
 ```
 
 ## Troubleshooting
@@ -370,7 +370,7 @@ midimonctl validate-profile vscode
 
 2. **Verify app name**:
    ```bash
-   midimonctl frontmost-app
+   conductorctl frontmost-app
    ```
 
 3. **Check association**:
@@ -381,22 +381,22 @@ midimonctl validate-profile vscode
 
 1. **Check app detection is enabled**:
    ```bash
-   midimonctl status
+   conductorctl status
    ```
 
 2. **Verify profile exists**:
    ```bash
-   ls ~/.config/midimon/profiles/
+   ls ~/.config/conductor/profiles/
    ```
 
 3. **Test manual switch**:
    ```bash
-   midimonctl switch-profile vscode
+   conductorctl switch-profile vscode
    ```
 
 4. **Check logs**:
    ```bash
-   midimonctl logs | grep profile
+   conductorctl logs | grep profile
    ```
 
 ### Wrong Profile Activates

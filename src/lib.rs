@@ -1,43 +1,44 @@
 // Copyright 2025 Amiable
 // SPDX-License-Identifier: MIT
 
-//! MIDIMon Library (Compatibility Layer)
+//! Conductor Library
 //!
-//! This module provides backward compatibility for tests written against
-//! the old monolithic structure. It re-exports types from midimon_core.
+//! Multi-protocol input mapping system for MIDI controllers, game controllers,
+//! and custom hardware. This is the main library entry point that re-exports
+//! types from conductor_core.
 //!
-//! New code should use midimon_core directly instead of this module.
+//! New code should use conductor_core directly instead of this module.
 
-// Re-export everything from midimon_core for backward compatibility
-pub use midimon_core::*;
+// Re-export everything from conductor_core
+pub use conductor_core::*;
 
-// Module aliases for backward compatibility with old test imports
+// Module aliases for common imports
 pub mod config {
-    pub use midimon_core::config::*;
+    pub use conductor_core::config::*;
 }
 
 pub mod event_processor {
-    pub use midimon_core::event_processor::*;
+    pub use conductor_core::event_processor::*;
 }
 
 pub mod actions {
-    pub use midimon_core::actions::*;
-    // Note: ActionExecutor moved to midimon-daemon in Phase 2 refactor
-    // Use `midimon_daemon::ActionExecutor` instead
+    pub use conductor_core::actions::*;
+    // Note: ActionExecutor moved to conductor-daemon
+    // Use `conductor_daemon::ActionExecutor` instead
 }
 
 pub mod mappings {
-    pub use midimon_core::mapping::*;
+    pub use conductor_core::mapping::*;
 }
 
 pub mod feedback {
-    pub use midimon_core::feedback::*;
+    pub use conductor_core::feedback::*;
 }
 
 pub mod device_profile {
-    pub use midimon_core::device::*;
+    pub use conductor_core::device::*;
 }
 
 // Note: mikro_leds and midi_feedback are private implementation details
-// in midimon_core and are not re-exported. Tests should use the public
+// in conductor_core and are not re-exported. Tests should use the public
 // PadFeedback trait instead.

@@ -15,7 +15,7 @@ Instead of manually mapping 16+ pads, load a template and customize only what yo
 
 ## Built-In Templates (v2.0.0)
 
-MIDIMon includes 6 built-in templates for popular controllers:
+Conductor includes 6 built-in templates for popular controllers:
 
 ### 1. Maschine Mikro MK3
 **Full RGB LED support, 16 pads, encoder**
@@ -87,7 +87,7 @@ MIDIMon includes 6 built-in templates for popular controllers:
 
 ### Via GUI (Recommended)
 
-1. **Open MIDIMon GUI**
+1. **Open Conductor GUI**
 
 2. **Go to Settings** → **Device Templates**
 
@@ -105,16 +105,16 @@ MIDIMon includes 6 built-in templates for popular controllers:
 
 Templates are stored as TOML files in:
 ```
-~/.config/midimon/templates/
+~/.config/conductor/templates/
 ```
 
 **Load manually**:
 ```bash
 # Copy template to config location
-cp ~/.config/midimon/templates/maschine-mikro-mk3.toml ~/.config/midimon/config.toml
+cp ~/.config/conductor/templates/maschine-mikro-mk3.toml ~/.config/conductor/config.toml
 
 # Reload daemon
-midimonctl reload
+conductorctl reload
 ```
 
 ## Template Structure
@@ -227,7 +227,7 @@ device_ids = ["USB MIDI Device", "My Controller MIDI 1"]
 
 ### Step 5: Share (Optional)
 
-Submit to MIDIMon template library:
+Submit to Conductor template library:
 
 1. Create PR to `config/device_templates/` directory
 2. Include template file + documentation
@@ -235,7 +235,7 @@ Submit to MIDIMon template library:
 
 ## Template Compatibility
 
-Templates are forward-compatible across MIDIMon versions:
+Templates are forward-compatible across Conductor versions:
 
 - ✅ v2.0.0 templates work in v2.1.0+
 - ⚠️ Newer features may not load in older versions
@@ -248,8 +248,8 @@ Templates are forward-compatible across MIDIMon versions:
 **Symptoms**: "Failed to load template" error
 
 **Solutions**:
-1. **Check template file** exists in `~/.config/midimon/templates/`
-2. **Validate TOML syntax**: `midimonctl validate --config path/to/template.toml`
+1. **Check template file** exists in `~/.config/conductor/templates/`
+2. **Validate TOML syntax**: `conductorctl validate --config path/to/template.toml`
 3. **Check permissions**: Template file must be readable
 4. **View error details** in Event Console
 

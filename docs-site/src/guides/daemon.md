@@ -1,13 +1,13 @@
 # Daemon & Hot-Reload Guide
 
-MIDIMon v2.0.0 introduces a production-ready background daemon service with lightning-fast configuration hot-reloading.
+Conductor v2.0.0 introduces a production-ready background daemon service with lightning-fast configuration hot-reloading.
 
 ## Architecture Overview
 
-The MIDIMon daemon runs as a background service, providing:
+The Conductor daemon runs as a background service, providing:
 
 - **Hot-Reload**: Configuration changes applied in 0-10ms without restart
-- **IPC Control**: Control via CLI (`midimonctl`) or GUI
+- **IPC Control**: Control via CLI (`conductorctl`) or GUI
 - **State Persistence**: Automatic state saving with atomic writes
 - **Crash Recovery**: Auto-restart with KeepAlive (when using LaunchAgent)
 - **Menu Bar Integration**: macOS menu bar for quick actions
@@ -16,22 +16,22 @@ The MIDIMon daemon runs as a background service, providing:
 
 ### Via GUI (Recommended)
 
-Open the MIDIMon GUI app - the daemon starts automatically in the background.
+Open the Conductor GUI app - the daemon starts automatically in the background.
 
 ### Via CLI
 
 ```bash
 # Start daemon in foreground
-midimon
+conductor
 
 # Start daemon in background
-midimon &
+conductor &
 
 # Check if daemon is running
-ps aux | grep midimon | grep -v grep
+ps aux | grep conductor | grep -v grep
 
 # Check daemon status via IPC
-midimonctl status
+conductorctl status
 ```
 
 ### Via LaunchAgent (Auto-Start)
@@ -40,38 +40,38 @@ See [macOS Installation Guide](../installation/macos.md#auto-start-on-login) for
 
 ## Controlling the Daemon
 
-### midimonctl CLI
+### conductorctl CLI
 
-The `midimonctl` command provides full control over the daemon:
+The `conductorctl` command provides full control over the daemon:
 
 #### Status
 
 ```bash
 # Human-readable status
-midimonctl status
+conductorctl status
 
 # Example output:
-# MIDIMon Daemon Status:
+# Conductor Daemon Status:
 #   State: Running
 #   Uptime: 1h 23m 45s
-#   Config: /Users/you/.config/midimon/config.toml
+#   Config: /Users/you/.config/conductor/config.toml
 #   Last Reload: 2m 15s ago
-#   IPC Socket: /tmp/midimon.sock
+#   IPC Socket: /tmp/conductor.sock
 #   PID: 12345
 ```
 
 **JSON output** (for scripting):
 
 ```bash
-midimonctl status --json
+conductorctl status --json
 
 # Example output:
 # {
 #   "state": "Running",
 #   "uptime_seconds": 5025,
-#   "config_path": "/Users/you/.config/midimon/config.toml",
+#   "config_path": "/Users/you/.config/conductor/config.toml",
 #   "last_reload_seconds": 135,
-#   "ipc_socket": "/tmp/midimon.sock",
+#   "ipc_socket": "/tmp/conductor.sock",
 #   "pid": 12345
 # }
 ```
@@ -80,7 +80,7 @@ midimonctl status --json
 
 ```bash
 # Reload config (hot-reload in 0-10ms)
-midimonctl reload
+conductorctl reload
 
 # Example output:
 # Config reloaded successfully in 3ms
@@ -95,7 +95,7 @@ This applies configuration changes **without restarting** the daemon or interrup
 
 ```bash
 # Validate config without reloading
-midimonctl validate
+conductorctl validate
 
 # Example output (success):
 # ✓ Config is valid
@@ -118,7 +118,7 @@ This is useful for:
 
 ```bash
 # Graceful shutdown
-midimonctl stop
+conductorctl stop
 
 # Example output:
 # Daemon stopped gracefully
@@ -130,7 +130,7 @@ The daemon saves its state before shutting down.
 
 ```bash
 # Check IPC round-trip latency
-midimonctl ping
+conductorctl ping
 
 # Example output:
 # Pong! Round-trip: 0.43ms
@@ -142,7 +142,7 @@ This verifies the daemon is responsive and measures IPC performance.
 
 ### How It Works
 
-1. **File Watcher**: Monitors `~/.config/midimon/config.toml` for changes
+1. **File Watcher**: Monitors `~/.config/conductor/config.toml` for changes
 2. **Debouncing**: 500ms debounce window to avoid redundant reloads
 3. **Parsing**: Validates TOML syntax and config structure
 4. **Atomic Swap**: Replaces active config with new one in a single operation
@@ -154,7 +154,7 @@ Edit your config file:
 
 ```bash
 # Open in your editor
-code ~/.config/midimon/config.toml
+code ~/.config/conductor/config.toml
 
 # Make changes and save
 ```
@@ -171,7 +171,7 @@ code ~/.config/midimon/config.toml
 Or **manually trigger** reload:
 
 ```bash
-midimonctl reload
+conductorctl reload
 ```
 
 ### What Gets Reloaded
@@ -189,7 +189,7 @@ If config reload fails:
 
 ```bash
 # Example: Invalid TOML syntax
-midimonctl reload
+conductorctl reload
 
 # Output:
 # ✗ Config reload failed: TOML parse error
@@ -201,7 +201,7 @@ The daemon **keeps the previous valid config** and continues running.
 
 ## State Persistence
 
-The daemon automatically saves state to `~/.config/midimon/state.json`:
+The daemon automatically saves state to `~/.config/conductor/state.json`:
 
 ### What Gets Saved
 
@@ -232,7 +232,7 @@ The daemon uses **Unix domain sockets** for inter-process communication.
 
 ### Socket Location
 
-Default: `/tmp/midimon.sock`
+Default: `/tmp/conductor.sock`
 
 ### Protocol
 
@@ -303,7 +303,7 @@ The daemon tracks and reports performance metrics:
 ### Config Reload Latency
 
 ```bash
-midimonctl status --json | jq '.metrics.reload_latency_ms'
+conductorctl status --json | jq '.metrics.reload_latency_ms'
 # Output: 3.2
 ```
 
@@ -315,7 +315,7 @@ midimonctl status --json | jq '.metrics.reload_latency_ms'
 ### IPC Round-Trip
 
 ```bash
-midimonctl ping
+conductorctl ping
 # Output: Pong! Round-trip: 0.43ms
 ```
 
@@ -327,7 +327,7 @@ midimonctl ping
 ### Memory Usage
 
 ```bash
-ps aux | grep midimon | awk '{print $6/1024 " MB"}'
+ps aux | grep conductor | awk '{print $6/1024 " MB"}'
 # Output: 8.2 MB
 ```
 
@@ -339,7 +339,7 @@ ps aux | grep midimon | awk '{print $6/1024 " MB"}'
 ### CPU Usage
 
 ```bash
-top -pid $(pgrep midimon) -stats cpu -l 1 | tail -1
+top -pid $(pgrep conductor) -stats cpu -l 1 | tail -1
 # Output: 0.3%
 ```
 
@@ -381,39 +381,39 @@ show_menu_bar = true
 
 **Check if already running**:
 ```bash
-ps aux | grep midimon
+ps aux | grep conductor
 ```
 
 If already running, stop it first:
 ```bash
-midimonctl stop
+conductorctl stop
 ```
 
 **Check logs**:
 ```bash
 # If using LaunchAgent
-tail -f /tmp/midimon.err
+tail -f /tmp/conductor.err
 
 # If running manually
-midimon  # Run in foreground to see errors
+conductor  # Run in foreground to see errors
 ```
 
 ### Config Won't Reload
 
 **Validate config syntax**:
 ```bash
-midimonctl validate
+conductorctl validate
 ```
 
 **Check file watcher**:
 ```bash
 # Manually trigger reload
-midimonctl reload
+conductorctl reload
 ```
 
 **Check file permissions**:
 ```bash
-ls -l ~/.config/midimon/config.toml
+ls -l ~/.config/conductor/config.toml
 # Should be readable by your user
 ```
 
@@ -421,7 +421,7 @@ ls -l ~/.config/midimon/config.toml
 
 **Check IPC performance**:
 ```bash
-midimonctl ping
+conductorctl ping
 ```
 
 **Check system load**:
@@ -431,22 +431,22 @@ top -l 1 | head -10
 
 **Restart daemon**:
 ```bash
-midimonctl stop
-midimon &
+conductorctl stop
+conductor &
 ```
 
 ### State Not Persisting
 
 **Check state file**:
 ```bash
-ls -l ~/.config/midimon/state.json
-cat ~/.config/midimon/state.json | jq
+ls -l ~/.config/conductor/state.json
+cat ~/.config/conductor/state.json | jq
 ```
 
 **Check file permissions**:
 ```bash
 # State directory should be writable
-ls -ld ~/.config/midimon
+ls -ld ~/.config/conductor
 ```
 
 ## Advanced Configuration
@@ -456,33 +456,33 @@ ls -ld ~/.config/midimon
 Edit daemon config (future feature):
 ```toml
 [daemon]
-ipc_socket = "/tmp/my-custom-midimon.sock"
+ipc_socket = "/tmp/my-custom-conductor.sock"
 ```
 
-Then tell `midimonctl` to use it:
+Then tell `conductorctl` to use it:
 ```bash
-export MIDIMON_SOCKET=/tmp/my-custom-midimon.sock
-midimonctl status
+export MIDIMON_SOCKET=/tmp/my-custom-conductor.sock
+conductorctl status
 ```
 
 ### Custom Config Path
 
 Run daemon with custom config:
 ```bash
-midimon --config /path/to/config.toml
+conductor --config /path/to/config.toml
 ```
 
 Or set environment variable:
 ```bash
 export MIDIMON_CONFIG=/path/to/config.toml
-midimon
+conductor
 ```
 
 ### Logging
 
 Enable debug logging:
 ```bash
-DEBUG=1 midimon
+DEBUG=1 conductor
 ```
 
 Output includes:

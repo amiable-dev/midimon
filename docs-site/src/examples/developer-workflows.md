@@ -4,7 +4,7 @@ Automate your development environment with one-button git operations, build trig
 
 ## Overview
 
-MIDIMon turns gamepads and MIDI controllers into powerful developer tools. Map git workflows, build commands, test runners, and environment management to physical buttons.
+Conductor turns gamepads and MIDI controllers into powerful developer tools. Map git workflows, build commands, test runners, and environment management to physical buttons.
 
 **What You'll Learn**:
 - One-button git operations (velocity-sensitive)

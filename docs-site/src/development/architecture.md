@@ -2,19 +2,19 @@
 
 ## Current Architecture (v0.2.0 - Phase 2)
 
-MIDIMon uses a **Cargo workspace architecture** with three packages. Phase 2 migration completed successfully with zero breaking changes.
+Conductor uses a **Cargo workspace architecture** with three packages. Phase 2 migration completed successfully with zero breaking changes.
 
 ### Workspace Packages
 
-1. **midimon-core**: Pure Rust engine library (zero UI dependencies)
-2. **midimon-daemon**: CLI daemon + 6 diagnostic tools
-3. **midimon**: Backward compatibility layer for existing tests
+1. **conductor-core**: Pure Rust engine library (zero UI dependencies)
+2. **conductor-daemon**: CLI daemon + 6 diagnostic tools
+3. **conductor**: Backward compatibility layer for existing tests
 
 ### System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    midimon-daemon                           │
+│                    conductor-daemon                           │
 │              (CLI Daemon + Diagnostic Tools)                │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
@@ -25,7 +25,7 @@ MIDIMon uses a **Cargo workspace architecture** with three packages. Phase 2 mig
 └──────────────────────┬──────────────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────────────┐
-│                    midimon-core                             │
+│                    conductor-core                             │
 │              (Pure Rust Engine Library)                     │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐  │
@@ -51,10 +51,10 @@ MIDIMon uses a **Cargo workspace architecture** with three packages. Phase 2 mig
 └─────────────────────────────────────────────────────────────┘
                        ▲
 ┌──────────────────────┴──────────────────────────────────────┐
-│                      midimon (root)                         │
+│                      conductor (root)                         │
 │               (Backward Compatibility Layer)                │
 ├─────────────────────────────────────────────────────────────┤
-│  Re-exports midimon_core types for existing tests          │
+│  Re-exports conductor_core types for existing tests          │
 │  Maintains v0.1.0 import paths • Zero breaking changes     │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -262,9 +262,9 @@ The roadmap includes migrating to a **workspace structure** with separate crates
 ### Target Structure
 
 ```
-midimon/
+conductor/
 ├── Cargo.toml                      # Workspace root manifest
-├── midimon-core/                   # Pure Rust engine (UI-free)
+├── conductor-core/                   # Pure Rust engine (UI-free)
 │   ├── Cargo.toml
 │   └── src/
 │       ├── lib.rs                  # Public API
@@ -276,14 +276,14 @@ midimon/
 │       ├── feedback.rs             # LED feedback
 │       ├── device_profile.rs       # NI profile parser
 │       └── error.rs                # Error types
-├── midimon-daemon/                 # CLI binary (current main.rs)
+├── conductor-daemon/                 # CLI binary (current main.rs)
 │   ├── Cargo.toml
 │   └── src/
 │       ├── main.rs                 # CLI entry point
 │       ├── cli.rs                  # Argument parsing
 │       ├── debug.rs                # Debug output
 │       └── bin/                    # Diagnostic tools
-├── midimon-gui/                    # Tauri UI (Phase 4)
+├── conductor-gui/                    # Tauri UI (Phase 4)
 │   ├── Cargo.toml
 │   ├── src-tauri/
 │   └── ui/
@@ -297,8 +297,8 @@ midimon/
 
 ```mermaid
 graph TD
-    A[midimon-gui<br/>Tauri UI] -->|depends on| C[midimon-core<br/>Engine Library]
-    B[midimon-daemon<br/>CLI Binary] -->|depends on| C
+    A[conductor-gui<br/>Tauri UI] -->|depends on| C[conductor-core<br/>Engine Library]
+    B[conductor-daemon<br/>CLI Binary] -->|depends on| C
     C -->|no dependencies on| A
     C -->|no dependencies on| B
 
@@ -309,7 +309,7 @@ graph TD
 
 ### Phase 2: Core Library Extraction ✅ COMPLETE (v0.2.0)
 
-**Goal**: Extract engine logic into reusable `midimon-core` crate (AMI-123, AMI-124).
+**Goal**: Extract engine logic into reusable `conductor-core` crate (AMI-123, AMI-124).
 
 **Public API** (from [API Design](../../docs/api-design.md)):
 ```rust
@@ -347,13 +347,13 @@ impl MidiMonEngine {
 **Build Commands**:
 ```bash
 # Build core library only
-cargo build -p midimon-core
+cargo build -p conductor-core
 
 # Build CLI daemon
-cargo build -p midimon-daemon --release
+cargo build -p conductor-daemon --release
 
 # Run with new structure
-cargo run -p midimon-daemon --release -- 2 --led reactive
+cargo run -p conductor-daemon --release -- 2 --led reactive
 
 # Test workspace
 cargo test --workspace
@@ -361,7 +361,7 @@ cargo test --workspace
 
 ### Phase 3: Daemon and Menu Bar
 
-**Goal**: Add `midimon-daemon` with macOS menu bar integration.
+**Goal**: Add `conductor-daemon` with macOS menu bar integration.
 
 **Features**:
 - System tray icon with status
@@ -372,7 +372,7 @@ cargo test --workspace
 
 **Integration Pattern**:
 ```rust
-use midimon_core::{Config, MidiMonEngine};
+use conductor_core::{Config, MidiMonEngine};
 
 fn main() -> Result<()> {
     let config = Config::load("config.toml")?;
@@ -390,7 +390,7 @@ fn main() -> Result<()> {
 
 ### Phase 4: GUI Configuration
 
-**Goal**: Add `midimon-gui` with Tauri-based visual config editor.
+**Goal**: Add `conductor-gui` with Tauri-based visual config editor.
 
 **Features**:
 - Visual device mapping with SVG pad layouts
@@ -436,7 +436,7 @@ v1.0.0 config → v0.1.0 engine ⚠️  (new features ignored with warnings)
 
 ### Deprecation Policy
 
-MIDIMon follows **semantic versioning** (SemVer) for configuration:
+Conductor follows **semantic versioning** (SemVer) for configuration:
 
 - **Major version (x.0.0)**: May introduce breaking changes with migration tools
 - **Minor version (0.x.0)**: Adds features in backward-compatible manner

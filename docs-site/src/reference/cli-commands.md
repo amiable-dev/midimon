@@ -2,26 +2,26 @@
 
 ## Overview
 
-MIDIMon provides a daemon service, control utility, and several diagnostic tools, all accessible via the command line. This reference covers all available commands, their options, and usage examples.
+Conductor provides a daemon service, control utility, and several diagnostic tools, all accessible via the command line. This reference covers all available commands, their options, and usage examples.
 
 **v1.0.0+** introduces daemon architecture with background service and hot-reload capabilities.
 
-## Daemon Service: midimon
+## Daemon Service: conductor
 
-The primary MIDIMon daemon service (v1.0.0+). Runs as a background process with config hot-reload.
+The primary Conductor daemon service (v1.0.0+). Runs as a background process with config hot-reload.
 
 ### Basic Syntax
 
 ```bash
 # Start daemon (via cargo)
-cargo run --release --bin midimon [PORT] [OPTIONS]
+cargo run --release --bin conductor [PORT] [OPTIONS]
 
 # Start daemon (release binary)
-./target/release/midimon [PORT] [OPTIONS]
+./target/release/conductor [PORT] [OPTIONS]
 
 # Or use systemd/launchd (see Installation)
-systemctl --user start midimon  # Linux
-launchctl load ~/Library/LaunchAgents/com.amiable.midimon.plist  # macOS
+systemctl --user start conductor  # Linux
+launchctl load ~/Library/LaunchAgents/com.amiable.conductor.plist  # macOS
 ```
 
 ### Daemon Features (v1.0.0+)
@@ -29,7 +29,7 @@ launchctl load ~/Library/LaunchAgents/com.amiable.midimon.plist  # macOS
 - **Background Service**: Runs continuously in the background
 - **Config Hot-Reload**: Reload configuration without restart (0-8ms latency)
 - **State Persistence**: Saves state on shutdown, restores on startup
-- **IPC Control**: Control via `midimonctl` utility
+- **IPC Control**: Control via `conductorctl` utility
 - **Auto-Recovery**: Graceful error handling and device reconnection
 
 ### Arguments
@@ -44,7 +44,7 @@ The MIDI input port number to connect to.
 cargo run --release
 
 # Or
-./target/release/midimon
+./target/release/conductor
 ```
 
 Output:
@@ -65,7 +65,7 @@ cargo run --release 2
 cargo run --release 0
 ```
 
-**Note**: If `auto_connect = true` in `config.toml`, the port argument is optional and MIDIMon will connect to the first available port.
+**Note**: If `auto_connect = true` in `config.toml`, the port argument is optional and Conductor will connect to the first available port.
 
 ### Options
 
@@ -219,7 +219,7 @@ cargo run --release 2 -c <PATH>
 cargo run --release 2 --config config-dev.toml
 
 # Full path
-cargo run --release 2 --config /etc/midimon/config.toml
+cargo run --release 2 --config /etc/conductor/config.toml
 ```
 
 **Default**: `./config.toml` (current directory)
@@ -232,20 +232,20 @@ Display help message with all available options.
 ```bash
 cargo run --release -- --help
 # or
-./target/release/midimon --help
+./target/release/conductor --help
 ```
 
 Note the `--` separator when using `cargo run`.
 
 #### --version, -v
 
-Display MIDIMon version.
+Display Conductor version.
 
 **Syntax**:
 ```bash
 cargo run --release -- --version
 # or
-./target/release/midimon --version
+./target/release/conductor --version
 ```
 
 ### Environment Variables
@@ -313,10 +313,10 @@ RUST_LOG=info cargo run --release 2
 **Filter by module**:
 ```bash
 # Only log MIDI events
-RUST_LOG=midimon::midi=debug cargo run --release 2
+RUST_LOG=conductor::midi=debug cargo run --release 2
 
 # Multiple modules
-RUST_LOG=midimon::event_processor=debug,midimon::mappings=trace cargo run --release 2
+RUST_LOG=conductor::event_processor=debug,conductor::mappings=trace cargo run --release 2
 ```
 
 ### Complete Usage Examples
@@ -374,7 +374,7 @@ DEBUG=1 cargo run --release 2 --profile my-profile.ncmm3 --led reactive
 cargo run --release 2 --config config-dev.toml
 
 # Use config from different directory
-cargo run --release 2 --config ~/midimon-configs/work.toml
+cargo run --release 2 --config ~/conductor-configs/work.toml
 ```
 
 #### Example 6: Production Binary
@@ -384,24 +384,24 @@ cargo run --release 2 --config ~/midimon-configs/work.toml
 cargo build --release
 
 # Run with all options
-./target/release/midimon 2 \
+./target/release/conductor 2 \
     --profile ~/Documents/NI/my-profile.ncmm3 \
     --led reactive \
-    --config ~/midimon-configs/production.toml
+    --config ~/conductor-configs/production.toml
 ```
 
-## Daemon Control: midimonctl
+## Daemon Control: conductorctl
 
-**New in v1.0.0** - Control and monitor the MIDIMon daemon service.
+**New in v1.0.0** - Control and monitor the Conductor daemon service.
 
 ### Basic Syntax
 
 ```bash
 # Via cargo
-cargo run --release --bin midimonctl <COMMAND> [OPTIONS]
+cargo run --release --bin conductorctl <COMMAND> [OPTIONS]
 
 # Release binary
-./target/release/midimonctl <COMMAND> [OPTIONS]
+./target/release/conductorctl <COMMAND> [OPTIONS]
 ```
 
 ### Commands
@@ -412,12 +412,12 @@ Display daemon status, device info, and performance metrics.
 
 **Syntax**:
 ```bash
-midimonctl status [--json]
+conductorctl status [--json]
 ```
 
 **Output** (human-readable):
 ```
-MIDIMon Daemon Status
+Conductor Daemon Status
 =====================
 
 Lifecycle State: Running
@@ -435,7 +435,7 @@ Configuration
 Modes: 3 (Default, Development, Media)
 Global Mappings: 12
 Mode Mappings: 24 (8 per mode)
-Config File: /Users/you/.config/midimon/config.toml
+Config File: /Users/you/.config/conductor/config.toml
 Last Reload: 15m ago
 
 Performance Metrics
@@ -450,7 +450,7 @@ IPC Latency: <1ms
 
 **JSON Output** (`--json`):
 ```bash
-midimonctl status --json
+conductorctl status --json
 ```
 
 ```json
@@ -486,7 +486,7 @@ Trigger configuration hot-reload without restarting the daemon.
 
 **Syntax**:
 ```bash
-midimonctl reload [--json]
+conductorctl reload [--json]
 ```
 
 **Features**:
@@ -514,10 +514,10 @@ Mode mappings: 24
 **Example workflow**:
 ```bash
 # 1. Edit config
-vim ~/.config/midimon/config.toml
+vim ~/.config/conductor/config.toml
 
 # 2. Reload daemon
-midimonctl reload
+conductorctl reload
 
 # 3. Test changes immediately (no restart needed!)
 ```
@@ -528,7 +528,7 @@ Validate configuration file syntax without reloading.
 
 **Syntax**:
 ```bash
-midimonctl validate [--json]
+conductorctl validate [--json]
 ```
 
 **Output** (valid config):
@@ -563,7 +563,7 @@ Health check with latency measurement.
 
 **Syntax**:
 ```bash
-midimonctl ping [--json]
+conductorctl ping [--json]
 ```
 
 **Output**:
@@ -584,7 +584,7 @@ Gracefully shut down the **running daemon process** via IPC.
 
 **Syntax**:
 ```bash
-midimonctl shutdown [--json]
+conductorctl shutdown [--json]
 ```
 
 **Output**:
@@ -617,12 +617,12 @@ Stop the **LaunchAgent/systemd service** (tries graceful shutdown first).
 
 **Syntax**:
 ```bash
-midimonctl stop [--json] [--force]
+conductorctl stop [--json] [--force]
 ```
 
 **Output**:
 ```
-Stopping MIDIMon service...
+Stopping Conductor service...
   Attempting graceful shutdown via IPC...
 ✓ Service stopped successfully
 ```
@@ -633,13 +633,13 @@ Stopping MIDIMon service...
 3. **Then**: Unloads LaunchAgent (macOS) or stops systemd service (Linux)
 
 **When to use**:
-- **Service is installed** via `midimonctl install`
+- **Service is installed** via `conductorctl install`
 - Need to stop the background service
 - Daemon may or may not be responsive
 - Want to ensure service is fully stopped
 
 **Requirements**:
-- Service must be installed (via `midimonctl install`)
+- Service must be installed (via `conductorctl install`)
 - macOS: LaunchAgent plist exists
 - Linux: systemd unit exists
 
@@ -676,7 +676,7 @@ List all available MIDI input devices.
 
 **Syntax**:
 ```bash
-midimonctl list-devices [--json]
+conductorctl list-devices [--json]
 ```
 
 **Output**:
@@ -699,13 +699,13 @@ Switch the daemon to a different MIDI device without restart.
 
 **Syntax**:
 ```bash
-midimonctl set-device <PORT> [--json]
+conductorctl set-device <PORT> [--json]
 ```
 
 **Example**:
 ```bash
 # Switch to port 2
-midimonctl set-device 2
+conductorctl set-device 2
 ```
 
 **Output**:
@@ -724,7 +724,7 @@ Show information about the currently connected MIDI device.
 
 **Syntax**:
 ```bash
-midimonctl get-device [--json]
+conductorctl get-device [--json]
 ```
 
 **Output**:
@@ -748,7 +748,7 @@ Last Event: 3s ago
 
 #### Understanding LaunchAgent Behavior
 
-The MIDIMon LaunchAgent plist has `RunAtLoad=true`, which affects command behavior:
+The Conductor LaunchAgent plist has `RunAtLoad=true`, which affects command behavior:
 
 **Key insight**: `launchctl load` = load plist + start daemon immediately
 
@@ -769,36 +769,36 @@ The MIDIMon LaunchAgent plist has `RunAtLoad=true`, which affects command behavi
 
 #### install
 
-Install MIDIMon as a LaunchAgent service that starts automatically on login.
+Install Conductor as a LaunchAgent service that starts automatically on login.
 
 **Syntax**:
 ```bash
-midimonctl install [--install-binary] [--force] [--json]
+conductorctl install [--install-binary] [--force] [--json]
 ```
 
 **Options**:
-- `--install-binary`: Copy daemon binary to `/usr/local/bin/midimon`
+- `--install-binary`: Copy daemon binary to `/usr/local/bin/conductor`
 - `--force`: Reinstall even if already installed
 
 **What it does**:
 1. Generates LaunchAgent plist from template
-2. Copies plist to `~/Library/LaunchAgents/com.amiable.midimon.plist`
+2. Copies plist to `~/Library/LaunchAgents/com.amiable.conductor.plist`
 3. Optionally installs binary to `/usr/local/bin` (requires sudo)
 4. Loads service with `launchctl`
 
 **Output**:
 ```
-Installing MIDIMon service...
+Installing Conductor service...
   ✓ Generated plist
-  ✓ Installed to ~/Library/LaunchAgents/com.amiable.midimon.plist
+  ✓ Installed to ~/Library/LaunchAgents/com.amiable.conductor.plist
   ✓ Loaded service
 
-✓ MIDIMon service installed successfully
+✓ Conductor service installed successfully
 
 Next steps:
-  • Start: midimonctl start
-  • Enable auto-start: midimonctl enable
-  • Check status: midimonctl service-status
+  • Start: conductorctl start
+  • Enable auto-start: conductorctl enable
+  • Check status: conductorctl service-status
 ```
 
 **When to use**:
@@ -809,26 +809,26 @@ Next steps:
 **Example**:
 ```bash
 # Basic install (daemon must already be built)
-midimonctl install
+conductorctl install
 
 # Install and copy binary to system location
-sudo midimonctl install --install-binary
+sudo conductorctl install --install-binary
 
 # Force reinstall
-midimonctl install --force
+conductorctl install --force
 ```
 
 #### uninstall
 
-Remove MIDIMon service from LaunchAgent.
+Remove Conductor service from LaunchAgent.
 
 **Syntax**:
 ```bash
-midimonctl uninstall [--remove-binary] [--remove-logs] [--json]
+conductorctl uninstall [--remove-binary] [--remove-logs] [--json]
 ```
 
 **Options**:
-- `--remove-binary`: Also delete `/usr/local/bin/midimon`
+- `--remove-binary`: Also delete `/usr/local/bin/conductor`
 - `--remove-logs`: Delete log files
 
 **What it does**:
@@ -838,15 +838,15 @@ midimonctl uninstall [--remove-binary] [--remove-logs] [--json]
 
 **Output**:
 ```
-Uninstalling MIDIMon service...
+Uninstalling Conductor service...
   ✓ Stopped service
-  ✓ Removed plist: ~/Library/LaunchAgents/com.amiable.midimon.plist
+  ✓ Removed plist: ~/Library/LaunchAgents/com.amiable.conductor.plist
 
-✓ MIDIMon service uninstalled successfully
+✓ Conductor service uninstalled successfully
 ```
 
 **When to use**:
-- Removing MIDIMon completely
+- Removing Conductor completely
 - Clean uninstall before upgrade
 - Troubleshooting installation issues
 
@@ -856,7 +856,7 @@ Start the LaunchAgent service.
 
 **Syntax**:
 ```bash
-midimonctl start [--wait <SECONDS>] [--json]
+conductorctl start [--wait <SECONDS>] [--json]
 ```
 
 **Options**:
@@ -869,7 +869,7 @@ midimonctl start [--wait <SECONDS>] [--json]
 
 **Output**:
 ```
-Starting MIDIMon service...
+Starting Conductor service...
 Waiting for daemon to be ready... ✓
 ✓ Service started successfully
 ```
@@ -882,7 +882,7 @@ Waiting for daemon to be ready... ✓
 **Example**:
 ```bash
 # Start and wait up to 10 seconds
-midimonctl start --wait 10
+conductorctl start --wait 10
 ```
 
 #### restart
@@ -891,7 +891,7 @@ Restart the LaunchAgent service (stop + start).
 
 **Syntax**:
 ```bash
-midimonctl restart [--wait <SECONDS>] [--json]
+conductorctl restart [--wait <SECONDS>] [--json]
 ```
 
 **What it does**:
@@ -902,10 +902,10 @@ midimonctl restart [--wait <SECONDS>] [--json]
 
 **Output**:
 ```
-Restarting MIDIMon service...
-Stopping MIDIMon service...
+Restarting Conductor service...
+Stopping Conductor service...
 ✓ Service stopped successfully
-Starting MIDIMon service...
+Starting Conductor service...
 ✓ Service started successfully
 ```
 
@@ -920,7 +920,7 @@ Enable auto-start on login AND start the daemon immediately.
 
 **Syntax**:
 ```bash
-midimonctl enable [--json]
+conductorctl enable [--json]
 ```
 
 **What it does**:
@@ -948,7 +948,7 @@ Disable auto-start on login AND stop the daemon immediately.
 
 **Syntax**:
 ```bash
-midimonctl disable [--json]
+conductorctl disable [--json]
 ```
 
 **What it does**:
@@ -975,17 +975,17 @@ Show detailed service installation and runtime status.
 
 **Syntax**:
 ```bash
-midimonctl service-status [--json]
+conductorctl service-status [--json]
 ```
 
 **Output**:
 ```
-MIDIMon Service Status
+Conductor Service Status
 ──────────────────────────────────────────────────
 Status:          Installed and Loaded
-Service Label:   com.amiable.midimon
-Plist:           ~/Library/LaunchAgents/com.amiable.midimon.plist ✓
-Binary:          /usr/local/bin/midimon ✓
+Service Label:   com.amiable.conductor
+Plist:           ~/Library/LaunchAgents/com.amiable.conductor.plist ✓
+Binary:          /usr/local/bin/conductor ✓
 
 Service is loaded (enabled)
 ```
@@ -1007,11 +1007,11 @@ Output in JSON format (for scripting/automation).
 **Example**:
 ```bash
 # Parse with jq
-midimonctl status --json | jq '.data.device.connected'
+conductorctl status --json | jq '.data.device.connected'
 # Output: true
 
 # Check if reload succeeded
-if midimonctl reload --json | jq -e '.success'; then
+if conductorctl reload --json | jq -e '.success'; then
     echo "Reload successful"
 fi
 ```
@@ -1022,91 +1022,91 @@ fi
 
 ```bash
 # Build daemon
-cargo build --release --bin midimon
+cargo build --release --bin conductor
 
 # Install as LaunchAgent service (starts immediately)
-midimonctl install
+conductorctl install
 
 # Verify running
-midimonctl status
+conductorctl status
 
 # Enable auto-start on login (also starts if not running)
 # Since install already started it, this just enables persistence
-midimonctl enable
+conductorctl enable
 
 # Check service details
-midimonctl service-status
+conductorctl service-status
 ```
 
 **Alternative (simpler)**:
 ```bash
 # Build daemon
-cargo build --release --bin midimon
+cargo build --release --bin conductor
 
 # One-step: Install service
-midimonctl install
+conductorctl install
 
 # One-step: Enable auto-start (if you want persistence across reboots)
-midimonctl enable
+conductorctl enable
 ```
 
 **Simplest production setup**:
 ```bash
-cargo build --release --bin midimon
-midimonctl install --install-binary  # Copies to /usr/local/bin
-midimonctl enable                     # Starts + enables auto-start
+cargo build --release --bin conductor
+conductorctl install --install-binary  # Copies to /usr/local/bin
+conductorctl enable                     # Starts + enables auto-start
 ```
 
 #### Example 2: Development Workflow
 
 ```bash
 # Start daemon in foreground for testing
-cargo run --release --bin midimon 2 --foreground
+cargo run --release --bin conductor 2 --foreground
 
 # In another terminal...
 
 # Check status
-midimonctl status
+conductorctl status
 
 # Edit config
 vim config.toml
 
 # Hot-reload changes (zero downtime!)
-midimonctl reload
+conductorctl reload
 
 # Test changes immediately
 
 # Switch to different MIDI device
-midimonctl list-devices
-midimonctl set-device 1
+conductorctl list-devices
+conductorctl set-device 1
 
 # Stop when done
-midimonctl shutdown
+conductorctl shutdown
 ```
 
 #### Example 3: Service Management Workflow
 
 ```bash
 # Check if service is installed
-midimonctl service-status
+conductorctl service-status
 
 # Start service if not running
-midimonctl start
+conductorctl start
 
 # Check which MIDI device is active
-midimonctl get-device
+conductorctl get-device
 
 # Switch to different device without restart
-midimonctl set-device 2
+conductorctl set-device 2
 
 # Restart service (apply changes that need full restart)
-midimonctl restart
+conductorctl restart
 
 # Disable auto-start temporarily
-midimonctl disable
+conductorctl disable
 
 # Stop service
-midimonctl stop
+conductorctl stop
 ```
 
 #### Example 4: Production Monitoring
@@ -1116,23 +1116,23 @@ midimonctl stop
 # monitor.sh - Health check script
 
 # Check daemon health
-if ! midimonctl ping --json | jq -e '.success'; then
+if ! conductorctl ping --json | jq -e '.success'; then
     echo "Daemon not responding, restarting..."
-    midimonctl restart
+    conductorctl restart
 fi
 
 # Get performance metrics
-RELOAD_MS=$(midimonctl status --json | jq '.data.reload_stats.avg_reload_ms')
+RELOAD_MS=$(conductorctl status --json | jq '.data.reload_stats.avg_reload_ms')
 if [ "$RELOAD_MS" -gt 50 ]; then
     echo "Warning: Average reload time ${RELOAD_MS}ms (expected <50ms)"
 fi
 
 # Check MIDI device connectivity
-CONNECTED=$(midimonctl get-device --json | jq '.data.device.connected')
+CONNECTED=$(conductorctl get-device --json | jq '.data.device.connected')
 if [ "$CONNECTED" != "true" ]; then
     echo "MIDI device disconnected!"
     # Try to reconnect
-    midimonctl list-devices
+    conductorctl list-devices
 fi
 ```
 
@@ -1140,26 +1140,26 @@ fi
 
 ```bash
 # Validate before deploy
-if ! midimonctl validate --json | jq -e '.success'; then
+if ! conductorctl validate --json | jq -e '.success'; then
     echo "Config validation failed"
     exit 1
 fi
 
 # Backup current config
-cp ~/.config/midimon/config.toml ~/.config/midimon/config.toml.backup
+cp ~/.config/conductor/config.toml ~/.config/conductor/config.toml.backup
 
 # Deploy new config
-cp config-v2.toml ~/.config/midimon/config.toml
+cp config-v2.toml ~/.config/conductor/config.toml
 
 # Apply changes (hot reload)
-midimonctl reload
+conductorctl reload
 
 # Verify successful reload
-midimonctl status
+conductorctl status
 
 # If issues, rollback
-# cp ~/.config/midimon/config.toml.backup ~/.config/midimon/config.toml
-# midimonctl reload
+# cp ~/.config/conductor/config.toml.backup ~/.config/conductor/config.toml
+# conductorctl reload
 ```
 
 #### Example 6: Automated Testing
@@ -1169,25 +1169,25 @@ midimonctl status
 # test-config.sh
 
 # Validate syntax
-if ! midimonctl validate --json | jq -e '.data.valid'; then
+if ! conductorctl validate --json | jq -e '.data.valid'; then
     echo "Config validation failed"
     exit 1
 fi
 
 # Reload daemon
-if ! midimonctl reload --json | jq -e '.success'; then
+if ! conductorctl reload --json | jq -e '.success'; then
     echo "Reload failed"
     exit 1
 fi
 
 # Check reload performance
-LATENCY=$(midimonctl status --json | jq '.data.reload_stats.last_reload_ms')
+LATENCY=$(conductorctl status --json | jq '.data.reload_stats.last_reload_ms')
 if [ "$LATENCY" -gt 10 ]; then
     echo "Warning: Reload took ${LATENCY}ms (expected <10ms)"
 fi
 
 # Verify device connection
-CONNECTED=$(midimonctl get-device --json | jq '.data.device.connected')
+CONNECTED=$(conductorctl get-device --json | jq '.data.device.connected')
 if [ "$CONNECTED" != "true" ]; then
     echo "Error: MIDI device not connected"
     exit 1
@@ -1200,21 +1200,21 @@ echo "✓ All checks passed"
 
 ```bash
 # Stop service
-midimonctl stop
+conductorctl stop
 
 # Disable auto-start
-midimonctl disable
+conductorctl disable
 
 # Uninstall service (with cleanup)
-midimonctl uninstall --remove-binary --remove-logs
+conductorctl uninstall --remove-binary --remove-logs
 
 # Verify removal
-midimonctl service-status
+conductorctl service-status
 ```
 
 ## Diagnostic Tools
 
-MIDIMon includes several diagnostic utilities for debugging and configuration.
+Conductor includes several diagnostic utilities for debugging and configuration.
 
 ### midi_diagnostic
 
@@ -1315,7 +1315,7 @@ Testing LED control...
 
 **When to use**:
 - LEDs not working in main application
-- Verify HID access before running midimon
+- Verify HID access before running conductor
 - Test after granting permissions
 - Debug LED coordinate mapping issues
 
@@ -1451,7 +1451,7 @@ Connection test: PASSED
 
 **When to use**:
 - Verify MIDI device detected
-- Check port numbers before running midimon
+- Check port numbers before running conductor
 - Debug connectivity issues
 - Confirm MIDI cable is working
 
@@ -1460,34 +1460,34 @@ Connection test: PASSED
 | Command | Purpose | Example |
 |---------|---------|---------|
 | **Daemon Service (v1.0.0+)** |||
-| `midimon [PORT]` | Start daemon service | `cargo run --release --bin midimon 2` |
-| `--led <SCHEME>` | Set LED scheme | `midimon 2 --led rainbow` |
-| `--profile <PATH>` | Load profile | `midimon 2 --profile my.ncmm3` |
-| `--pad-page <PAGE>` | Force pad page | `midimon 2 --pad-page H` |
-| `--config <PATH>` | Custom config | `midimon 2 --config dev.toml` |
+| `conductor [PORT]` | Start daemon service | `cargo run --release --bin conductor 2` |
+| `--led <SCHEME>` | Set LED scheme | `conductor 2 --led rainbow` |
+| `--profile <PATH>` | Load profile | `conductor 2 --profile my.ncmm3` |
+| `--pad-page <PAGE>` | Force pad page | `conductor 2 --pad-page H` |
+| `--config <PATH>` | Custom config | `conductor 2 --config dev.toml` |
 | **Daemon Control (v1.0.0+)** |||
-| `midimonctl status` | Show daemon status | `midimonctl status` |
-| `midimonctl reload` | Hot-reload config | `midimonctl reload` |
-| `midimonctl validate` | Validate config | `midimonctl validate` |
-| `midimonctl ping` | Health check | `midimonctl ping` |
-| `midimonctl shutdown` | Stop daemon (IPC) | `midimonctl shutdown` |
-| `midimonctl stop` | Stop service (LaunchAgent) | `midimonctl stop --force` |
+| `conductorctl status` | Show daemon status | `conductorctl status` |
+| `conductorctl reload` | Hot-reload config | `conductorctl reload` |
+| `conductorctl validate` | Validate config | `conductorctl validate` |
+| `conductorctl ping` | Health check | `conductorctl ping` |
+| `conductorctl shutdown` | Stop daemon (IPC) | `conductorctl shutdown` |
+| `conductorctl stop` | Stop service (LaunchAgent) | `conductorctl stop --force` |
 | **Device Management** |||
-| `midimonctl list-devices` | List MIDI devices | `midimonctl list-devices` |
-| `midimonctl set-device` | Switch MIDI device | `midimonctl set-device 2` |
-| `midimonctl get-device` | Show current device | `midimonctl get-device` |
+| `conductorctl list-devices` | List MIDI devices | `conductorctl list-devices` |
+| `conductorctl set-device` | Switch MIDI device | `conductorctl set-device 2` |
+| `conductorctl get-device` | Show current device | `conductorctl get-device` |
 | **Service Management (macOS)** |||
-| `midimonctl install` | Install LaunchAgent | `midimonctl install --install-binary` |
-| `midimonctl uninstall` | Remove service | `midimonctl uninstall --remove-logs` |
-| `midimonctl start` | Start service | `midimonctl start --wait 10` |
-| `midimonctl restart` | Restart service | `midimonctl restart` |
-| `midimonctl enable` | Enable auto-start | `midimonctl enable` |
-| `midimonctl disable` | Disable auto-start | `midimonctl disable` |
-| `midimonctl service-status` | Service status | `midimonctl service-status` |
+| `conductorctl install` | Install LaunchAgent | `conductorctl install --install-binary` |
+| `conductorctl uninstall` | Remove service | `conductorctl uninstall --remove-logs` |
+| `conductorctl start` | Start service | `conductorctl start --wait 10` |
+| `conductorctl restart` | Restart service | `conductorctl restart` |
+| `conductorctl enable` | Enable auto-start | `conductorctl enable` |
+| `conductorctl disable` | Disable auto-start | `conductorctl disable` |
+| `conductorctl service-status` | Service status | `conductorctl service-status` |
 | **Global Options** |||
-| `--json` | JSON output | `midimonctl status --json` |
+| `--json` | JSON output | `conductorctl status --json` |
 | **Diagnostic Tools** |||
-| `DEBUG=1` | Enable debug log | `DEBUG=1 midimon 2` |
+| `DEBUG=1` | Enable debug log | `DEBUG=1 conductor 2` |
 | `midi_diagnostic` | View MIDI events | `cargo run --bin midi_diagnostic 2` |
 | `led_diagnostic` | Test LEDs | `cargo run --bin led_diagnostic` |
 | `led_tester` | Interactive LED test | `cargo run --bin led_tester` |
@@ -1538,17 +1538,17 @@ cargo run --bin test_midi
 cargo build --release
 
 # Run with all options
-./target/release/midimon 2 \
+./target/release/conductor 2 \
     --profile ~/profiles/work.ncmm3 \
     --led reactive \
     --config ~/configs/production.toml
 
 # Or use shell script
 #!/bin/bash
-DEBUG=0 ./target/release/midimon 2 \
+DEBUG=0 ./target/release/conductor 2 \
     --profile "$HOME/Documents/NI/my-profile.ncmm3" \
     --led reactive \
-    > /tmp/midimon.log 2>&1 &
+    > /tmp/conductor.log 2>&1 &
 ```
 
 ## See Also

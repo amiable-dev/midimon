@@ -23,7 +23,7 @@ Think of it as: **"When [trigger], do [action]"**
 The config file is `config.toml` in your project root:
 
 ```bash
-cd /path/to/midimon
+cd /path/to/conductor
 open config.toml  # macOS
 # or
 nano config.toml  # Terminal editor
@@ -59,7 +59,7 @@ action = { Launch = { app_path = "/Applications/Visual Studio Code.app" } }
 ## Step 4: Save and Reload
 
 1. **Save** the file (Cmd+S or Ctrl+O in nano)
-2. **Stop** MIDIMon if it's running (Ctrl+C)
+2. **Stop** Conductor if it's running (Ctrl+C)
 3. **Restart** it:
 
 ```bash

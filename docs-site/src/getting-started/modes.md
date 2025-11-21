@@ -2,7 +2,7 @@
 
 ## Overview
 
-Modes are MIDIMon's system for context switching - they allow you to define completely different mapping sets for different workflows, all accessible from the same MIDI controller. Think of modes as "profiles" or "layers" that transform your controller's behavior based on what you're doing.
+Modes are Conductor's system for context switching - they allow you to define completely different mapping sets for different workflows, all accessible from the same MIDI controller. Think of modes as "profiles" or "layers" that transform your controller's behavior based on what you're doing.
 
 For example:
 - **Default Mode**: General productivity shortcuts (copy, paste, window switching)
@@ -101,7 +101,7 @@ When using static patterns (rainbow, wave, etc.):
 
 ## Global vs Mode-Specific Mappings
 
-MIDIMon supports two types of mappings:
+Conductor supports two types of mappings:
 
 ### Mode-Specific Mappings
 
@@ -138,7 +138,7 @@ note = 0
 hold_duration_ms = 3000
 [global_mappings.action]
 type = "Shell"
-command = "killall midimon"
+command = "killall conductor"
 
 [[global_mappings]]
 description = "Volume up (always available)"

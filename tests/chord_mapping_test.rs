@@ -5,7 +5,7 @@
 //!
 //! Tests that NoteChord triggers correctly map to actions through the MappingEngine.
 
-use midimon_core::{Config, EventProcessor, MappingEngine, MidiEvent};
+use conductor_core::{Config, EventProcessor, MappingEngine, MidiEvent};
 use std::time::Instant;
 
 #[test]
@@ -67,7 +67,7 @@ fn test_chord_to_action_mapping() {
 
     // The third note should trigger chord detection
     let has_chord = processed3.iter().any(|e| {
-        matches!(e, midimon_core::event_processor::ProcessedEvent::ChordDetected { .. })
+        matches!(e, conductor_core::event_processor::ProcessedEvent::ChordDetected { .. })
     });
 
     assert!(has_chord, "ChordDetected event should be generated after third note");
@@ -75,7 +75,7 @@ fn test_chord_to_action_mapping() {
     // Find the chord event
     let chord_event = processed3
         .iter()
-        .find(|e| matches!(e, midimon_core::event_processor::ProcessedEvent::ChordDetected { .. }))
+        .find(|e| matches!(e, conductor_core::event_processor::ProcessedEvent::ChordDetected { .. }))
         .expect("ChordDetected event not found");
 
     // Try to get action for the chord event (mode 0)
@@ -144,7 +144,7 @@ fn test_chord_with_wrong_notes_does_not_match() {
     // Should detect a chord, but it won't match our configured chord
     let chord_event = processed
         .iter()
-        .find(|e| matches!(e, midimon_core::event_processor::ProcessedEvent::ChordDetected { .. }));
+        .find(|e| matches!(e, conductor_core::event_processor::ProcessedEvent::ChordDetected { .. }));
 
     if let Some(chord_event) = chord_event {
         let action = mapping_engine.get_action_for_processed(chord_event, 0);
@@ -204,7 +204,7 @@ fn test_chord_exact_match_required() {
     // Chord detected should have all 3 notes
     let chord_event = processed
         .iter()
-        .find(|e| matches!(e, midimon_core::event_processor::ProcessedEvent::ChordDetected { .. }))
+        .find(|e| matches!(e, conductor_core::event_processor::ProcessedEvent::ChordDetected { .. }))
         .expect("Should detect a 3-note chord");
 
     // But it shouldn't match our 2-note configured chord

@@ -2,11 +2,11 @@
 
 **Version**: 3.0
 **Status**: Stable
-**Module**: `midimon-daemon/src/input_manager.rs`
+**Module**: `conductor-daemon/src/input_manager.rs`
 
 ## Overview
 
-The **InputManager** is MIDIMon's unified input handling system introduced in v3.0. It provides a single, cohesive interface for managing both MIDI and HID (game controller) input devices, producing a unified stream of protocol-agnostic `InputEvent` instances for processing by the mapping engine.
+The **InputManager** is Conductor's unified input handling system introduced in v3.0. It provides a single, cohesive interface for managing both MIDI and HID (game controller) input devices, producing a unified stream of protocol-agnostic `InputEvent` instances for processing by the mapping engine.
 
 ### Key Features
 
@@ -58,7 +58,7 @@ The **InputManager** is MIDIMon's unified input handling system introduced in v3
                                ▼
                     ┌────────────────────────┐
                     │  EventProcessor        │
-                    │  (midimon-core)        │
+                    │  (conductor-core)        │
                     │                        │
                     │  - Velocity detection  │
                     │  - Long press          │
@@ -69,7 +69,7 @@ The **InputManager** is MIDIMon's unified input handling system introduced in v3
                              ▼
                     ┌────────────────────────┐
                     │  MappingEngine         │
-                    │  (midimon-core)        │
+                    │  (conductor-core)        │
                     │                        │
                     │  - Trigger matching    │
                     │  - Action execution    │
@@ -103,7 +103,7 @@ pub enum InputMode {
 
 ## ID Range Separation
 
-To prevent conflicts between MIDI and HID inputs, MIDIMon uses non-overlapping ID ranges:
+To prevent conflicts between MIDI and HID inputs, Conductor uses non-overlapping ID ranges:
 
 ### MIDI ID Range (0-127)
 
@@ -179,7 +179,7 @@ Trigger Analog:
 
 ### MidiDeviceManager
 
-**Location**: `midimon-daemon/src/midi_device.rs`
+**Location**: `conductor-daemon/src/midi_device.rs`
 
 Responsibilities:
 - Connect to MIDI input ports via `midir`
@@ -194,7 +194,7 @@ MIDI Device → midir callback → MidiEvent → mpsc channel
 
 ### GamepadDeviceManager
 
-**Location**: `midimon-daemon/src/gamepad_device.rs`
+**Location**: `conductor-daemon/src/gamepad_device.rs`
 
 Responsibilities:
 - Poll HID game controllers via `gilrs` (v0.10)
@@ -210,7 +210,7 @@ Gamepad → gilrs::Gilrs::next_event() → gilrs::Event → gamepad_events → I
 
 ### gilrs Integration
 
-MIDIMon v3.0 uses **gilrs v0.10** for HID game controller support:
+Conductor v3.0 uses **gilrs v0.10** for HID game controller support:
 
 - **SDL2 Compatibility**: Supports SDL_GameController mapping database
 - **Cross-Platform**: Works on macOS, Linux, Windows
@@ -296,7 +296,7 @@ pub fn axis_changed_to_input(
 ### Creating an InputManager
 
 ```rust
-use midimon_daemon::input_manager::{InputManager, InputMode};
+use conductor_daemon::input_manager::{InputManager, InputMode};
 
 // MIDI-only mode
 let manager = InputManager::new(
@@ -324,8 +324,8 @@ let hybrid_manager = InputManager::new(
 
 ```rust
 use tokio::sync::mpsc;
-use midimon_core::events::InputEvent;
-use midimon_daemon::daemon::DaemonCommand;
+use conductor_core::events::InputEvent;
+use conductor_daemon::daemon::DaemonCommand;
 
 let (event_tx, mut event_rx) = mpsc::channel::<InputEvent>(1024);
 let (command_tx, mut command_rx) = mpsc::channel::<DaemonCommand>(32);
@@ -523,7 +523,7 @@ if status_messages.is_empty() {
 ### Example 1: MidiOnly Mode
 
 ```rust
-use midimon_daemon::input_manager::{InputManager, InputMode};
+use conductor_daemon::input_manager::{InputManager, InputMode};
 use tokio::sync::mpsc;
 
 #[tokio::main]
@@ -550,7 +550,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Example 2: GamepadOnly Mode
 
 ```rust
-use midimon_daemon::input_manager::{InputManager, InputMode};
+use conductor_daemon::input_manager::{InputManager, InputMode};
 use tokio::sync::mpsc;
 
 #[tokio::main]
@@ -577,8 +577,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Example 3: Hybrid Mode (Both)
 
 ```rust
-use midimon_daemon::input_manager::{InputManager, InputMode};
-use midimon_core::events::InputEvent;
+use conductor_daemon::input_manager::{InputManager, InputMode};
+use conductor_core::events::InputEvent;
 use tokio::sync::mpsc;
 
 #[tokio::main]
@@ -622,7 +622,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Example 4: Device Enumeration
 
 ```rust
-use midimon_daemon::input_manager::InputManager;
+use conductor_daemon::input_manager::InputManager;
 
 fn main() -> Result<(), String> {
     // List all available gamepads
@@ -642,7 +642,7 @@ fn main() -> Result<(), String> {
 The InputManager produces `InputEvent` instances that flow directly into the `EventProcessor`:
 
 ```rust
-// midimon-core/src/event_processor.rs
+// conductor-core/src/event_processor.rs
 impl EventProcessor {
     pub fn process(&mut self, event: InputEvent) -> Vec<ProcessedEvent> {
         match event {
@@ -668,16 +668,16 @@ The InputManager includes comprehensive unit tests:
 
 ```bash
 # Run InputManager tests
-cargo test -p midimon-daemon input_manager
+cargo test -p conductor-daemon input_manager
 
 # Test specific mode creation
-cargo test -p midimon-daemon test_input_manager_creation_midi_only
-cargo test -p midimon-daemon test_input_manager_creation_gamepad_only
-cargo test -p midimon-daemon test_input_manager_creation_both
+cargo test -p conductor-daemon test_input_manager_creation_midi_only
+cargo test -p conductor-daemon test_input_manager_creation_gamepad_only
+cargo test -p conductor-daemon test_input_manager_creation_both
 
 # Test MIDI → InputEvent conversion
-cargo test -p midimon-daemon test_convert_midi_note_on
-cargo test -p midimon-daemon test_convert_midi_cc
+cargo test -p conductor-daemon test_convert_midi_note_on
+cargo test -p conductor-daemon test_convert_midi_cc
 ```
 
 ## Future Enhancements
@@ -701,7 +701,7 @@ Potential future improvements to the InputManager:
 
 ## Terminology
 
-**Game Controllers (HID)**: The standard term used throughout MIDIMon documentation for HID input devices. This includes:
+**Game Controllers (HID)**: The standard term used throughout Conductor documentation for HID input devices. This includes:
 
 - **Gamepads**: Xbox, PlayStation, Nintendo Switch Pro controllers (primary examples)
 - **Joysticks**: Flight sticks, arcade sticks
@@ -721,4 +721,4 @@ The InputManager is a critical architectural component that:
 4. **Enables** hybrid workflows with both MIDI and gamepad devices
 5. **Provides** flexible device selection via `InputMode`
 
-This design allows MIDIMon to support a wide range of input devices while maintaining a clean, protocol-agnostic processing pipeline.
+This design allows Conductor to support a wide range of input devices while maintaining a clean, protocol-agnostic processing pipeline.

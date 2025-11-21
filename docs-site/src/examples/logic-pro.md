@@ -1,11 +1,11 @@
 # Logic Pro Integration
 
-This guide shows you how to set up MIDIMon to control Logic Pro, Apple's professional digital audio workstation. We'll cover transport controls, mixer automation, and smart control integration.
+This guide shows you how to set up Conductor to control Logic Pro, Apple's professional digital audio workstation. We'll cover transport controls, mixer automation, and smart control integration.
 
 ## Prerequisites
 
 - macOS (Logic Pro is macOS-only)
-- MIDIMon v2.1.0 or later
+- Conductor v2.1.0 or later
 - Logic Pro 10.5 or later
 - IAC Driver configured (see [DAW Control Guide](../guides/daw-control.md#macos-iac-driver))
 
@@ -33,7 +33,7 @@ In Logic Pro:
 
 ### 3. Create a Basic Transport Control Profile
 
-Create or update your `~/.config/midimon/config.toml`:
+Create or update your `~/.config/conductor/config.toml`:
 
 ```toml
 [[modes]]
@@ -124,7 +124,7 @@ In Logic Pro:
 
 ### 5. Test the Configuration
 
-1. Start the MIDIMon daemon: `midimon`
+1. Start the Conductor daemon: `conductor`
 2. Open a Logic Pro project
 3. Press Pad 1 on your controller → Logic should Play/Pause
 4. Press Pad 2 → Logic should Stop
@@ -378,7 +378,7 @@ Logic Pro's Smart Controls can be MIDI-mapped for parameter automation:
 5. Logic will assign that CC to the Smart Control knob
 6. Repeat for up to 8 Smart Control parameters
 
-### Step 2: Configure MIDIMon to Send Smart Control CCs
+### Step 2: Configure Conductor to Send Smart Control CCs
 
 ```toml
 # Smart Control 1 (Pad 13, velocity controls CC value)
@@ -507,9 +507,9 @@ Logic Pro has a built-in MIDI Learn feature for custom mappings:
 4. Logic will map that CC to the parameter
 5. Press **Done** when finished
 
-### Step 2: Configure MIDIMon
+### Step 2: Configure Conductor
 
-Once Logic has learned the CC mapping, configure MIDIMon to send that CC:
+Once Logic has learned the CC mapping, configure Conductor to send that CC:
 
 ```toml
 # Example: Plugin parameter learned as CC 20
@@ -551,7 +551,7 @@ type = "PassThrough"
 
 ### Messages Sent But No Response
 
-**Problem**: MIDIMon sends MIDI but Logic doesn't respond.
+**Problem**: Conductor sends MIDI but Logic doesn't respond.
 
 **Solution**:
 1. Verify the control surface is configured in **Logic Pro → Control Surfaces → Setup**
@@ -593,7 +593,7 @@ Download: [logic-pro-complete.toml](../downloads/logic-pro-complete.toml) (comin
 
 ## Next Steps
 
-- **[Ableton Live Integration](ableton-live.md)** - Control Ableton Live with MIDIMon
+- **[Ableton Live Integration](ableton-live.md)** - Control Ableton Live with Conductor
 - **[MIDI Output Troubleshooting](../troubleshooting/midi-output.md)** - Advanced debugging
 - **[DAW Control Guide](../guides/daw-control.md)** - General DAW control concepts
 

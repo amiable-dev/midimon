@@ -1,6 +1,6 @@
 # Success Stories
 
-Real users sharing how MIDIMon transformed their workflows.
+Real users sharing how Conductor transformed their workflows.
 
 ---
 
@@ -8,7 +8,7 @@ Real users sharing how MIDIMon transformed their workflows.
 
 **Sarah, Twitch Streamer** • *Portland, OR*
 
-> "I was about to buy a Stream Deck for $300 when I found MIDIMon. Now my old Xbox controller handles all my stream controls: scene switching, audio mutes, OBS recording. The velocity-sensitive triggers even let me fade audio in/out. Saved me $270 and it works better."
+> "I was about to buy a Stream Deck for $300 when I found Conductor. Now my old Xbox controller handles all my stream controls: scene switching, audio mutes, OBS recording. The velocity-sensitive triggers even let me fade audio in/out. Saved me $270 and it works better."
 
 **Setup**: Xbox One controller with OBS + Discord
 **Time to configure**: 20 minutes using templates
@@ -20,7 +20,7 @@ Real users sharing how MIDIMon transformed their workflows.
 - Button chords for complex actions (LB+RB = emergency mute all)
 - Per-app profiles (different mappings for OBS vs Discord)
 
-[Download Sarah's Config →](https://github.com/amiable/midimon-configs/tree/main/streaming/xbox-obs-basic)
+[Download Sarah's Config →](https://github.com/amiable/conductor-configs/tree/main/streaming/xbox-obs-basic)
 
 ---
 
@@ -40,9 +40,9 @@ Real users sharing how MIDIMon transformed their workflows.
 - **Medium press (41-80)**: One-shot sample
 - **Hard press (81-127)**: Toggle effect (reverb/delay)
 
-> "No other tool can do this. I tried Stream Deck, Keyboard Maestro, even custom MIDI scripts. MIDIMon's velocity sensitivity is unmatched."
+> "No other tool can do this. I tried Stream Deck, Keyboard Maestro, even custom MIDI scripts. Conductor's velocity sensitivity is unmatched."
 
-[Download Marcus's Config →](https://github.com/amiable/midimon-configs/tree/main/music/ableton-velocity-workflow)
+[Download Marcus's Config →](https://github.com/amiable/conductor-configs/tree/main/music/ableton-velocity-workflow)
 
 ---
 
@@ -65,7 +65,7 @@ Real users sharing how MIDIMon transformed their workflows.
 
 > "My friends think I'm insane, but when they try it, they get it. It's like driving through your timeline. Plus, my old wheel was collecting dust—now it's essential to my workflow."
 
-[Download Chris's Config →](https://github.com/amiable/midimon-configs/tree/main/video-editing/racing-wheel-davinci)
+[Download Chris's Config →](https://github.com/amiable/conductor-configs/tree/main/video-editing/racing-wheel-davinci)
 
 ---
 
@@ -73,7 +73,7 @@ Real users sharing how MIDIMon transformed their workflows.
 
 **Dr. Elena Rodriguez, Research Scientist** • *Cambridge, MA*
 
-> "I run hundreds of simulations daily. Before MIDIMon, I was typing 'git status', 'git add .', 'git commit -m...', 'git push' dozens of times. Now? One gamepad button. Soft press = status, hold 2 seconds = commit+push with auto-generated message."
+> "I run hundreds of simulations daily. Before Conductor, I was typing 'git status', 'git add .', 'git commit -m...', 'git push' dozens of times. Now? One gamepad button. Soft press = status, hold 2 seconds = commit+push with auto-generated message."
 
 **Setup**: PlayStation DualSense + VS Code
 **Time saved**: 30 minutes per day
@@ -88,7 +88,7 @@ Real users sharing how MIDIMon transformed their workflows.
 
 > "The velocity sensitivity is a game-changer. One button, three git operations based on how hard I press. It's like magic."
 
-[Download Elena's Config →](https://github.com/amiable/midimon-configs/tree/main/development/git-workflow-ps5)
+[Download Elena's Config →](https://github.com/amiable/conductor-configs/tree/main/development/git-workflow-ps5)
 
 ---
 
@@ -96,7 +96,7 @@ Real users sharing how MIDIMon transformed their workflows.
 
 **Jake, Full-Stack Developer** • *Austin, TX*
 
-> "I bought a HOTAS controller for Star Citizen, played it twice, and it sat unused for a year. Found MIDIMon, mapped all my dev tools to it, and now I can't work without it. Hat switch = workspace navigation, throttle buttons = app launching, stick trigger = build/test."
+> "I bought a HOTAS controller for Star Citizen, played it twice, and it sat unused for a year. Found Conductor, mapped all my dev tools to it, and now I can't work without it. Hat switch = workspace navigation, throttle buttons = app launching, stick trigger = build/test."
 
 **Setup**: Thrustmaster T.16000M HOTAS + macOS productivity apps
 **Hardware cost**: Already owned (~$150 originally)
@@ -111,7 +111,7 @@ Real users sharing how MIDIMon transformed their workflows.
 
 > "People think I'm crazy using a flight stick for coding, but it's incredibly ergonomic. My hands rest naturally, and I have 20+ buttons within reach. Plus, it's just fun."
 
-[Download Jake's Config →](https://github.com/amiable/midimon-configs/tree/main/productivity/hotas-developer)
+[Download Jake's Config →](https://github.com/amiable/conductor-configs/tree/main/productivity/hotas-developer)
 
 ---
 
@@ -119,7 +119,7 @@ Real users sharing how MIDIMon transformed their workflows.
 
 **Ava, Film Composer** • *Nashville, TN*
 
-> "I already had a Novation Launchpad for live performances. MIDIMon unlocked its full potential for studio work. Now it controls Logic Pro, my sample libraries, and mix automation—all with color-coded LED feedback showing what mode I'm in."
+> "I already had a Novation Launchpad for live performances. Conductor unlocked its full potential for studio work. Now it controls Logic Pro, my sample libraries, and mix automation—all with color-coded LED feedback showing what mode I'm in."
 
 **Setup**: Novation Launchpad Mini + Logic Pro X
 **Key feature**: RGB LED feedback schemes
@@ -134,15 +134,15 @@ Real users sharing how MIDIMon transformed their workflows.
 
 > "The LED feedback is crucial. I know exactly what mode I'm in and what each pad does at a glance. No more 'wait, what does this button do again?'"
 
-[Download Ava's Config →](https://github.com/amiable/midimon-configs/tree/main/music/launchpad-logic-pro)
+[Download Ava's Config →](https://github.com/amiable/conductor-configs/tree/main/music/launchpad-logic-pro)
 
 ---
 
 ## Submit Your Success Story
 
-Have you transformed your workflow with MIDIMon? Share your story and inspire others!
+Have you transformed your workflow with Conductor? Share your story and inspire others!
 
-**[Submit Your Story →](https://github.com/amiable/midimon/discussions/new?category=success-stories)**
+**[Submit Your Story →](https://github.com/amiable/conductor/discussions/new?category=success-stories)**
 
 **What to include**:
 - Your setup (hardware + software)
@@ -151,13 +151,13 @@ Have you transformed your workflow with MIDIMon? Share your story and inspire ot
 - Favorite features
 - Optional: Share your config file
 
-Your story might be featured here and help someone else discover MIDIMon!
+Your story might be featured here and help someone else discover Conductor!
 
 ---
 
 ## More Inspiration
 
-- **[Setup Gallery](gallery.md)** - Visual showcase of real MIDIMon configurations
+- **[Setup Gallery](gallery.md)** - Visual showcase of real Conductor configurations
 - **[Configuration Examples](../configuration/examples.md)** - Copy-paste ready configs
 - **[Device Templates](../guides/device-templates.md)** - Pre-built configs for popular controllers
-- **[Community Discussions](https://github.com/amiable/midimon/discussions)** - Join the conversation
+- **[Community Discussions](https://github.com/amiable/conductor/discussions)** - Join the conversation

@@ -130,4 +130,4 @@ Results:
 
 ---
 
-<!-- Thank you for contributing to MIDIMon! -->
+<!-- Thank you for contributing to Conductor! -->

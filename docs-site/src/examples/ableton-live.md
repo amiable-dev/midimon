@@ -1,11 +1,11 @@
 # Ableton Live Integration
 
-This guide shows you how to set up MIDIMon to control Ableton Live, one of the most popular DAWs for electronic music production and live performance. We'll cover transport controls, clip launching, device parameter mapping, and session view integration.
+This guide shows you how to set up Conductor to control Ableton Live, one of the most popular DAWs for electronic music production and live performance. We'll cover transport controls, clip launching, device parameter mapping, and session view integration.
 
 ## Prerequisites
 
 - macOS, Windows, or Linux
-- MIDIMon v2.1.0 or later
+- Conductor v2.1.0 or later
 - Ableton Live 11 or later (Standard or Suite)
 - Virtual MIDI port configured:
   - **macOS**: IAC Driver (see [DAW Control Guide](../guides/daw-control.md#macos-iac-driver))
@@ -28,7 +28,7 @@ This guide shows you how to set up MIDIMon to control Ableton Live, one of the m
 
 1. Download and install [loopMIDI](https://www.tobias-erichsen.de/software/loopmidi.html)
 2. Launch loopMIDI
-3. Create a new port (e.g., "MIDIMon Virtual")
+3. Create a new port (e.g., "Conductor Virtual")
 4. Leave loopMIDI running in the background
 
 #### Linux (ALSA)
@@ -56,7 +56,7 @@ In Ableton Live:
 
 ### 3. Create a Basic Transport Control Profile
 
-Create or update your `~/.config/midimon/config.toml`:
+Create or update your `~/.config/conductor/config.toml`:
 
 ```toml
 [[modes]]
@@ -113,7 +113,7 @@ channel = 0
 
 ### 4. Test the Configuration
 
-1. Start the MIDIMon daemon: `midimon`
+1. Start the Conductor daemon: `conductor`
 2. Open Ableton Live with a project containing clips
 3. Press Pad 1 on your controller → Scene 1 should launch
 4. Press Pad 2 → All clips should stop (if mapped)
@@ -245,7 +245,7 @@ Ableton's devices (instruments, effects) have mappable parameters.
 
 **Pro Tip**: Ableton learns CC messages from your controller. To use velocity instead, you'll need to map in Ableton using MIDI notes, not CCs.
 
-### Step 2: Configure MIDIMon for Velocity-Controlled Parameters
+### Step 2: Configure Conductor for Velocity-Controlled Parameters
 
 Use velocity curves to control device parameters smoothly:
 
@@ -572,7 +572,7 @@ type = "PassThrough"
 
 ## Push-Style Session Navigation (Advanced)
 
-Ableton Push controllers use a grid layout for clips. You can replicate this with MIDIMon:
+Ableton Push controllers use a grid layout for clips. You can replicate this with Conductor:
 
 ```toml
 # 4x4 Clip Grid (Pads 9-12, 13-16, 17-20, 21-24)
@@ -623,13 +623,13 @@ channel = 0
 
 ### Messages Sent But No Response
 
-**Problem**: MIDIMon sends MIDI but Ableton doesn't respond.
+**Problem**: Conductor sends MIDI but Ableton doesn't respond.
 
 **Solution**:
 1. Verify **Track** and **Remote** are enabled for the MIDI port in Preferences
 2. Ensure the correct MIDI channel is used (usually Channel 0)
 3. Use **MIDI Map Mode** in Ableton to verify what MIDI messages are being received
-4. Check MIDIMon logs: `midimon --verbose`
+4. Check Conductor logs: `conductor --verbose`
 
 ### Clip Launch Notes Don't Match
 
@@ -639,7 +639,7 @@ channel = 0
 1. Enter **MIDI Map Mode** in Ableton
 2. Click the clip you want to trigger
 3. Press the pad on your controller to learn the note
-4. Update your MIDIMon config with the correct note number
+4. Update your Conductor config with the correct note number
 
 ### Windows: Port Name Issues
 
@@ -647,8 +647,8 @@ channel = 0
 
 **Solution**:
 1. Check the exact port name in loopMIDI application
-2. Update MIDIMon config to match the exact name (case-sensitive)
-3. Ensure loopMIDI is running before starting MIDIMon daemon
+2. Update Conductor config to match the exact name (case-sensitive)
+3. Ensure loopMIDI is running before starting Conductor daemon
 
 ### Latency Issues
 
@@ -676,7 +676,7 @@ Download: [ableton-live-complete.toml](../downloads/ableton-live-complete.toml) 
 
 ## Next Steps
 
-- **[Logic Pro Integration](logic-pro.md)** - Control Logic Pro with MIDIMon
+- **[Logic Pro Integration](logic-pro.md)** - Control Logic Pro with Conductor
 - **[MIDI Output Troubleshooting](../troubleshooting/midi-output.md)** - Advanced debugging
 - **[DAW Control Guide](../guides/daw-control.md)** - General DAW control concepts
 

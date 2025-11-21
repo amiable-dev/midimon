@@ -6,9 +6,9 @@
 //! Comprehensive unit tests covering action parsing, construction,
 //! and execution logic to achieve 80%+ code coverage.
 
-use midimon::actions::{Action, KeyCode, ModifierKey, MouseButton};
-use midimon::config::ActionConfig;
-use midimon_daemon::ActionExecutor;
+use conductor::actions::{Action, KeyCode, ModifierKey, MouseButton};
+use conductor::config::ActionConfig;
+use conductor_daemon::ActionExecutor;
 
 // ============================================================================
 // Action Construction Tests
@@ -1105,7 +1105,7 @@ fn test_action_executor_new() {
     // Test that ActionExecutor can be created
     // Note: We can't test actual execution without mocking enigo
     // Skipped on Linux CI (no display server)
-    use midimon_daemon::ActionExecutor;
+    use conductor_daemon::ActionExecutor;
 
     let executor = ActionExecutor::new();
 
@@ -1125,7 +1125,7 @@ fn test_action_executor_new() {
 #[test]
 #[ignore] // Ignored by default - run with --ignored to get full coverage
 fn test_execute_text_action_safe() {
-    use midimon::actions::Action;
+    use conductor::actions::Action;
 
     let mut executor = ActionExecutor::new();
     let action = Action::Text(" ".to_string()); // Single space - minimal side effect
@@ -1137,7 +1137,7 @@ fn test_execute_text_action_safe() {
 #[test]
 #[ignore] // Ignored by default
 fn test_execute_delay_action() {
-    use midimon::actions::Action;
+    use conductor::actions::Action;
 
     let mut executor = ActionExecutor::new();
     let action = Action::Delay(1); // 1ms delay - no side effects
@@ -1148,7 +1148,7 @@ fn test_execute_delay_action() {
 #[test]
 #[ignore] // Ignored by default
 fn test_execute_sequence_action() {
-    use midimon::actions::Action;
+    use conductor::actions::Action;
 
     let mut executor = ActionExecutor::new();
     let action = Action::Sequence(vec![Action::Delay(1), Action::Delay(1)]);
@@ -1160,7 +1160,7 @@ fn test_execute_sequence_action() {
 #[ignore] // Ignored by default
 #[cfg(unix)]
 fn test_execute_launch_action_safe() {
-    use midimon::actions::Action;
+    use conductor::actions::Action;
 
     let mut executor = ActionExecutor::new();
     // /dev/null is safe to "open" on Unix systems - it's a no-op
@@ -1173,7 +1173,7 @@ fn test_execute_launch_action_safe() {
 #[ignore] // Ignored by default
 #[cfg(unix)]
 fn test_execute_shell_action_safe() {
-    use midimon::actions::Action;
+    use conductor::actions::Action;
 
     let mut executor = ActionExecutor::new();
     // "true" is a safe no-op command that always succeeds
@@ -1185,7 +1185,7 @@ fn test_execute_shell_action_safe() {
 #[test]
 #[ignore] // Ignored by default
 fn test_execute_keystroke_action_safe() {
-    use midimon::actions::Action;
+    use conductor::actions::Action;
 
     let mut executor = ActionExecutor::new();
     // Escape key is safe - it just dismisses dialogs/menus if any are open
@@ -1200,7 +1200,7 @@ fn test_execute_keystroke_action_safe() {
 #[test]
 #[ignore] // Ignored by default
 fn test_execute_keystroke_with_modifiers_safe() {
-    use midimon::actions::Action;
+    use conductor::actions::Action;
 
     let mut executor = ActionExecutor::new();
     // Tab with no modifiers is relatively safe
@@ -1215,7 +1215,7 @@ fn test_execute_keystroke_with_modifiers_safe() {
 #[test]
 #[ignore] // Ignored by default
 fn test_execute_mouse_click_without_position() {
-    use midimon::actions::Action;
+    use conductor::actions::Action;
 
     let mut executor = ActionExecutor::new();
     // Click at current position (no move) - minimal side effect
@@ -1233,7 +1233,7 @@ fn test_execute_mouse_click_without_position() {
 #[test]
 #[ignore] // Ignored by default
 fn test_execute_mouse_click_with_position() {
-    use midimon::actions::Action;
+    use conductor::actions::Action;
 
     let mut executor = ActionExecutor::new();
     // Click at screen corner (least likely to hit something)

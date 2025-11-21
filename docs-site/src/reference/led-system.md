@@ -1,6 +1,6 @@
 # LED System Reference
 
-MIDIMon provides comprehensive LED feedback for supported MIDI controllers, with full RGB control for HID devices (Native Instruments Maschine Mikro MK3) and basic on/off control for standard MIDI devices.
+Conductor provides comprehensive LED feedback for supported MIDI controllers, with full RGB control for HID devices (Native Instruments Maschine Mikro MK3) and basic on/off control for standard MIDI devices.
 
 ## Overview
 
@@ -13,7 +13,7 @@ The LED system consists of four main features:
 
 ## Feature F23: LED Lighting Schemes
 
-MIDIMon supports 10 distinct lighting schemes that can be selected at startup or configured in your config file.
+Conductor supports 10 distinct lighting schemes that can be selected at startup or configured in your config file.
 
 ### Available Schemes
 

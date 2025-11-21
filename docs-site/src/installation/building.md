@@ -1,14 +1,14 @@
-# Building MIDIMon from Source
+# Building Conductor from Source
 
 ## Overview
 
-This guide covers building MIDIMon from source code on any supported platform. Whether you're developing new features, customizing behavior, or just want to run the latest code, this guide walks through the complete build process.
+This guide covers building Conductor from source code on any supported platform. Whether you're developing new features, customizing behavior, or just want to run the latest code, this guide walks through the complete build process.
 
 ## Prerequisites
 
 ### Rust Toolchain
 
-MIDIMon requires Rust 1.70.0 or later.
+Conductor requires Rust 1.70.0 or later.
 
 #### Installing Rust
 
@@ -53,19 +53,19 @@ rustup update
 
 ## Workspace Architecture (v0.2.0+)
 
-MIDIMon uses a **Cargo workspace** with three packages since v0.2.0:
+Conductor uses a **Cargo workspace** with three packages since v0.2.0:
 
 ### Package Structure
 
-1. **midimon-core** - Pure Rust engine library
+1. **conductor-core** - Pure Rust engine library
    - Zero UI dependencies (no colored output, pure logic)
    - Public API for embedding in other applications
    - 30+ public types exported
    - Event processing, mapping engine, action execution
 
-2. **midimon-daemon** - CLI daemon + diagnostic tools
-   - Main `midimon` binary (daemon service)
-   - `midimonctl` - CLI control tool (v1.0.0+)
+2. **conductor-daemon** - CLI daemon + diagnostic tools
+   - Main `conductor` binary (daemon service)
+   - `conductorctl` - CLI control tool (v1.0.0+)
    - 6 diagnostic binaries:
      - `midi_diagnostic` - MIDI event viewer
      - `led_diagnostic` - LED testing tool
@@ -74,21 +74,21 @@ MIDIMon uses a **Cargo workspace** with three packages since v0.2.0:
      - `test_midi` - Port connectivity test
      - `midi_simulator` - MIDI event simulator (testing)
 
-3. **midimon** (root) - Backward compatibility layer
-   - Re-exports midimon-core types
+3. **conductor** (root) - Backward compatibility layer
+   - Re-exports conductor-core types
    - For existing v0.1.0 tests only
-   - New code should use midimon-core directly
+   - New code should use conductor-core directly
 
 ### When to Use Each Package
 
-- **Use midimon-core**: Embed MIDIMon in your application
-- **Use midimon-daemon**: Run as standalone CLI/daemon
-- **Use midimon (root)**: Only for backward compatibility
+- **Use conductor-core**: Embed Conductor in your application
+- **Use conductor-daemon**: Run as standalone CLI/daemon
+- **Use conductor (root)**: Only for backward compatibility
 
 ### Public API Example
 
 ```rust
-use midimon_core::{Config, MappingEngine, EventProcessor, ActionExecutor};
+use conductor_core::{Config, MappingEngine, EventProcessor, ActionExecutor};
 
 let config = Config::load("config.toml")?;
 let mut engine = MappingEngine::new();
@@ -149,9 +149,9 @@ sudo pacman -S base-devel alsa-lib systemd-libs libusb
 
 **udev rules** (for HID access without sudo):
 
-Create `/etc/udev/rules.d/50-midimon.rules`:
+Create `/etc/udev/rules.d/50-conductor.rules`:
 ```bash
-sudo tee /etc/udev/rules.d/50-midimon.rules << 'EOF'
+sudo tee /etc/udev/rules.d/50-conductor.rules << 'EOF'
 # Native Instruments Maschine Mikro MK3
 SUBSYSTEM=="usb", ATTRS{idVendor}=="17cc", ATTRS{idProduct}=="1600", MODE="0666", GROUP="plugdev"
 
@@ -201,12 +201,12 @@ cargo --version
 
 ```bash
 # HTTPS (recommended for most users)
-git clone https://github.com/yourusername/midimon.git
-cd midimon
+git clone https://github.com/yourusername/conductor.git
+cd conductor
 
 # SSH (if you have SSH keys configured)
-git clone git@github.com:yourusername/midimon.git
-cd midimon
+git clone git@github.com:yourusername/conductor.git
+cd conductor
 ```
 
 ### Verify Repository Contents
@@ -248,18 +248,18 @@ Build individual packages for faster iteration:
 
 ```bash
 # Core engine only
-cargo build --package midimon-core
-cargo build -p midimon-core  # Short form
+cargo build --package conductor-core
+cargo build -p conductor-core  # Short form
 
 # Daemon + tools
-cargo build -p midimon-daemon
+cargo build -p conductor-daemon
 
 # Compatibility layer
-cargo build -p midimon
+cargo build -p conductor
 
 # Specific binary
-cargo build --release --bin midimon
-cargo build --release --bin midimonctl
+cargo build --release --bin conductor
+cargo build --release --bin conductorctl
 cargo build --release --bin midi_diagnostic
 ```
 
@@ -267,10 +267,10 @@ cargo build --release --bin midi_diagnostic
 
 ```bash
 # Main daemon
-cargo run --release --bin midimon 2
+cargo run --release --bin conductor 2
 
 # Daemon control
-cargo run --release --bin midimonctl status
+cargo run --release --bin conductorctl status
 
 # Diagnostic tool
 cargo run --release --bin midi_diagnostic 2
@@ -284,7 +284,7 @@ Fastest compilation, includes debug symbols, no optimization:
 cargo build
 ```
 
-**Output**: `target/debug/midimon` (~10-20MB binary)
+**Output**: `target/debug/conductor` (~10-20MB binary)
 
 **When to use**:
 - Development and testing
@@ -301,7 +301,7 @@ Optimized compilation, stripped debug symbols, smaller binary:
 cargo build --release
 ```
 
-**Output**: `target/release/midimon` (~3-5MB binary)
+**Output**: `target/release/conductor` (~3-5MB binary)
 
 **When to use**:
 - Production use
@@ -360,7 +360,7 @@ Note the `--` separator between cargo arguments and program arguments.
 
 ### Release Profile Configuration
 
-MIDIMon's `Cargo.toml` includes optimized release settings:
+Conductor's `Cargo.toml` includes optimized release settings:
 
 ```toml
 [profile.release]
@@ -428,12 +428,12 @@ cargo build --release --target aarch64-apple-darwin
 
 # Create universal binary
 lipo -create \
-    target/x86_64-apple-darwin/release/midimon \
-    target/aarch64-apple-darwin/release/midimon \
-    -output target/release/midimon-universal
+    target/x86_64-apple-darwin/release/conductor \
+    target/aarch64-apple-darwin/release/conductor \
+    -output target/release/conductor-universal
 
 # Verify
-file target/release/midimon-universal
+file target/release/conductor-universal
 # Output: Mach-O universal binary with 2 architectures: [x86_64:Mach-O 64-bit executable x86_64] [arm64]
 ```
 
@@ -518,12 +518,12 @@ cargo build --release
 ```bash
 # Default release build
 cargo build --release
-ls -lh target/release/midimon
+ls -lh target/release/conductor
 # ~3-5MB
 
 # Further optimization
 cargo build --release --features "optimize-size"
-ls -lh target/release/midimon
+ls -lh target/release/conductor
 # ~2-3MB
 ```
 
@@ -588,7 +588,7 @@ cargo build --no-default-features
 
 ### Build Examples and Binaries
 
-MIDIMon includes diagnostic tools:
+Conductor includes diagnostic tools:
 
 ```bash
 # Build all binaries
@@ -797,13 +797,13 @@ cargo build --release
 
 # Copy to distribution directory
 mkdir -p dist
-cp target/release/midimon dist/
+cp target/release/conductor dist/
 cp config.toml dist/config.example.toml
 cp README.md dist/
 
 # Create tarball
 cd dist
-tar czf midimon-v0.1.0-macos-aarch64.tar.gz *
+tar czf conductor-v0.1.0-macos-aarch64.tar.gz *
 ```
 
 ### Code Signing (macOS)
@@ -813,13 +813,13 @@ For distribution outside the App Store:
 ```bash
 # Sign the binary
 codesign --force --deep --sign "Developer ID Application: Your Name" \
-    target/release/midimon
+    target/release/conductor
 
 # Verify signature
-codesign -dv --verbose=4 target/release/midimon
+codesign -dv --verbose=4 target/release/conductor
 
 # Notarize (requires paid Apple Developer account)
-xcrun notarytool submit midimon.zip \
+xcrun notarytool submit conductor.zip \
     --keychain-profile "AC_PASSWORD" \
     --wait
 ```
@@ -828,7 +828,7 @@ xcrun notarytool submit midimon.zip \
 
 After building successfully:
 
-1. **Run the binary**: `./target/release/midimon`
+1. **Run the binary**: `./target/release/conductor`
 2. **Configure mappings**: Edit `config.toml`
 3. **Read documentation**:
    - [macOS Installation](macos.md)

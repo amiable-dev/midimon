@@ -843,7 +843,7 @@ else_action = {
 
 ## Hybrid MIDI + Gamepad Configuration (v3.0+)
 
-MIDIMon v3.0 introduces support for Game Controllers (HID) alongside MIDI devices, enabling powerful hybrid workflows that combine the velocity-sensitive expressiveness of MIDI controllers with the ergonomic button layouts and analog sticks of gamepads, joysticks, racing wheels, flight sticks, HOTAS setups, and other game controllers.
+Conductor v3.0 introduces support for Game Controllers (HID) alongside MIDI devices, enabling powerful hybrid workflows that combine the velocity-sensitive expressiveness of MIDI controllers with the ergonomic button layouts and analog sticks of gamepads, joysticks, racing wheels, flight sticks, HOTAS setups, and other game controllers.
 
 ### Why Hybrid Mode?
 
@@ -870,7 +870,7 @@ This configuration demonstrates a complete music production workflow using both 
 ```toml
 # Hybrid MIDI + Gamepad Configuration for Music Production
 # Device: Maschine Mikro MK3 (MIDI) + Xbox Controller (Gamepad)
-# Author: MIDIMon Examples
+# Author: Conductor Examples
 # Version: 3.0
 
 [device]
@@ -1384,7 +1384,7 @@ buttons = [141, 140]  # Select + Start
 timeout_ms = 50
 [global_mappings.action]
 type = "Shell"
-command = "pkill midimon"
+command = "pkill conductor"
 
 [[global_mappings]]
 description = "Quick mute (MIDI Pad 16 + Gamepad B)"
@@ -1561,7 +1561,7 @@ buttons = [141, 140]  # Select + Start on wheel
 timeout_ms = 50
 [global_mappings.action]
 type = "Shell"
-command = "pkill midimon"
+command = "pkill conductor"
 ```
 
 ### Setup Instructions
@@ -1586,11 +1586,11 @@ In your `config.toml`, hybrid mode is enabled automatically when you use both MI
 
 #### 3. Test Individual Mappings
 
-Start MIDIMon and test each device separately:
+Start Conductor and test each device separately:
 
 ```bash
 # Start in debug mode to see events
-DEBUG=1 midimon --foreground
+DEBUG=1 conductor --foreground
 
 # Test MIDI pads/keys (you'll see note events 0-127)
 # Test gamepad buttons (you'll see button events 128-255)
@@ -1630,7 +1630,7 @@ mode = "Next"
 
 3. **Check daemon logs**:
    ```bash
-   DEBUG=1 midimon --foreground
+   DEBUG=1 conductor --foreground
    # Look for "Connected to MIDI device" and "Connected to gamepad"
    ```
 

@@ -1,7 +1,7 @@
 # Summary
 
 [Introduction](introduction.md)
-[MIDIMon vs Alternatives](comparison.md)
+[Conductor vs Alternatives](comparison.md)
 
 # Installation
 

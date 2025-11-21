@@ -1,43 +1,43 @@
 [workspace]
 members = [
-    "midimon-core",
-    "midimon-daemon",
-    "midimon-gui/src-tauri",
+    "conductor-core",
+    "conductor-daemon",
+    "conductor-gui/src-tauri",
 ]
 exclude = [
-    "plugins/midimon-spotify-plugin",
-    "plugins/midimon-obs-plugin",
+    "plugins/conductor-spotify-plugin",
+    "plugins/conductor-obs-plugin",
     "plugins/wasm-template",
 ]
 resolver = "2"
 
 [workspace.package]
-version = "2.7.0"
+version = "4.0.0"
 edition = "2024"
-authors = ["MIDIMon Contributors"]
+authors = ["Conductor Contributors"]
 license = "MIT"
-repository = "https://github.com/amiable-dev/midimon"
+repository = "https://github.com/amiable-dev/conductor"
 
-# Root package for backward compatibility tests
+# Root package
 [package]
-name = "midimon"
+name = "conductor"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "MIDIMon - MIDI controller mapping system (compatibility package)"
+description = "Conductor - Multi-protocol input mapping system for MIDI controllers, game controllers, and custom hardware"
 
 [lib]
-name = "midimon"
+name = "conductor"
 path = "src/lib.rs"
 
 [dependencies]
-# Re-export midimon_core for backward compatibility
-midimon-core = { path = "midimon-core" }
+# Re-export conductor_core
+conductor-core = { path = "conductor-core" }
 
 [dev-dependencies]
 # For integration tests that use ActionExecutor and PluginManager
-midimon-daemon = { path = "midimon-daemon" }
+conductor-daemon = { path = "conductor-daemon" }
 proptest.workspace = true
 rstest.workspace = true
 chrono.workspace = true

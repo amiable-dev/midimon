@@ -1,10 +1,10 @@
-# MIDIMon vs Alternatives
+# Conductor vs Alternatives
 
-Choosing the right automation tool? Here's how MIDIMon compares to popular alternatives.
+Choosing the right automation tool? Here's how Conductor compares to popular alternatives.
 
 ## Feature Comparison
 
-| Feature | MIDIMon | Stream Deck | Keyboard Maestro | Karabiner |
+| Feature | Conductor | Stream Deck | Keyboard Maestro | Karabiner |
 |---------|---------|-------------|------------------|-----------|
 | **Price** | Free (MIT) | $150-300 | $36 | Free |
 | **MIDI Support** | ✅ Full | ❌ None | ⚠️ Limited | ❌ None |
@@ -20,25 +20,25 @@ Choosing the right automation tool? Here's how MIDIMon compares to popular alter
 
 ## Winner By Use Case
 
-### 🎹 Music Production → **MIDIMon**
+### 🎹 Music Production → **Conductor**
 **Why**: Only tool with full MIDI + velocity sensitivity + gamepad support. Turn existing hardware into professional control surfaces.
 
 **Example**: Use Maschine pads for velocity-sensitive recording while Xbox controller handles DAW navigation.
 
 ---
 
-### 🎮 Gaming Hardware → **MIDIMon**
+### 🎮 Gaming Hardware → **Conductor**
 **Why**: Only automation tool supporting gamepads, racing wheels, flight sticks, and HOTAS controllers.
 
 **Example**: Repurpose your $30 Xbox controller as a 15-button macro pad instead of buying a $150 Stream Deck.
 
 ---
 
-### 💰 Budget-Conscious → **MIDIMon**
+### 💰 Budget-Conscious → **Conductor**
 **Why**: Free + works with hardware you already own = $0-$300 savings.
 
 **Comparison**:
-- **MIDIMon**: Free (use existing Xbox/MIDI controller)
+- **Conductor**: Free (use existing Xbox/MIDI controller)
 - **Stream Deck**: $150-300 + proprietary hardware
 - **Keyboard Maestro**: $36/license + keyboard only
 
@@ -51,7 +51,7 @@ Choosing the right automation tool? Here's how MIDIMon compares to popular alter
 
 ---
 
-### ⚙️ Maximum Flexibility → **MIDIMon**
+### ⚙️ Maximum Flexibility → **Conductor**
 **Why**: Hybrid MIDI+gamepad, open-source, unlimited customization, hot-reload.
 
 **Example**: Combine MIDI pads (recording) + Xbox controller (navigation) + racing wheel pedals (effects) in one workflow. No other tool can do this.
@@ -67,7 +67,7 @@ Choosing the right automation tool? Here's how MIDIMon compares to popular alter
 
 ## Quick Decision Guide
 
-**Choose MIDIMon if you**:
+**Choose Conductor if you**:
 - ✅ Own a MIDI controller or gamepad
 - ✅ Want velocity-sensitive actions (one button = multiple functions)
 - ✅ Need hybrid MIDI+gamepad workflows
@@ -90,7 +90,7 @@ Choosing the right automation tool? Here's how MIDIMon compares to popular alter
 - ✅ Want free solution (keyboard only)
 - ✅ Don't mind complex JSON configuration
 
-## Unique MIDIMon Advantages
+## Unique Conductor Advantages
 
 ### 1. Velocity Sensitivity (Unmatched)
 **No other tool offers this**: Soft/medium/hard press = different actions on the same button.
@@ -117,7 +117,7 @@ Choosing the right automation tool? Here's how MIDIMon compares to popular alter
 
 ### From Stream Deck
 1. Export your Stream Deck button layouts
-2. Map buttons to gamepad/MIDI IDs in MIDIMon
+2. Map buttons to gamepad/MIDI IDs in Conductor
 3. Import provided template configs
 4. Save $150+ by reusing existing hardware
 
@@ -135,13 +135,13 @@ Choosing the right automation tool? Here's how MIDIMon compares to popular alter
 
 ## Frequently Compared
 
-### "Can I use MIDIMon alongside Stream Deck?"
-Yes! MIDIMon and Stream Deck can coexist. Use Stream Deck for visual buttons, MIDIMon for MIDI/gamepad + velocity sensitivity.
+### "Can I use Conductor alongside Stream Deck?"
+Yes! Conductor and Stream Deck can coexist. Use Stream Deck for visual buttons, Conductor for MIDI/gamepad + velocity sensitivity.
 
-### "Is MIDIMon harder to configure than Stream Deck?"
-**Initial setup**: MIDIMon requires TOML config or GUI (5-10 min), Stream Deck is plug-and-play (1 min).
+### "Is Conductor harder to configure than Stream Deck?"
+**Initial setup**: Conductor requires TOML config or GUI (5-10 min), Stream Deck is plug-and-play (1 min).
 
-**Long-term**: MIDIMon's hot-reload (<10ms) is faster than Stream Deck's UI reconfiguration. Visual MIDI Learn mode makes config easy.
+**Long-term**: Conductor's hot-reload (<10ms) is faster than Stream Deck's UI reconfiguration. Visual MIDI Learn mode makes config easy.
 
 ### "Why not just use Keyboard Maestro?"
 Keyboard Maestro is excellent for keyboard-only macros, but lacks:
@@ -151,11 +151,11 @@ Keyboard Maestro is excellent for keyboard-only macros, but lacks:
 - Fast hot-reload
 - Hybrid multi-protocol workflows
 
-MIDIMon is the only tool supporting MIDI+gamepad+velocity in one workflow.
+Conductor is the only tool supporting MIDI+gamepad+velocity in one workflow.
 
 ---
 
-## Try MIDIMon Free
+## Try Conductor Free
 
 No commitment, no credit card, no proprietary hardware required.
 

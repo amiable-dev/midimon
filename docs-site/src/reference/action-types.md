@@ -1,6 +1,6 @@
 # Action Types
 
-Actions are what MIDIMon executes when a trigger is detected. This page documents all available action types and their configuration.
+Actions are what Conductor executes when a trigger is detected. This page documents all available action types and their configuration.
 
 ## Core Actions
 
@@ -367,12 +367,12 @@ amount = 75
   # ALSA (minimal systems)
   sudo apt install alsa-utils
   ```
-- MIDIMon auto-detects available backend
+- Conductor auto-detects available backend
 - User must be in `audio` group
 
 ***Windows:***
 - Download nircmd.exe from https://www.nirsoft.net/utils/nircmd.html
-- Add to PATH or place in MIDIMon directory
+- Add to PATH or place in Conductor directory
 - COM API fallback requires no dependencies
 
 **Performance Notes:**

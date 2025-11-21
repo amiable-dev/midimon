@@ -1,10 +1,10 @@
 # Triggers Reference
 
-Triggers define the input events that activate mappings in MIDIMon. This page provides comprehensive documentation for all supported trigger types across MIDI controllers and game controllers.
+Triggers define the input events that activate mappings in Conductor. This page provides comprehensive documentation for all supported trigger types across MIDI controllers and game controllers.
 
 ## Overview
 
-MIDIMon supports two primary input protocols:
+Conductor supports two primary input protocols:
 
 - **MIDI Controllers** (v1.0+): MIDI keyboards, pad controllers, encoders, and touch strips
 - **Game Controllers (HID)** (v3.0+): Gamepads, joysticks, racing wheels, flight sticks, HOTAS, arcade controllers, and custom SDL2-compatible HID devices
@@ -13,7 +13,7 @@ Both protocols share the same unified configuration format and can be used simul
 
 ### ID Range Allocation
 
-To prevent conflicts between MIDI and HID devices, MIDIMon uses distinct ID ranges:
+To prevent conflicts between MIDI and HID devices, Conductor uses distinct ID ranges:
 
 | Range | Protocol | Used For | Examples |
 |-------|----------|----------|----------|
@@ -171,7 +171,7 @@ timeout_ms = 50       # Optional: Simultaneous press window (default: 50)
 
 [modes.mappings.action]
 type = "Shell"
-command = "killall midimon"
+command = "killall conductor"
 ```
 
 **Parameters**:
@@ -474,7 +474,7 @@ buttons = [136, 137, 140]
 timeout_ms = 100
 [modes.mappings.action]
 type = "Shell"
-command = "killall midimon"
+command = "killall conductor"
 
 # Racing wheel: Both paddle shifters for mode change
 [[modes.mappings]]
@@ -665,7 +665,7 @@ keys = "Next"
 
 ## Hybrid MIDI + Game Controller Mappings
 
-MIDIMon v3.0 supports using MIDI and gamepad controllers simultaneously. The non-overlapping ID ranges (MIDI: 0-127, Gamepad: 128-255) ensure seamless coexistence.
+Conductor v3.0 supports using MIDI and gamepad controllers simultaneously. The non-overlapping ID ranges (MIDI: 0-127, Gamepad: 128-255) ensure seamless coexistence.
 
 ### Use Cases
 
@@ -741,7 +741,7 @@ notes = [36, 128]  # Mix MIDI and gamepad IDs in chord
 timeout_ms = 100
 [global_mappings.action]
 type = "Shell"
-command = "killall midimon"
+command = "killall conductor"
 ```
 
 ### Hybrid Configuration Tips
@@ -896,7 +896,7 @@ else_action = { type = "Keystroke", keys = "Space" }
 
 Use the MIDI Learn feature (v3.0) to automatically detect button IDs:
 
-1. Open MIDIMon GUI
+1. Open Conductor GUI
 2. Navigate to a mapping
 3. Click "MIDI Learn"
 4. Press the desired button on your gamepad
@@ -904,9 +904,9 @@ Use the MIDI Learn feature (v3.0) to automatically detect button IDs:
 
 ### 2. Testing Triggers
 
-Use the live event console in MIDIMon GUI to see real-time trigger events:
+Use the live event console in Conductor GUI to see real-time trigger events:
 
-1. Open MIDIMon GUI
+1. Open Conductor GUI
 2. Navigate to "Event Console"
 3. Press buttons/move sticks on your gamepad
 4. Observe the event type and ID
@@ -914,14 +914,14 @@ Use the live event console in MIDIMon GUI to see real-time trigger events:
 
 ### 3. Device Templates
 
-MIDIMon includes pre-configured templates for popular devices:
+Conductor includes pre-configured templates for popular devices:
 
 - **Xbox Controller**: `xbox-controller.toml`
 - **PlayStation Controller**: `playstation-controller.toml`
 - **Switch Pro Controller**: `switch-pro-controller.toml`
 
 Load a template via GUI:
-1. Open MIDIMon GUI
+1. Open Conductor GUI
 2. Navigate to "Device Templates"
 3. Filter by device type
 4. Select template and click "Create Config"
@@ -957,7 +957,7 @@ hold_threshold_ms = 2000    # Long press threshold
 
 1. Verify USB/Bluetooth connection
 2. Check if gamepad is recognized by OS
-3. Ensure MIDIMon has Input Monitoring permissions (macOS)
+3. Ensure Conductor has Input Monitoring permissions (macOS)
 4. Try reconnecting the gamepad
 
 ### Button IDs Not Working
@@ -985,7 +985,7 @@ hold_threshold_ms = 2000    # Long press threshold
 ## Related Documentation
 
 - **[Actions Reference](./actions.md)**: Learn about available actions to execute
-- **[Gamepad Support Guide](../guides/gamepad-support.md)**: Comprehensive guide to using gamepads with MIDIMon
+- **[Gamepad Support Guide](../guides/gamepad-support.md)**: Comprehensive guide to using gamepads with Conductor
 - **[Configuration Guide](../guides/configuration.md)**: Complete configuration file structure
 - **[MIDI Learn](../guides/midi-learn.md)**: Auto-detect button and note IDs
 - **[Device Templates](../guides/device-templates.md)**: Pre-configured templates for popular devices

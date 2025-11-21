@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to MIDIMon will be documented in this file.
+All notable changes to Conductor will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🎮 Multi-Protocol Input: Game Controller (HID) Support
 
-**Major Release**: MIDIMon now supports game controllers (gamepads, joysticks, racing wheels, flight sticks, arcade controllers) alongside MIDI devices, enabling hybrid workflows with unified input management.
+**Major Release**: Conductor now supports game controllers (gamepads, joysticks, racing wheels, flight sticks, arcade controllers) alongside MIDI devices, enabling hybrid workflows with unified input management.
 
 ### Added - Multi-Protocol Input System
 
@@ -176,9 +176,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 18 template loading tests (gamepad templates)
   - 15 GUI integration tests (DevicesView, MIDI Learn with HID)
 - **Total Workspace Tests**: 213 tests passing (100% pass rate)
-  - midimon-core: 60 tests (was 45)
-  - midimon-daemon: 89 tests (was 74)
-  - midimon-gui: 64 tests (was 26)
+  - conductor-core: 60 tests (was 45)
+  - conductor-daemon: 89 tests (was 74)
+  - conductor-gui: 64 tests (was 26)
 
 ### Security
 
@@ -230,9 +230,9 @@ None - fully backward compatible with v2.7.0. All MIDI-only configurations work 
   - **Self-Signed**: Plugins signed with any valid key (authenticity verified)
   - **Trusted Keys**: Only allow plugins signed with pre-approved keys (maximum security)
   - Configurable per-plugin or system-wide
-  - Trust store in `~/.midimon/trusted_keys.json`
+  - Trust store in `~/.conductor/trusted_keys.json`
 
-- **CLI Signing Tool** (`midimon-sign`, 460 lines) - Complete key management and signing workflow
+- **CLI Signing Tool** (`conductor-sign`, 460 lines) - Complete key management and signing workflow
   - `generate-key` - Generate Ed25519 keypair with PEM encoding
   - `sign` - Sign WASM plugins with metadata embedding
   - `verify` - Verify plugin signatures and integrity
@@ -288,7 +288,7 @@ None - fully backward compatible with v2.7.0. All MIDI-only configurations work 
   - `development/plugin-examples.md` - Real-world examples (Spotify, OBS, system utils)
   - Quick comparison tables (native vs WASM plugins)
   - Security checklists and best practices
-  - Complete midimon-sign CLI reference
+  - Complete conductor-sign CLI reference
   - Configuration examples with all security modes
 
 - **Technical Documentation** (648 lines)
@@ -300,9 +300,9 @@ None - fully backward compatible with v2.7.0. All MIDI-only configurations work 
 ### Technical Details
 
 - **Production Code**: ~1,400 lines across 3 new files
-  - `midimon-core/src/plugin/signing.rs` (486 lines)
-  - `midimon-daemon/src/bin/midimon-sign.rs` (460 lines)
-  - `midimon-core/tests/plugin_signing_test.rs` (436 lines)
+  - `conductor-core/src/plugin/signing.rs` (486 lines)
+  - `conductor-daemon/src/bin/conductor-sign.rs` (460 lines)
+  - `conductor-core/tests/plugin_signing_test.rs` (436 lines)
 
 - **Dependencies Added**:
   - `ed25519-dalek v2.2` - Ed25519 signatures
@@ -342,13 +342,13 @@ None - fully backward compatible with v2.7.0. All MIDI-only configurations work 
 
 **Generate Keypair:**
 ```bash
-midimon-sign generate-key ~/.midimon/my-key
+conductor-sign generate-key ~/.conductor/my-key
 # Creates: my-key.pem (private), my-key.pub.pem (public)
 ```
 
 **Sign Plugin:**
 ```bash
-midimon-sign sign my_plugin.wasm ~/.midimon/my-key \
+conductor-sign sign my_plugin.wasm ~/.conductor/my-key \
   --name "Your Name" \
   --email "you@example.com"
 # Creates: my_plugin.wasm.sig (detached signature)
@@ -356,20 +356,20 @@ midimon-sign sign my_plugin.wasm ~/.midimon/my-key \
 
 **Verify Signature:**
 ```bash
-midimon-sign verify my_plugin.wasm
+conductor-sign verify my_plugin.wasm
 # Output: Signature verified successfully (shows metadata)
 ```
 
 **Manage Trust Store:**
 ```bash
 # Add trusted key
-midimon-sign trust add ~/.midimon/my-key.pub.pem "My Plugin"
+conductor-sign trust add ~/.conductor/my-key.pub.pem "My Plugin"
 
 # List trusted keys
-midimon-sign trust list
+conductor-sign trust list
 
 # Remove trusted key
-midimon-sign trust remove <public-key-hex>
+conductor-sign trust remove <public-key-hex>
 ```
 
 **Configuration (Trusted Keys Mode):**
@@ -377,12 +377,12 @@ midimon-sign trust remove <public-key-hex>
 [[modes.mappings]]
 trigger = { Note = { note = 60 } }
 action = { WasmPlugin = {
-    path = "~/.midimon/wasm-plugins/my_plugin.wasm",
+    path = "~/.conductor/wasm-plugins/my_plugin.wasm",
     signature_policy = "trusted_keys_only",  # Require pre-approved keys
     max_fuel = 50000000,  # 50M instructions
     max_memory_mb = 64,   # 64 MB limit
     allowed_dirs = [
-        { path = "~/.midimon/plugin-data", writable = true }
+        { path = "~/.conductor/plugin-data", writable = true }
     ]
 }}
 ```
@@ -402,9 +402,9 @@ None - fully backward compatible with v2.6.0. Unsigned plugins continue to work 
 
 1. Pull latest code: `git pull origin main`
 2. Build release: `cargo build --release --workspace`
-3. Install CLI tool: `cargo install --path midimon-daemon --bin midimon-sign`
-4. (Optional) Generate signing keys: `midimon-sign generate-key ~/.midimon/my-key`
-5. (Optional) Sign existing plugins: `midimon-sign sign plugin.wasm ~/.midimon/my-key`
+3. Install CLI tool: `cargo install --path conductor-daemon --bin conductor-sign`
+4. (Optional) Generate signing keys: `conductor-sign generate-key ~/.conductor/my-key`
+5. (Optional) Sign existing plugins: `conductor-sign sign plugin.wasm ~/.conductor/my-key`
 6. (Optional) Configure trust store for maximum security
 
 ### Security Considerations
@@ -447,7 +447,7 @@ None
   - Safe trait object handling
 
 - **Plugin Discovery** (440 lines) - Manifest-based plugin registry
-  - Scans `~/.midimon/plugins/` for `plugin.toml` manifests
+  - Scans `~/.conductor/plugins/` for `plugin.toml` manifests
   - TOML-based plugin metadata parsing
   - Plugin registry with HashMap storage
   - Duplicate detection and validation
@@ -548,7 +548,7 @@ None - fully backward compatible with v2.2.0
 
 1. Pull latest code
 2. Run `cargo build --release`
-3. Create `~/.midimon/plugins/` directory
+3. Create `~/.conductor/plugins/` directory
 4. Install plugins as needed
 5. Use GUI Plugin Manager to manage plugins
 
@@ -672,9 +672,9 @@ None
 ### Testing
 
 - **145 Workspace Tests Passing** (100% pass rate)
-  - midimon-core: 45 tests
-  - midimon-daemon: 74 tests
-  - midimon-gui: 26 tests (1 ignored)
+  - conductor-core: 45 tests
+  - conductor-daemon: 74 tests
+  - conductor-gui: 26 tests (1 ignored)
 - No regressions from v2.0 or v2.1
 - Comprehensive condition evaluation test coverage
 - Velocity curve calculation unit tests
@@ -683,7 +683,7 @@ None
 
 - `TriggerContext` struct extended with optional `current_mode` field (backward compatible)
 - `ActionConfig` enum extended with `Conditional` variant
-- Condition evaluation system added to `midimon-daemon/src/conditions.rs` (425 lines)
+- Condition evaluation system added to `conductor-daemon/src/conditions.rs` (425 lines)
 
 ### Security
 
@@ -708,7 +708,7 @@ None
 
 ### Added - MidiOutputManager
 
-- **Core MIDI Output Engine** (`midimon-core/src/midi_output.rs`, 618 lines)
+- **Core MIDI Output Engine** (`conductor-core/src/midi_output.rs`, 618 lines)
   - 11 public methods for port management
   - Connection pooling for multiple output ports
   - Thread-safe message queueing with `Arc<Mutex<VecDeque>>`
@@ -748,7 +748,7 @@ None
 
 ### Added - ActionExecutor Integration
 
-- **MIDI Message Encoding** (`midimon-daemon/src/action_executor.rs`, ~280 lines)
+- **MIDI Message Encoding** (`conductor-daemon/src/action_executor.rs`, ~280 lines)
   - Complete byte-level MIDI encoding for all 6 message types
   - Channel byte manipulation (0x00-0x0F)
   - Data byte validation and masking (0x7F)
@@ -770,7 +770,7 @@ None
   - Platform badges (🍎 macOS, 🐧 Linux, 🪟 Windows)
   - Test output button (sends Middle C for verification)
   - Error/empty/loading state handling
-  - Dark theme matching existing MIDIMon GUI
+  - Dark theme matching existing Conductor GUI
 
 - **SendMidiActionEditor Component** (AMI-270, 800 lines)
   - All 6 MIDI message type editors:
@@ -996,7 +996,7 @@ None
 - **Background Daemon Service**: Runs as persistent background service
   - Unix domain socket IPC for inter-process communication
   - Graceful shutdown with SIGTERM/SIGINT handling
-  - State persistence across restarts (`~/.local/state/midimon/daemon.state`)
+  - State persistence across restarts (`~/.local/state/conductor/daemon.state`)
   - 8-state lifecycle machine (Initializing → Running → Reloading → Degraded → etc.)
   - Atomic config swaps using Arc<RwLock<>> pattern
 
@@ -1015,7 +1015,7 @@ None
   - Running statistics (fastest, slowest, average reload times)
   - Reload counter and performance history
 
-### Added - CLI Control Tool (midimonctl)
+### Added - CLI Control Tool (conductorctl)
 
 - **Command-Line Interface**: Control daemon from terminal or scripts
   - `status` - Query daemon state, uptime, events processed, reload stats
@@ -1030,26 +1030,26 @@ None
 
 ### Added - Service Integration
 
-- **systemd Service Template** (`midimon-daemon/systemd/midimon.service`):
+- **systemd Service Template** (`conductor-daemon/systemd/conductor.service`):
   - User-level service support
   - Auto-restart on failure (5s throttle, max 5 bursts per 5 minutes)
   - Security hardening (NoNewPrivileges, ProtectSystem=strict, ProtectHome=read-only)
   - Resource limits (1024 file descriptors, 64 processes)
   - Journal logging integration
-  - ExecReload support via midimonctl
+  - ExecReload support via conductorctl
 
-- **macOS LaunchAgent** (`midimon-daemon/launchd/com.amiable.midimon.plist`):
+- **macOS LaunchAgent** (`conductor-daemon/launchd/com.amiable.conductor.plist`):
   - Run at login with LaunchAgent plist
   - Crash recovery with 5s throttled restart
   - Process priority configuration (Nice -5 for low latency)
-  - Log file rotation to `~/Library/Logs/midimon.log`
+  - Log file rotation to `~/Library/Logs/conductor.log`
   - GUI session integration (LimitLoadToSessionType: Aqua)
 
 ### Added - Documentation
 
 - **Man Pages**: Professional Unix manual pages
-  - `midimon(1)` - Daemon manual (trigger types, action types, config format)
-  - `midimonctl(1)` - CLI tool reference (commands, options, examples)
+  - `conductor(1)` - Daemon manual (trigger types, action types, config format)
+  - `conductorctl(1)` - CLI tool reference (commands, options, examples)
   - Installation to `/usr/local/share/man/man1/`
 
 - **DEPLOYMENT.md**: Comprehensive deployment guide (500+ lines)
@@ -1081,7 +1081,7 @@ None
 
 ### Added - Testing & Benchmarking
 
-- **Reload Benchmark Suite** (`midimon-daemon/benches/reload_benchmark.rs`):
+- **Reload Benchmark Suite** (`conductor-daemon/benches/reload_benchmark.rs`):
   - Multiple config sizes (2-10 modes, 10-100 mappings)
   - 10 iterations per test for statistical reliability
   - Average, min, max timing measurements
@@ -1096,7 +1096,7 @@ None
 
 ### Changed - Architecture
 
-- **midimon-daemon** structure:
+- **conductor-daemon** structure:
   - Added `src/daemon/` module (7 files, ~2,000 lines)
     - `service.rs` - Main daemon service loop
     - `engine_manager.rs` - Engine lifecycle management
@@ -1105,8 +1105,8 @@ None
     - `state.rs` - State persistence and socket path logic
     - `types.rs` - IPC protocol types, metrics, statistics
     - `error.rs` - Daemon-specific error types
-  - Added `src/bin/midimonctl.rs` - CLI control tool (360 lines)
-  - Added `src/bin/midimon_menubar.rs` - Menu bar foundation (262 lines, incomplete)
+  - Added `src/bin/conductorctl.rs` - CLI control tool (360 lines)
+  - Added `src/bin/conductor_menubar.rs` - Menu bar foundation (262 lines, incomplete)
   - Added `benches/reload_benchmark.rs` - Performance benchmarking (166 lines)
 
 - **IPC Client API** (`daemon/ipc.rs`):
@@ -1159,28 +1159,28 @@ Benchmark results (Apple M1 MacBook Pro):
 1. **Install as Service** (recommended):
    ```bash
    # macOS
-   launchctl load ~/Library/LaunchAgents/com.amiable.midimon.plist
+   launchctl load ~/Library/LaunchAgents/com.amiable.conductor.plist
 
    # Linux
-   systemctl --user enable midimon
-   systemctl --user start midimon
+   systemctl --user enable conductor
+   systemctl --user start conductor
    ```
 
-2. **Use midimonctl for Control**:
+2. **Use conductorctl for Control**:
    ```bash
-   midimonctl status   # Check daemon health
-   midimonctl reload   # Apply config changes
-   midimonctl ping     # Test connectivity
+   conductorctl status   # Check daemon health
+   conductorctl reload   # Apply config changes
+   conductorctl ping     # Test connectivity
    ```
 
 3. **Enable Hot-Reload**:
-   - Edit `~/.config/midimon/config.toml`
+   - Edit `~/.config/conductor/config.toml`
    - Changes automatically detected and applied in <10ms
    - No daemon restart needed
 
 **Manual mode still supported**:
 ```bash
-midimon --config config.toml --log-level debug
+conductor --config config.toml --log-level debug
 ```
 
 ### Dependencies
@@ -1217,32 +1217,32 @@ midimon --config config.toml --log-level debug
 
 ### Release Artifacts
 
-- midimon-v1.0.0-macos-arm64.tar.gz (Apple Silicon)
-- midimon-v1.0.0-macos-x86_64.tar.gz (Intel)
-- midimon-v1.0.0-linux-x86_64.tar.gz (Linux)
+- conductor-v1.0.0-macos-arm64.tar.gz (Apple Silicon)
+- conductor-v1.0.0-macos-x86_64.tar.gz (Intel)
+- conductor-v1.0.0-linux-x86_64.tar.gz (Linux)
 - checksums.txt (SHA256)
 
 ## [0.2.0] - 2025-11-12
 
 ### Overview
 
-**Phase 2 Complete**: Workspace architecture migration with zero breaking changes. MIDIMon now uses a modular 3-package workspace structure, enabling better code organization, faster builds, and preparing for future GUI integration.
+**Phase 2 Complete**: Workspace architecture migration with zero breaking changes. Conductor now uses a modular 3-package workspace structure, enabling better code organization, faster builds, and preparing for future GUI integration.
 
 **100% Backward Compatible**: All v0.1.0 configs, features, and workflows work identically in v0.2.0.
 
 ### Added - Architecture
 
-- **midimon-core**: Pure Rust engine library (zero UI dependencies)
+- **conductor-core**: Pure Rust engine library (zero UI dependencies)
   - Public API for embedding in other applications
   - Structured error types using `thiserror`
   - Comprehensive rustdoc documentation
   - 30+ public types exported
-- **midimon-daemon**: CLI daemon + 6 diagnostic tools
-  - Main `midimon` binary
+- **conductor-daemon**: CLI daemon + 6 diagnostic tools
+  - Main `conductor` binary
   - `midi_diagnostic`, `led_diagnostic`, `led_tester`
   - `pad_mapper`, `test_midi`, `midi_simulator`
-- **midimon** (root): Backward compatibility layer
-  - Re-exports midimon-core types
+- **conductor** (root): Backward compatibility layer
+  - Re-exports conductor-core types
   - Maintains v0.1.0 import paths
   - Zero breaking changes for existing tests
 
@@ -1266,9 +1266,9 @@ midimon --config config.toml --log-level debug
 
 ### Changed - Internal Structure
 
-- Renamed `src/mappings.rs` → `midimon-core/src/mapping.rs`
-- Renamed `src/device_profile.rs` → `midimon-core/src/device.rs`
-- Added `midimon-core/src/error.rs` (structured error types)
+- Renamed `src/mappings.rs` → `conductor-core/src/mapping.rs`
+- Renamed `src/device_profile.rs` → `conductor-core/src/device.rs`
+- Added `conductor-core/src/error.rs` (structured error types)
 - Split monolithic src/ into modular workspace packages
 - Removed UI dependencies (colored, chrono) from core library
 
@@ -1277,7 +1277,7 @@ midimon --config config.toml --log-level debug
 - **CLAUDE.md**: Updated with workspace architecture and Phase 2 status
 - **README.md**: Updated installation and build commands
 - **mdbook**: Updated architecture diagrams
-- **Rustdoc**: Comprehensive API documentation in midimon-core
+- **Rustdoc**: Comprehensive API documentation in conductor-core
 - **Migration Guide**: docs/MIGRATION_v0.1_to_v0.2.md
 
 ### Validation
@@ -1308,7 +1308,7 @@ See `docs/MIGRATION_v0.1_to_v0.2.md` for complete guide.
 
 ### Overview
 
-Initial public release of MIDIMon, preserving the complete working monolithic implementation with all 26 features before migration to workspace structure. This release establishes the foundation for open source development and community contributions.
+Initial public release of Conductor, preserving the complete working monolithic implementation with all 26 features before migration to workspace structure. This release establishes the foundation for open source development and community contributions.
 
 ### Added - Core Triggers (4)
 
@@ -1453,8 +1453,8 @@ This v0.1.0-monolithic release preserves the working single-binary implementatio
 
 ### Release Artifacts
 
-- midimon-v0.1.0-macos-arm64.tar.gz (Apple Silicon)
-- midimon-v0.1.0-macos-x86_64.tar.gz (Intel)
+- conductor-v0.1.0-macos-arm64.tar.gz (Apple Silicon)
+- conductor-v0.1.0-macos-x86_64.tar.gz (Intel)
 - checksums.txt (SHA256)
 
 ---
@@ -1490,13 +1490,13 @@ Version numbers follow [Semantic Versioning](https://semver.org/):
 - **MINOR**: New features, backward-compatible
 - **PATCH**: Bug fixes, performance improvements
 
-[Unreleased]: https://github.com/amiable-dev/midimon/compare/v3.0.0...HEAD
-[3.0.0]: https://github.com/amiable-dev/midimon/releases/tag/v3.0.0
-[2.7.0]: https://github.com/amiable-dev/midimon/releases/tag/v2.7.0
-[2.3.0]: https://github.com/amiable-dev/midimon/releases/tag/v2.3.0
-[2.2.0]: https://github.com/amiable-dev/midimon/releases/tag/v2.2.0
-[2.1.0]: https://github.com/amiable-dev/midimon/releases/tag/v2.1.0
-[2.0.0]: https://github.com/amiable-dev/midimon/releases/tag/v2.0.0
-[1.0.0]: https://github.com/amiable-dev/midimon/releases/tag/v1.0.0
-[0.2.0]: https://github.com/amiable-dev/midimon/releases/tag/v0.2.0
-[0.1.0-monolithic]: https://github.com/amiable-dev/midimon/releases/tag/v0.1.0-monolithic
+[Unreleased]: https://github.com/amiable-dev/conductor/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/amiable-dev/conductor/releases/tag/v3.0.0
+[2.7.0]: https://github.com/amiable-dev/conductor/releases/tag/v2.7.0
+[2.3.0]: https://github.com/amiable-dev/conductor/releases/tag/v2.3.0
+[2.2.0]: https://github.com/amiable-dev/conductor/releases/tag/v2.2.0
+[2.1.0]: https://github.com/amiable-dev/conductor/releases/tag/v2.1.0
+[2.0.0]: https://github.com/amiable-dev/conductor/releases/tag/v2.0.0
+[1.0.0]: https://github.com/amiable-dev/conductor/releases/tag/v1.0.0
+[0.2.0]: https://github.com/amiable-dev/conductor/releases/tag/v0.2.0
+[0.1.0-monolithic]: https://github.com/amiable-dev/conductor/releases/tag/v0.1.0-monolithic

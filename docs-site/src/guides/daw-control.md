@@ -1,12 +1,12 @@
-# DAW Control with MIDIMon
+# DAW Control with Conductor
 
-Control your Digital Audio Workstation (DAW) directly from your MIDI controller using MIDIMon's SendMIDI action. Transform your Maschine Mikro MK3 or other MIDI controller into a custom control surface for transport control, mixer automation, and parameter manipulation.
+Control your Digital Audio Workstation (DAW) directly from your MIDI controller using Conductor's SendMIDI action. Transform your Maschine Mikro MK3 or other MIDI controller into a custom control surface for transport control, mixer automation, and parameter manipulation.
 
 ---
 
 ## Overview
 
-MIDIMon can send MIDI messages to your DAW, allowing you to:
+Conductor can send MIDI messages to your DAW, allowing you to:
 
 - **Transport Control**: Play, Stop, Record, Rewind, Fast Forward
 - **Mixer Control**: Volume faders (CC 7), Pan controls (CC 10), Mute/Solo
@@ -22,18 +22,18 @@ This enables you to create custom control surfaces tailored to your workflow, wi
 
 ```
 [Your MIDI Controller]
-        ↓ (MIDI Input to MIDIMon)
-  [MIDIMon Daemon]
+        ↓ (MIDI Input to Conductor)
+  [Conductor Daemon]
         ↓ (SendMIDI Action)
   [Virtual MIDI Port] (IAC Driver, loopMIDI, ALSA)
-        ↓ (MIDI from MIDIMon)
+        ↓ (MIDI from Conductor)
     [Your DAW] (Logic Pro, Ableton Live, etc.)
 ```
 
 **Key Components**:
 
-1. **Input**: MIDIMon receives MIDI from your controller (pads, encoders, buttons)
-2. **Mapping**: MIDIMon maps input events to SendMIDI actions
+1. **Input**: Conductor receives MIDI from your controller (pads, encoders, buttons)
+2. **Mapping**: Conductor maps input events to SendMIDI actions
 3. **Output**: SendMIDI sends MIDI messages to a virtual MIDI port
 4. **DAW**: Your DAW receives MIDI from the virtual port and responds
 
@@ -41,7 +41,7 @@ This enables you to create custom control surfaces tailored to your workflow, wi
 
 ## Platform Setup
 
-Before using SendMIDI, you need a virtual MIDI port that MIDIMon can send to and your DAW can receive from.
+Before using SendMIDI, you need a virtual MIDI port that Conductor can send to and your DAW can receive from.
 
 ### macOS: IAC Driver
 
@@ -65,15 +65,15 @@ macOS includes a built-in virtual MIDI driver called IAC (Inter-Application Comm
 
 5. (Optional) Add more ports
    - Click the **+** button under "Ports" to create additional buses
-   - Rename buses to something meaningful (e.g., "MIDIMon → Logic Pro")
+   - Rename buses to something meaningful (e.g., "Conductor → Logic Pro")
 
 6. Click **Apply**
 
 **Verify IAC Driver is Working**:
 
 ```bash
-# List MIDI output ports (MIDIMon should see IAC Driver)
-./target/release/midimon-daemon --list-midi-outputs
+# List MIDI output ports (Conductor should see IAC Driver)
+./target/release/conductor-daemon --list-midi-outputs
 
 # You should see:
 # MIDI Output Ports:
@@ -99,7 +99,7 @@ Windows doesn't include built-in virtual MIDI ports, so we use **loopMIDI** (fre
 
 **Create Virtual Port**:
 
-1. In loopMIDI window, enter a port name (e.g., "MIDIMon Virtual Out")
+1. In loopMIDI window, enter a port name (e.g., "Conductor Virtual Out")
 2. Click **+** (Plus button) to create the port
 3. The port should appear in the list with status "Opened by 0 applications"
 
@@ -111,11 +111,11 @@ Windows doesn't include built-in virtual MIDI ports, so we use **loopMIDI** (fre
 
 ```powershell
 # List MIDI output ports
-.\target\release\midimon-daemon.exe --list-midi-outputs
+.\target\release\conductor-daemon.exe --list-midi-outputs
 
 # You should see:
 # MIDI Output Ports:
-# 0: MIDIMon Virtual Out
+# 0: Conductor Virtual Out
 ```
 
 **Troubleshooting**:
@@ -132,23 +132,23 @@ Linux supports virtual MIDI ports through **ALSA** (Advanced Linux Sound Archite
 **Create Virtual Port with `aconnect`**:
 
 ```bash
-# Method 1: Using MIDIMon's built-in virtual port creation (recommended)
-# MIDIMon can create virtual ports automatically on Linux via midir
+# Method 1: Using Conductor's built-in virtual port creation (recommended)
+# Conductor can create virtual ports automatically on Linux via midir
 
 # Method 2: Manual ALSA virtual port (if needed)
 # Install ALSA utilities
 sudo apt-get install alsa-utils
 
-# Create a virtual port named "MIDIMon Output"
+# Create a virtual port named "Conductor Output"
 # This command creates a port that stays active
-aseqdump -p "MIDIMon Output" &
+aseqdump -p "Conductor Output" &
 
 # List ALSA MIDI ports
 aconnect -l
 
 # You should see something like:
-# client 128: 'MIDIMon Output' [type=user]
-#     0 'MIDIMon Output'
+# client 128: 'Conductor Output' [type=user]
+#     0 'Conductor Output'
 ```
 
 **Using JACK for MIDI (Alternative)**:
@@ -164,14 +164,14 @@ qjackctl &
 
 # In QjackCtl:
 # - Go to "Graph" or "Patchbay"
-# - Create MIDI connections between MIDIMon and your DAW
+# - Create MIDI connections between Conductor and your DAW
 ```
 
 **Verify ALSA Port**:
 
 ```bash
 # List MIDI output ports
-./target/release/midimon-daemon --list-midi-outputs
+./target/release/conductor-daemon --list-midi-outputs
 
 # You should see your created virtual port
 ```
@@ -183,7 +183,7 @@ qjackctl &
 
 ---
 
-## MIDIMon Configuration
+## Conductor Configuration
 
 ### Basic SendMIDI Example
 
@@ -204,8 +204,8 @@ note = 1  # Pad 1 on Maschine Mikro MK3
 [modes.mappings.action]
 type = "SendMIDI"
 port = "IAC Driver Bus 1"  # macOS (use your port name)
-# port = "MIDIMon Virtual Out"  # Windows (loopMIDI)
-# port = "MIDIMon Output"  # Linux (ALSA)
+# port = "Conductor Virtual Out"  # Windows (loopMIDI)
+# port = "Conductor Output"  # Linux (ALSA)
 
 [modes.mappings.action.message]
 type = "NoteOn"
@@ -217,7 +217,7 @@ channel = 0  # MIDI channel 1 (0-indexed)
 **Test This Configuration**:
 
 1. Save the config above to your `config.toml`
-2. Restart MIDIMon daemon: `midimonctl reload`
+2. Restart Conductor daemon: `conductorctl reload`
 3. Open your DAW and create a software instrument track
 4. Set the track's MIDI input to your virtual port (IAC Driver/loopMIDI)
 5. Enable MIDI input recording on the track
@@ -228,7 +228,7 @@ channel = 0  # MIDI channel 1 (0-indexed)
 
 ## MIDI Message Types
 
-MIDIMon supports all common MIDI message types. Here's a reference for each:
+Conductor supports all common MIDI message types. Here's a reference for each:
 
 ### 1. Note On / Note Off
 
@@ -531,7 +531,7 @@ Most DAWs support **MIDI Learn** - a feature that lets you map any incoming MIDI
 
 **General MIDI Learn Workflow**:
 
-1. **Configure MIDIMon** to send a MIDI message when you press a pad:
+1. **Configure Conductor** to send a MIDI message when you press a pad:
    ```toml
    [[modes.mappings]]
    [modes.mappings.trigger]
@@ -605,11 +605,11 @@ message = { type = "NoteOn", note = 91, velocity = 127, channel = 0 }
 
 ### MIDI Messages Not Received in DAW
 
-**Check MIDIMon is sending**:
+**Check Conductor is sending**:
 
 ```bash
 # Enable debug logging
-DEBUG=1 midimonctl reload
+DEBUG=1 conductorctl reload
 
 # Press your mapped pad
 # You should see: "Sending MIDI: [0x90, 0x3C, 0x64] to port 'IAC Driver Bus 1'"
@@ -640,7 +640,7 @@ DEBUG=1 midimonctl reload
    - Solution: Reduce buffer size in DAW audio preferences (e.g., 128 or 256 samples)
 
 2. **MIDI Port Polling**: Some virtual MIDI implementations poll slowly
-   - Solution: Restart DAW and MIDIMon daemon
+   - Solution: Restart DAW and Conductor daemon
 
 3. **System Load**: High CPU usage delays MIDI processing
    - Solution: Close unnecessary applications
@@ -649,7 +649,7 @@ DEBUG=1 midimonctl reload
 
 ```bash
 # Send test Note On and measure response time in DAW
-./target/release/midimonctl send-test-midi
+./target/release/conductorctl send-test-midi
 ```
 
 ---
@@ -662,7 +662,7 @@ DEBUG=1 midimonctl reload
 
 1. **List available ports**:
    ```bash
-   midimonctl list-midi-outputs
+   conductorctl list-midi-outputs
    ```
 
 2. **Check port name matches exactly** (case-sensitive):
@@ -689,14 +689,14 @@ DEBUG=1 midimonctl reload
 **Solution**: Check MIDI channel configuration
 
 ```toml
-# MIDI channels are 0-indexed in MIDIMon config (0-15)
+# MIDI channels are 0-indexed in Conductor config (0-15)
 # But displayed as 1-16 in DAWs
 
-# Channel 0 in MIDIMon = Channel 1 in DAW
+# Channel 0 in Conductor = Channel 1 in DAW
 [modes.mappings.action.message]
 channel = 0  # This is MIDI channel 1
 
-# Channel 15 in MIDIMon = Channel 16 in DAW
+# Channel 15 in Conductor = Channel 16 in DAW
 channel = 15  # This is MIDI channel 16
 ```
 
@@ -714,8 +714,8 @@ channel = 15  # This is MIDI channel 16
 port = "IAC Driver Bus 1"
 
 # Use descriptive names (rename in Audio MIDI Setup):
-port = "MIDIMon → Logic Pro"
-port = "MIDIMon → Ableton"
+port = "Conductor → Logic Pro"
+port = "Conductor → Ableton"
 ```
 
 ### 2. Organize Mappings by Function

@@ -2,10 +2,10 @@
 
 ## Overview
 
-This guide walks through installing and configuring MIDIMon v3.0.0 on Windows. MIDIMon now includes multi-protocol input support (MIDI controllers + game controllers), a background daemon service, and a modern Tauri-based GUI for visual configuration.
+This guide walks through installing and configuring Conductor v3.0.0 on Windows. Conductor now includes multi-protocol input support (MIDI controllers + game controllers), a background daemon service, and a modern Tauri-based GUI for visual configuration.
 
 **Installation Options**:
-- **Option 1 (Recommended)**: Download pre-built binaries from [GitHub Releases](https://github.com/amiable-dev/midimon/releases)
+- **Option 1 (Recommended)**: Download pre-built binaries from [GitHub Releases](https://github.com/amiable-dev/conductor/releases)
 - **Option 2**: Build from source (developers/advanced users)
 
 Installation takes approximately 15-20 minutes.
@@ -17,35 +17,35 @@ Installation takes approximately 15-20 minutes.
 
 ## Option 1: Install Pre-Built Binaries (Recommended)
 
-### 1. Download MIDIMon
+### 1. Download Conductor
 
-Visit the [Releases Page](https://github.com/amiable-dev/midimon/releases/latest) and download:
+Visit the [Releases Page](https://github.com/amiable-dev/conductor/releases/latest) and download:
 
 **For GUI + Daemon (Recommended)**:
-- `midimon-gui-windows-x86_64.zip` - GUI application with daemon
-- **OR** download daemon separately: `midimon-x86_64-pc-windows-msvc.zip`
+- `conductor-gui-windows-x86_64.zip` - GUI application with daemon
+- **OR** download daemon separately: `conductor-x86_64-pc-windows-msvc.zip`
 
 ### 2. Install the Binaries
 
 ```powershell
 # Extract the archive
-Expand-Archive -Path midimon-x86_64-pc-windows-msvc.zip -DestinationPath C:\Program Files\MIDIMon
+Expand-Archive -Path conductor-x86_64-pc-windows-msvc.zip -DestinationPath C:\Program Files\Conductor
 
 # Add to PATH (PowerShell as Administrator)
-$env:Path += ";C:\Program Files\MIDIMon"
+$env:Path += ";C:\Program Files\Conductor"
 [Environment]::SetEnvironmentVariable("Path", $env:Path, [EnvironmentVariableTarget]::Machine)
 
 # Verify installation
-midimon --version
-midimonctl --version
+conductor --version
+conductorctl --version
 ```
 
 ### 3. Install as Windows Service (Optional)
 
 ```powershell
 # Run as Administrator
-# Create scheduled task to auto-start MIDIMon
-schtasks /create /tn "MIDIMon Daemon" /tr "C:\Program Files\MIDIMon\midimon.exe" /sc onlogon /rl highest
+# Create scheduled task to auto-start Conductor
+schtasks /create /tn "Conductor Daemon" /tr "C:\Program Files\Conductor\conductor.exe" /sc onlogon /rl highest
 ```
 
 **Skip to [Hardware Requirements](#hardware-requirements)**
@@ -58,7 +58,7 @@ schtasks /create /tn "MIDIMon Daemon" /tr "C:\Program Files\MIDIMon\midimon.exe"
 
 #### 1. Hardware Requirements
 
-MIDIMon v3.0 supports two types of input devices:
+Conductor v3.0 supports two types of input devices:
 
 **MIDI Controllers**:
 - Native Instruments Maschine Mikro MK3 (recommended, full RGB LED support)
@@ -72,13 +72,13 @@ MIDIMon v3.0 supports two types of input devices:
 - HOTAS: Hands On Throttle And Stick systems
 - Custom Controllers: Any SDL2-compatible HID device
 
-You need at least one MIDI controller OR one game controller to use MIDIMon. Both can be used simultaneously.
+You need at least one MIDI controller OR one game controller to use Conductor. Both can be used simultaneously.
 
 #### 2. Software Requirements
 
 **Rust Toolchain** (for building from source):
 
-MIDIMon is written in Rust and requires the Rust compiler and Cargo build system.
+Conductor is written in Rust and requires the Rust compiler and Cargo build system.
 
 **Check if Rust is already installed**:
 ```powershell
@@ -102,7 +102,7 @@ cargo --version  # Should show: cargo 1.75.0 (or later)
 
 **SDL2 Library** (for game controllers):
 
-SDL2 is included via the `gilrs` v0.10 Rust crate. No additional installation required - it's built into MIDIMon automatically.
+SDL2 is included via the `gilrs` v0.10 Rust crate. No additional installation required - it's built into Conductor automatically.
 
 #### 3. Platform-Specific Requirements
 
@@ -194,8 +194,8 @@ devmgmt.msc
 cd ~\Projects  # or wherever you keep code
 
 # Clone the repository
-git clone https://github.com/amiable-dev/midimon.git
-cd midimon
+git clone https://github.com/amiable-dev/conductor.git
+cd conductor
 ```
 
 #### 2. Build the Daemon
@@ -206,15 +206,15 @@ cd midimon
 cargo build --release --workspace
 
 # Or build just the daemon binary
-cargo build --release --package midimon-daemon
+cargo build --release --package conductor-daemon
 ```
 
-The release build takes 3-7 minutes on modern hardware and produces an optimized binary (~3-5MB) in `target\release\midimon.exe`.
+The release build takes 3-7 minutes on modern hardware and produces an optimized binary (~3-5MB) in `target\release\conductor.exe`.
 
 **Build output**:
 ```
-   Compiling midimon-core v3.0.0 (C:\Users\you\Projects\midimon\midimon-core)
-   Compiling midimon-daemon v3.0.0 (C:\Users\you\Projects\midimon\midimon-daemon)
+   Compiling conductor-core v3.0.0 (C:\Users\you\Projects\conductor\conductor-core)
+   Compiling conductor-daemon v3.0.0 (C:\Users\you\Projects\conductor\conductor-daemon)
     Finished release [optimized] target(s) in 3m 42s
 ```
 
@@ -225,7 +225,7 @@ The release build takes 3-7 minutes on modern hardware and produces an optimized
 # Download from https://nodejs.org/ (LTS version)
 
 # Install frontend dependencies
-cd midimon-gui\ui
+cd conductor-gui\ui
 npm ci
 
 # Build the frontend
@@ -236,29 +236,29 @@ cd ..\src-tauri
 cargo build --release
 
 # The GUI exe will be at:
-# midimon-gui\src-tauri\target\release\midimon-gui.exe
+# conductor-gui\src-tauri\target\release\conductor-gui.exe
 ```
 
 #### 4. Install Binaries
 
 ```powershell
 # Return to project root
-cd ~\Projects\midimon
+cd ~\Projects\conductor
 
 # Create installation directory
-New-Item -ItemType Directory -Force -Path "C:\Program Files\MIDIMon"
+New-Item -ItemType Directory -Force -Path "C:\Program Files\Conductor"
 
 # Copy binaries (requires Administrator)
-Copy-Item target\release\midimon.exe "C:\Program Files\MIDIMon\"
-Copy-Item target\release\midimonctl.exe "C:\Program Files\MIDIMon\"
+Copy-Item target\release\conductor.exe "C:\Program Files\Conductor\"
+Copy-Item target\release\conductorctl.exe "C:\Program Files\Conductor\"
 
 # Add to PATH (PowerShell as Administrator)
-$env:Path += ";C:\Program Files\MIDIMon"
+$env:Path += ";C:\Program Files\Conductor"
 [Environment]::SetEnvironmentVariable("Path", $env:Path, [EnvironmentVariableTarget]::Machine)
 
 # Verify installation (restart terminal first)
-midimon --version
-midimonctl --version
+conductor --version
+conductorctl --version
 ```
 
 ## Verifying Device Connection
@@ -282,7 +282,7 @@ Look for your MIDI controller under:
 
 ```powershell
 # List available MIDI ports
-midimon --list-ports
+conductor --list-ports
 
 # Or use test_midi diagnostic
 cargo run --bin test_midi
@@ -340,14 +340,14 @@ Look for your controller under:
 - **Human Interface Devices** (Generic gamepads)
 - **Bluetooth** (Wireless controllers)
 
-#### Check via MIDIMon Status
+#### Check via Conductor Status
 
 ```powershell
-# Start MIDIMon
-Start-Process midimon
+# Start Conductor
+Start-Process conductor
 
 # Check status
-midimonctl status
+conductorctl status
 
 # Look for gamepad in device list
 # Example output:
@@ -357,12 +357,12 @@ midimonctl status
 
 #### Test Gamepad Events
 
-Use MIDIMon's debug logging to verify gamepad inputs:
+Use Conductor's debug logging to verify gamepad inputs:
 
 ```powershell
-# Start MIDIMon with debug logging
+# Start Conductor with debug logging
 $env:DEBUG=1
-midimon --foreground
+conductor --foreground
 ```
 
 Press buttons on your gamepad. You should see:
@@ -377,7 +377,7 @@ If nothing appears:
 - Verify controller appears in Game Controllers (joy.cpl)
 - Check battery level (wireless controllers)
 - Try reconnecting the controller
-- Restart MIDIMon
+- Restart Conductor
 
 #### Platform-Specific Troubleshooting
 
@@ -405,7 +405,7 @@ If nothing appears:
 
 **Permissions**:
 - Windows does not require special permissions for gamepad access
-- If issues persist, run MIDIMon as Administrator (not recommended long-term)
+- If issues persist, run Conductor as Administrator (not recommended long-term)
 
 ## Configuration
 
@@ -413,9 +413,9 @@ If nothing appears:
 
 v3.0.0 includes a visual configuration editor:
 
-1. **Open MIDIMon GUI**:
+1. **Open Conductor GUI**:
    ```powershell
-   midimon-gui
+   conductor-gui
    ```
 
 2. **Connect your device** in the device panel (MIDI or gamepad)
@@ -426,7 +426,7 @@ v3.0.0 includes a visual configuration editor:
    - The trigger config auto-fills
    - Assign an action (keystroke, launch app, etc.)
 
-4. **Save configuration** - automatically writes to `%USERPROFILE%\.config\midimon\config.toml`
+4. **Save configuration** - automatically writes to `%USERPROFILE%\.config\conductor\config.toml`
 
 See [GUI Quick Start](../getting-started/gui-quick-start.md) for detailed tutorial.
 
@@ -434,12 +434,12 @@ See [GUI Quick Start](../getting-started/gui-quick-start.md) for detailed tutori
 
 If you prefer to edit `config.toml` manually:
 
-**Config location**: `%USERPROFILE%\.config\midimon\config.toml`
+**Config location**: `%USERPROFILE%\.config\conductor\config.toml`
 
 **Create a minimal config**:
 ```powershell
 # Create config directory
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.config\midimon"
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.config\conductor"
 
 # Create config file
 @"
@@ -479,8 +479,8 @@ note = 0
 hold_duration_ms = 3000
 [global_mappings.action]
 type = "Shell"
-command = "taskkill /IM midimon.exe /F"
-"@ | Out-File -FilePath "$env:USERPROFILE\.config\midimon\config.toml" -Encoding utf8
+command = "taskkill /IM conductor.exe /F"
+"@ | Out-File -FilePath "$env:USERPROFILE\.config\conductor\config.toml" -Encoding utf8
 ```
 
 This creates a basic configuration with:
@@ -491,13 +491,13 @@ This creates a basic configuration with:
 
 **Hot-reload**: The daemon automatically reloads config within 0-10ms when you save changes.
 
-## Running MIDIMon
+## Running Conductor
 
 ### Using the GUI
 
 ```powershell
 # Launch the GUI (starts daemon automatically)
-midimon-gui
+conductor-gui
 ```
 
 The GUI provides:
@@ -510,17 +510,17 @@ The GUI provides:
 
 ```powershell
 # Run in foreground
-midimon --foreground
+conductor --foreground
 
 # Run in background
-Start-Process midimon
+Start-Process conductor
 
 # Check status
-midimonctl status
+conductorctl status
 
 # Control daemon
-midimonctl reload  # Reload configuration
-midimonctl stop    # Stop daemon
+conductorctl reload  # Reload configuration
+conductorctl stop    # Stop daemon
 ```
 
 ### Auto-Start on Login
@@ -528,18 +528,18 @@ midimonctl stop    # Stop daemon
 **Option 1 - Scheduled Task**:
 ```powershell
 # Create scheduled task (run as Administrator)
-$action = New-ScheduledTaskAction -Execute "C:\Program Files\MIDIMon\midimon.exe"
+$action = New-ScheduledTaskAction -Execute "C:\Program Files\Conductor\conductor.exe"
 $trigger = New-ScheduledTaskTrigger -AtLogon
 $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
-Register-ScheduledTask -Action $action -Trigger $trigger -Principal $principal -TaskName "MIDIMon Daemon" -Description "Auto-start MIDIMon daemon on login"
+Register-ScheduledTask -Action $action -Trigger $trigger -Principal $principal -TaskName "Conductor Daemon" -Description "Auto-start Conductor daemon on login"
 ```
 
 **Option 2 - Startup Folder**:
 ```powershell
 # Create shortcut in Startup folder
 $WshShell = New-Object -comObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\MIDIMon.lnk")
-$Shortcut.TargetPath = "C:\Program Files\MIDIMon\midimon.exe"
+$Shortcut = $WshShell.CreateShortcut("$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\Conductor.lnk")
+$Shortcut.TargetPath = "C:\Program Files\Conductor\conductor.exe"
 $Shortcut.Save()
 ```
 
@@ -598,8 +598,8 @@ cargo build --release
 2. Test controller in Properties dialog
 3. Check battery level (wireless)
 4. Try USB connection instead of Bluetooth
-5. Run MIDIMon as Administrator (temporary test)
-6. Check debug output: `$env:DEBUG=1; midimon --foreground`
+5. Run Conductor as Administrator (temporary test)
+6. Check debug output: `$env:DEBUG=1; conductor --foreground`
 
 ---
 
@@ -610,7 +610,7 @@ cargo build --release
 2. Verify button IDs are in range 128-255 (not 0-127)
 3. Test controller in joy.cpl
 4. For PlayStation controllers, try DS4Windows
-5. Check that gamepad appears in `midimonctl status`
+5. Check that gamepad appears in `conductorctl status`
 
 ---
 
@@ -648,16 +648,16 @@ cargo build --release
 
 ### Windows Firewall
 
-If running MIDIMon across network (advanced):
+If running Conductor across network (advanced):
 
 ```powershell
-# Allow MIDIMon through firewall
-New-NetFirewallRule -DisplayName "MIDIMon" -Direction Inbound -Program "C:\Program Files\MIDIMon\midimon.exe" -Action Allow
+# Allow Conductor through firewall
+New-NetFirewallRule -DisplayName "Conductor" -Direction Inbound -Program "C:\Program Files\Conductor\conductor.exe" -Action Allow
 ```
 
 ## Next Steps
 
-Now that MIDIMon v3.0.0 is installed and running:
+Now that Conductor v3.0.0 is installed and running:
 
 ### For GUI Users
 1. **Learn the GUI**: Read [GUI Quick Start Guide](../getting-started/gui-quick-start.md)
@@ -668,7 +668,7 @@ Now that MIDIMon v3.0.0 is installed and running:
 
 ### For CLI Users
 1. **Daemon Control**: Read [Daemon & Hot-Reload Guide](../guides/daemon.md)
-2. **CLI Reference**: See [midimonctl Commands](../reference/cli.md)
+2. **CLI Reference**: See [conductorctl Commands](../reference/cli.md)
 3. **Manual Configuration**: Check [Configuration Overview](../configuration/overview.md)
 4. **Advanced Actions**: Explore [Actions Reference](../reference/actions.md)
 
@@ -683,7 +683,7 @@ If you encounter issues:
 
 1. Check [Common Issues](../troubleshooting/common-issues.md)
 2. Use [Diagnostic Tools](../troubleshooting/diagnostics.md)
-3. Enable debug logging: `$env:DEBUG=1; midimon --foreground`
+3. Enable debug logging: `$env:DEBUG=1; conductor --foreground`
 4. Check Event Viewer for errors
 5. File an issue on GitHub with:
    - Windows version

@@ -3,7 +3,7 @@
 **Since:** v2.5
 **Status:** Production-ready
 
-MIDIMon's WASM (WebAssembly) plugin system provides a secure, sandboxed environment for running third-party plugins with enterprise-grade safety guarantees.
+Conductor's WASM (WebAssembly) plugin system provides a secure, sandboxed environment for running third-party plugins with enterprise-grade safety guarantees.
 
 ## Overview
 
@@ -19,7 +19,7 @@ WASM plugins offer several advantages over native plugins:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  MIDIMon Core                                       │
+│  Conductor Core                                       │
 │  ┌───────────────────────────────────────────────┐ │
 │  │  WASM Runtime (wasmtime)                      │ │
 │  │  ┌─────────────────────────────────────────┐ │ │
@@ -85,8 +85,8 @@ WASM plugins offer several advantages over native plugins:
 
 **Directory Preopening:**
 - WASI filesystem isolated to specific directories
-- Default: `~/.local/share/midimon/plugin-data/` (Linux)
-- Default: `~/Library/Application Support/midimon/plugin-data/` (macOS)
+- Default: `~/.local/share/conductor/plugin-data/` (Linux)
+- Default: `~/Library/Application Support/conductor/plugin-data/` (macOS)
 - Plugins cannot access files outside sandbox
 
 ### Cryptographic Signatures (v2.7)
@@ -204,15 +204,15 @@ my-plugin/
 
 ```bash
 # Generate keypair (one-time)
-midimon-sign generate-key ~/.midimon/my-plugin-key
+conductor-sign generate-key ~/.conductor/my-plugin-key
 
 # Sign plugin
-midimon-sign sign my_plugin.wasm ~/.midimon/my-plugin-key \
+conductor-sign sign my_plugin.wasm ~/.conductor/my-plugin-key \
   --name "Your Name" \
   --email "you@example.com"
 
 # Verify signature
-midimon-sign verify my_plugin.wasm
+conductor-sign verify my_plugin.wasm
 ```
 
 ## Installation
@@ -220,10 +220,10 @@ midimon-sign verify my_plugin.wasm
 ### User Installation
 
 ```bash
-# Copy plugin to MIDIMon directory
-mkdir -p ~/.midimon/wasm-plugins/
-cp my_plugin.wasm ~/.midimon/wasm-plugins/
-cp my_plugin.wasm.sig ~/.midimon/wasm-plugins/  # v2.7
+# Copy plugin to Conductor directory
+mkdir -p ~/.conductor/wasm-plugins/
+cp my_plugin.wasm ~/.conductor/wasm-plugins/
+cp my_plugin.wasm.sig ~/.conductor/wasm-plugins/  # v2.7
 ```
 
 ### Configuration
@@ -233,7 +233,7 @@ cp my_plugin.wasm.sig ~/.midimon/wasm-plugins/  # v2.7
 [[modes.mappings]]
 trigger = { Note = { note = 60 } }
 action = { WasmPlugin = {
-    path = "~/.midimon/wasm-plugins/my_plugin.wasm",
+    path = "~/.conductor/wasm-plugins/my_plugin.wasm",
     params = {
         "action": "play"
     }
@@ -242,20 +242,20 @@ action = { WasmPlugin = {
 
 ## Official Plugins
 
-MIDIMon provides several official WASM plugins:
+Conductor provides several official WASM plugins:
 
 ### Spotify Control
-**File:** `midimon_wasm_spotify.wasm`
+**File:** `conductor_wasm_spotify.wasm`
 **Capabilities:** Network
 **Actions:** play, pause, next, previous, volume, shuffle, repeat
 
 ### OBS Studio Control
-**File:** `midimon_wasm_obs_control.wasm`
+**File:** `conductor_wasm_obs_control.wasm`
 **Capabilities:** Network
 **Actions:** scene switching, recording, streaming, mute/unmute
 
 ### System Utilities
-**File:** `midimon_wasm_system_utils.wasm`
+**File:** `conductor_wasm_system_utils.wasm`
 **Capabilities:** SystemControl
 **Actions:** lock screen, sleep, notifications, brightness
 
@@ -310,13 +310,13 @@ config.max_memory_bytes = 256 * 1024 * 1024;  // 256 MB
 
 ```bash
 # Verify signature manually
-midimon-sign verify my_plugin.wasm
+conductor-sign verify my_plugin.wasm
 
 # Check if key is trusted
-midimon-sign trust list
+conductor-sign trust list
 
 # Add key to trusted list
-midimon-sign trust add <public-key-hex> "Plugin Author"
+conductor-sign trust add <public-key-hex> "Plugin Author"
 ```
 
 ## Next Steps

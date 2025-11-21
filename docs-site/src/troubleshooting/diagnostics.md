@@ -2,7 +2,7 @@
 
 ## Overview
 
-MIDIMon includes a comprehensive suite of diagnostic tools for debugging connectivity, event processing, LED control, and configuration issues. This guide covers each tool in detail and provides systematic troubleshooting procedures.
+Conductor includes a comprehensive suite of diagnostic tools for debugging connectivity, event processing, LED control, and configuration issues. This guide covers each tool in detail and provides systematic troubleshooting procedures.
 
 ## Quick Diagnostic Checklist
 
@@ -98,7 +98,7 @@ Connection test: FAILED
 - First step in any MIDI troubleshooting
 - After connecting a new device
 - After driver installation
-- Verifying port numbers before running midimon
+- Verifying port numbers before running conductor
 
 ### 2. midi_diagnostic - MIDI Event Monitor
 
@@ -288,7 +288,7 @@ Opening HID device...
   Solutions:
   1. Grant Input Monitoring permission:
      System Settings → Privacy & Security → Input Monitoring
-     Enable Terminal or midimon
+     Enable Terminal or conductor
 
   2. Close other applications using the device:
      - Native Instruments Controller Editor
@@ -924,7 +924,7 @@ Latency = 1.3ms (excellent, <5ms is good)
 **macOS**:
 ```bash
 # Monitor CPU in real-time
-top | grep midimon
+top | grep conductor
 
 # Or use Activity Monitor GUI
 open -a "Activity Monitor"
@@ -941,7 +941,7 @@ open -a "Activity Monitor"
 
 ```bash
 # macOS
-ps aux | grep midimon
+ps aux | grep conductor
 
 # Expected RSS: 5-10 MB
 ```
@@ -954,35 +954,35 @@ ps aux | grep midimon
 
 **Save all output**:
 ```bash
-cargo run --release 2 > midimon.log 2>&1
+cargo run --release 2 > conductor.log 2>&1
 ```
 
 **Save only errors**:
 ```bash
-cargo run --release 2 2> midimon.err
+cargo run --release 2 2> conductor.err
 ```
 
 **Separate stdout and stderr**:
 ```bash
-cargo run --release 2 > midimon.out 2> midimon.err
+cargo run --release 2 > conductor.out 2> conductor.err
 ```
 
 ### Analyzing Logs
 
 **Count events**:
 ```bash
-grep -c "NoteOn" midimon.log
+grep -c "NoteOn" conductor.log
 ```
 
 **Find errors**:
 ```bash
-grep -i error midimon.log
-grep -i failed midimon.log
+grep -i error conductor.log
+grep -i failed conductor.log
 ```
 
 **Extract timings**:
 ```bash
-grep "Action executed" midimon.log | sed 's/.*(\(.*\)ms).*/\1/'
+grep "Action executed" conductor.log | sed 's/.*(\(.*\)ms).*/\1/'
 ```
 
 ## See Also

@@ -1,6 +1,6 @@
 # MIDI Output Troubleshooting
 
-This guide helps you diagnose and resolve common issues with MIDIMon's MIDI output functionality, including SendMIDI actions, virtual MIDI ports, and DAW integration.
+This guide helps you diagnose and resolve common issues with Conductor's MIDI output functionality, including SendMIDI actions, virtual MIDI ports, and DAW integration.
 
 ## Quick Diagnostic Checklist
 
@@ -8,8 +8,8 @@ Before diving into specific issues, run through this quick checklist:
 
 - [ ] Virtual MIDI port is created and online (IAC Driver, loopMIDI, ALSA)
 - [ ] DAW has MIDI input enabled for the virtual port
-- [ ] MIDIMon config specifies the correct port name (case-sensitive)
-- [ ] MIDI messages are being sent (check `midimon --verbose` logs)
+- [ ] Conductor config specifies the correct port name (case-sensitive)
+- [ ] MIDI messages are being sent (check `conductor --verbose` logs)
 - [ ] DAW is receiving MIDI (check DAW's MIDI monitor)
 - [ ] Correct MIDI channel is used (usually Channel 0)
 - [ ] No other applications are blocking the MIDI port
@@ -27,7 +27,7 @@ Available ports: []
 **Possible Causes**:
 1. Virtual MIDI port not created or offline
 2. Port name mismatch (case-sensitive)
-3. MIDIMon started before port was created
+3. Conductor started before port was created
 4. Permissions issue (Linux/Windows)
 
 **Solutions**:
@@ -46,14 +46,14 @@ Available ports: []
 
 2. **List available MIDI ports** to verify the exact name:
    ```bash
-   # Use midimon diagnostic tool
+   # Use conductor diagnostic tool
    cargo run --bin test_midi
    ```
 
-3. **Restart MIDIMon daemon**:
+3. **Restart Conductor daemon**:
    ```bash
-   midimonctl stop
-   midimon
+   conductorctl stop
+   conductor
    ```
 
 #### Windows (loopMIDI)
@@ -64,7 +64,7 @@ Available ports: []
 
 2. **Verify port exists** in loopMIDI:
    - Open loopMIDI application
-   - Ensure at least one port is listed (e.g., "MIDIMon Virtual")
+   - Ensure at least one port is listed (e.g., "Conductor Virtual")
 
 3. **Check exact port name** (case-sensitive):
    - Note the exact name shown in loopMIDI
@@ -72,13 +72,13 @@ Available ports: []
      ```toml
      [modes.mappings.action.then_action]
      type = "SendMIDI"
-     port = "MIDIMon Virtual"  # Must match exactly
+     port = "Conductor Virtual"  # Must match exactly
      ```
 
-4. **Restart MIDIMon**:
+4. **Restart Conductor**:
    ```bash
-   midimonctl stop
-   midimon
+   conductorctl stop
+   conductor
    ```
 
 #### Linux (ALSA)
@@ -114,15 +114,15 @@ Available ports: []
 ### Issue 2: Messages Sent But Not Received by DAW
 
 **Symptoms**:
-- MIDIMon logs show messages being sent
+- Conductor logs show messages being sent
 - DAW doesn't respond (no transport control, no parameter changes)
 - No error messages
 
 **Diagnosis**:
 
-1. **Enable verbose logging** in MIDIMon:
+1. **Enable verbose logging** in Conductor:
    ```bash
-   midimon --verbose
+   conductor --verbose
    ```
    Look for lines like:
    ```
@@ -241,11 +241,11 @@ channel = 0  # Change to match DAW expectations
 2. Freeze/bounce tracks in DAW to reduce CPU usage
 3. Increase audio buffer size if CPU is maxed out (trade latency for stability)
 
-#### Cause 4: MIDIMon Processing Delay
+#### Cause 4: Conductor Processing Delay
 
-**Diagnosis**: Check MIDIMon logs for processing time:
+**Diagnosis**: Check Conductor logs for processing time:
 ```bash
-midimon --verbose
+conductor --verbose
 ```
 
 If you see warnings about slow processing, check:
@@ -261,7 +261,7 @@ If you see warnings about slow processing, check:
 
 **Symptoms**:
 - DAW receives MIDI from a different source
-- MIDIMon logs show correct port, but DAW sees different port
+- Conductor logs show correct port, but DAW sees different port
 
 **Possible Causes & Solutions**:
 
@@ -270,7 +270,7 @@ If you see warnings about slow processing, check:
 **Solution**: List all available MIDI ports and verify exact name:
 
 ```bash
-# Use MIDIMon diagnostic tool
+# Use Conductor diagnostic tool
 cargo run --bin test_midi
 ```
 
@@ -288,7 +288,7 @@ port = "IAC Driver Bus 1"  # Not "IAC Driver Bus 2"
 
 **Windows (loopMIDI)**:
 - If you renamed the port in loopMIDI, update your config
-- Restart MIDIMon after renaming
+- Restart Conductor after renaming
 
 ---
 
@@ -391,13 +391,13 @@ note = 1
 
 #### Permissions Issues with HID Device
 
-**Problem**: MIDIMon can't access MIDI controller hardware.
+**Problem**: Conductor can't access MIDI controller hardware.
 
 **Solution**:
 1. Grant **Input Monitoring** permissions:
    - **System Settings → Privacy & Security → Input Monitoring**
    - Enable for Terminal (if running `cargo run`)
-2. Restart MIDIMon
+2. Restart Conductor
 
 ### Windows Specific
 
@@ -409,7 +409,7 @@ note = 1
 1. Ensure loopMIDI is set to **start with Windows**:
    - Right-click loopMIDI tray icon → Settings → **Start with Windows**
 2. If port disappears, restart loopMIDI application
-3. Restart MIDIMon daemon
+3. Restart Conductor daemon
 
 #### Multiple MIDI Drivers Conflict
 
@@ -424,7 +424,7 @@ note = 1
 
 #### ALSA Permissions Denied
 
-**Problem**: MIDIMon can't access ALSA virtual MIDI ports.
+**Problem**: Conductor can't access ALSA virtual MIDI ports.
 
 **Solution**:
 ```bash
@@ -439,7 +439,7 @@ groups | grep audio
 
 #### JACK MIDI vs ALSA
 
-**Problem**: DAW uses JACK MIDI, but MIDIMon uses ALSA.
+**Problem**: DAW uses JACK MIDI, but Conductor uses ALSA.
 
 **Solution**:
 1. Bridge ALSA to JACK using `a2jmidid`:
@@ -454,12 +454,12 @@ groups | grep audio
 
 ## Advanced Debugging
 
-### Enable MIDIMon Debug Logging
+### Enable Conductor Debug Logging
 
-Run MIDIMon with verbose logging to see detailed MIDI output:
+Run Conductor with verbose logging to see detailed MIDI output:
 
 ```bash
-midimon --verbose
+conductor --verbose
 ```
 
 **What to look for**:
@@ -490,17 +490,17 @@ midimon --verbose
 
 Create a loopback test to verify MIDI output is working:
 
-1. **Route virtual output back to MIDIMon input** (macOS):
+1. **Route virtual output back to Conductor input** (macOS):
    - Audio MIDI Setup → IAC Driver
-   - Create two buses: "MIDIMon Out" and "MIDIMon In"
-   - Configure MIDIMon to send to "MIDIMon Out"
-   - Configure MIDIMon to receive from "MIDIMon In"
+   - Create two buses: "Conductor Out" and "Conductor In"
+   - Configure Conductor to send to "Conductor Out"
+   - Configure Conductor to receive from "Conductor In"
    - Use a MIDI routing app to bridge them
 
 2. **Send a test message**:
    ```bash
    # Press a pad and verify it's received on the input
-   midimon --verbose
+   conductor --verbose
    ```
 
 ---
@@ -514,29 +514,29 @@ If you've tried all troubleshooting steps and still have issues:
    # List MIDI ports
    cargo run --bin test_midi > midi_ports.txt
 
-   # Run MIDIMon with verbose logging
-   midimon --verbose 2>&1 | tee midimon_debug.log
+   # Run Conductor with verbose logging
+   conductor --verbose 2>&1 | tee conductor_debug.log
 
    # (Press pads to trigger actions)
 
    # Stop after 30 seconds
-   midimonctl stop
+   conductorctl stop
    ```
 
 2. **Check configuration**:
    ```bash
-   cat ~/.config/midimon/config.toml
+   cat ~/.config/conductor/config.toml
    ```
 
 3. **Report the issue**:
-   - GitHub: https://github.com/amiable-dev/midimon/issues
+   - GitHub: https://github.com/amiable-dev/conductor/issues
    - Include:
      - Platform (macOS, Windows, Linux)
-     - MIDIMon version (`midimon --version`)
+     - Conductor version (`conductor --version`)
      - DAW name and version
      - MIDI port name
      - Relevant config.toml sections
-     - Debug logs (midimon_debug.log)
+     - Debug logs (conductor_debug.log)
      - midi_ports.txt
 
 ---

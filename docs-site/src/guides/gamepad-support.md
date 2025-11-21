@@ -6,7 +6,7 @@
 
 ## Overview
 
-MIDIMon v3.0 introduces full support for gamepad controllers, allowing you to use Xbox, PlayStation, Nintendo Switch Pro, and other SDL-compatible gamepads as macro input devices alongside MIDI controllers.
+Conductor v3.0 introduces full support for gamepad controllers, allowing you to use Xbox, PlayStation, Nintendo Switch Pro, and other SDL-compatible gamepads as macro input devices alongside MIDI controllers.
 
 ## Quick Start
 
@@ -14,7 +14,7 @@ MIDIMon v3.0 introduces full support for gamepad controllers, allowing you to us
 
 1. Connect your gamepad via USB or Bluetooth
 2. Ensure it's recognized by your system
-3. MIDIMon will automatically detect compatible gamepads
+3. Conductor will automatically detect compatible gamepads
 
 **Supported Controllers**:
 - Xbox 360, Xbox One, Xbox Series X|S
@@ -27,7 +27,7 @@ MIDIMon v3.0 introduces full support for gamepad controllers, allowing you to us
 The quickest way to get started is using a pre-configured template:
 
 **Via GUI** (Recommended):
-1. Open MIDIMon GUI
+1. Open Conductor GUI
 2. Navigate to "Device Templates"
 3. Filter by "Gamepad Controllers"
 4. Select your controller (Xbox, PlayStation, or Switch Pro)
@@ -41,8 +41,8 @@ Copy one of the example configs from `config/examples/`:
 ### 3. Start Using
 
 ```bash
-# Start MIDIMon daemon
-midimon --foreground
+# Start Conductor daemon
+conductor --foreground
 
 # Your gamepad is now ready to trigger actions!
 ```
@@ -152,7 +152,7 @@ operation = "Up"
 
 ### Standard Gamepad Layout
 
-MIDIMon uses a unified button ID scheme across all gamepads:
+Conductor uses a unified button ID scheme across all gamepads:
 
 #### Face Buttons (128-131)
 
@@ -225,7 +225,7 @@ MIDIMon uses a unified button ID scheme across all gamepads:
 
 ### Pattern Detection
 
-MIDIMon automatically detects advanced button patterns:
+Conductor automatically detects advanced button patterns:
 
 #### Double-Tap
 Press the same button twice within 300ms.
@@ -256,10 +256,10 @@ duration_ms = 2000
 MIDI Learn now supports gamepad inputs:
 
 **Via GUI**:
-1. Open MIDIMon GUI
+1. Open Conductor GUI
 2. Click "Learn" next to any mapping
 3. Press a button or move a stick on your gamepad
-4. MIDIMon automatically generates the correct trigger config
+4. Conductor automatically generates the correct trigger config
 
 **Pattern Detection**:
 - Press button once → GamepadButton
@@ -403,7 +403,7 @@ keys = "DownArrow"  # Scroll down
 **Check connection**:
 ```bash
 # List connected gamepads
-midimonctl status
+conductorctl status
 
 # Check system recognition
 # macOS: System Settings > Game Controllers
@@ -497,7 +497,7 @@ chord_timeout_ms = 100  # Increase from 50ms
 
 Complete examples available in:
 - `config/examples/gamepad-xbox-basic.toml`
-- Device templates in MIDIMon GUI
+- Device templates in Conductor GUI
 - See [Configuration Examples](../configuration/examples.md)
 
 ## Further Reading
@@ -512,6 +512,6 @@ Complete examples available in:
 
 **Need Help?**
 
-- GitHub Issues: https://github.com/amiable/midimon/issues
-- Documentation: https://midimon.dev/docs
+- GitHub Issues: https://github.com/amiable/conductor/issues
+- Documentation: https://conductor.dev/docs
 - Examples: `config/examples/`

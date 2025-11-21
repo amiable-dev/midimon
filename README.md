@@ -1,10 +1,10 @@
-# MIDIMon
+# Conductor
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
-[![Build Status](https://github.com/amiable-dev/midimon/workflows/CI/badge.svg)](https://github.com/amiable-dev/midimon/actions)
-[![codecov](https://codecov.io/gh/amiable-dev/midimon/branch/main/graph/badge.svg)](https://codecov.io/gh/amiable-dev/midimon)
-[![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://amiable-dev.github.io/midimon/)
+[![Build Status](https://github.com/amiable-dev/conductor/workflows/CI/badge.svg)](https://github.com/amiable-dev/conductor/actions)
+[![codecov](https://codecov.io/gh/amiable-dev/conductor/branch/main/graph/badge.svg)](https://codecov.io/gh/amiable-dev/conductor)
+[![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://amiable-dev.github.io/conductor/)
 
 Transform MIDI controllers and game controllers into advanced macro pads with multi-protocol input, velocity sensitivity, LED feedback, daemon architecture, and visual configuration GUI.
 
@@ -12,14 +12,14 @@ Transform MIDI controllers and game controllers into advanced macro pads with mu
 **v2.0.0**: Full-featured Tauri GUI with MIDI Learn, per-app profiles, device templates, and live event console
 **v1.0.0**: Production-ready daemon with 0-10ms config reloads, IPC control, and auto-start support
 
-![MIDIMon Demo](docs/images/hero-demo.gif)
+![Conductor Demo](docs/images/hero-demo.gif)
 *Velocity-sensitive RGB LED feedback on Native Instruments Maschine Mikro MK3*
 
 ## Features
 
 ### Multi-Protocol Input (v3.0.0 NEW!)
 
-MIDIMon now supports multiple input protocols through a unified input system:
+Conductor now supports multiple input protocols through a unified input system:
 
 #### MIDI Controllers (v1.0+)
 - **Full MIDI Support** - All MIDI message types (Note, CC, Aftertouch, Pitch Bend)
@@ -55,7 +55,7 @@ MIDIMon now supports multiple input protocols through a unified input system:
 ### Core Features
 - **Background Daemon** - Runs as a system service with auto-start
 - **Hot-Reload** - Configuration changes detected and applied in 0-10ms
-- **IPC Control** - Control daemon via `midimonctl` CLI or GUI
+- **IPC Control** - Control daemon via `conductorctl` CLI or GUI
 - **Multi-mode operation** - Switch between different mapping sets
 - **Configurable mappings** - Visual editor or TOML-based configuration
 - **Ultra-low latency** - Sub-millisecond input response, <20ms config reload
@@ -127,21 +127,21 @@ MIDIMon now supports multiple input protocols through a unified input system:
 ### From Binary (Recommended)
 
 Download the latest release for your platform:
-- [macOS (Intel)](https://github.com/amiable-dev/midimon/releases/latest/download/midimon-macos-intel)
-- [macOS (Apple Silicon)](https://github.com/amiable-dev/midimon/releases/latest/download/midimon-macos-arm)
-- [Linux (x86_64)](https://github.com/amiable-dev/midimon/releases/latest/download/midimon-linux-x86_64)
+- [macOS (Intel)](https://github.com/amiable-dev/conductor/releases/latest/download/conductor-macos-intel)
+- [macOS (Apple Silicon)](https://github.com/amiable-dev/conductor/releases/latest/download/conductor-macos-arm)
+- [Linux (x86_64)](https://github.com/amiable-dev/conductor/releases/latest/download/conductor-linux-x86_64)
 
 ```bash
 # Install binaries
-sudo install -m 755 midimon /usr/local/bin/
-sudo install -m 755 midimonctl /usr/local/bin/
+sudo install -m 755 conductor /usr/local/bin/
+sudo install -m 755 conductorctl /usr/local/bin/
 
 # macOS: Install as LaunchAgent
-launchctl load ~/Library/LaunchAgents/com.amiable.midimon.plist
+launchctl load ~/Library/LaunchAgents/com.amiable.conductor.plist
 
 # Linux: Install as systemd service
-systemctl --user enable midimon
-systemctl --user start midimon
+systemctl --user enable conductor
+systemctl --user start conductor
 ```
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for complete installation and service setup guides.
@@ -150,47 +150,47 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for complete installation and service setup g
 
 ```bash
 # Clone the repository
-git clone https://github.com/amiable-dev/midimon.git
-cd midimon
+git clone https://github.com/amiable-dev/conductor.git
+cd conductor
 
 # Build the workspace (all 3 packages)
 cargo build --release --workspace
 
 # Install binaries
-sudo install -m 755 target/release/midimon /usr/local/bin/
-sudo install -m 755 target/release/midimonctl /usr/local/bin/
+sudo install -m 755 target/release/conductor /usr/local/bin/
+sudo install -m 755 target/release/conductorctl /usr/local/bin/
 
 # Install man pages
 sudo mkdir -p /usr/local/share/man/man1
-sudo install -m 644 midimon-daemon/docs/*.1 /usr/local/share/man/man1/
+sudo install -m 644 conductor-daemon/docs/*.1 /usr/local/share/man/man1/
 ```
 
 **Workspace Structure** (v1.0.0):
 
-MIDIMon uses a modular 3-package Cargo workspace:
+Conductor uses a modular 3-package Cargo workspace:
 
 ```
-midimon/
-├── midimon-core/       # Pure Rust engine library
+conductor/
+├── conductor-core/       # Pure Rust engine library
 │   ├── Public API for embedding (30+ types)
 │   ├── Zero UI dependencies
 │   └── Event processing, mapping, actions
-├── midimon-daemon/     # Background daemon + diagnostic tools
-│   ├── Main daemon binary (midimon)
-│   ├── CLI control tool (midimonctl)
+├── conductor-daemon/     # Background daemon + diagnostic tools
+│   ├── Main daemon binary (conductor)
+│   ├── CLI control tool (conductorctl)
 │   └── 6 diagnostic binaries
-└── midimon/            # Backward compatibility layer
-    └── Re-exports midimon-core (v0.1.0 tests only)
+└── conductor/            # Backward compatibility layer
+    └── Re-exports conductor-core (v0.1.0 tests only)
 ```
 
 **Package Guide**:
-- **Use midimon-core** when embedding MIDIMon as a library
-- **Use midimon-daemon** for standalone CLI/daemon usage
-- **Use midimon (root)** only for v0.1.0 backward compatibility
+- **Use conductor-core** when embedding Conductor as a library
+- **Use conductor-daemon** for standalone CLI/daemon usage
+- **Use conductor (root)** only for v0.1.0 backward compatibility
 
 **Public API Example**:
 ```rust
-use midimon_core::{Config, MappingEngine, EventProcessor, ActionExecutor};
+use conductor_core::{Config, MappingEngine, EventProcessor, ActionExecutor};
 
 let config = Config::load("config.toml")?;
 let mut engine = MappingEngine::new();
@@ -203,8 +203,8 @@ let mut engine = MappingEngine::new();
 cargo build --workspace
 
 # Build specific package
-cargo build -p midimon-core
-cargo build -p midimon-daemon
+cargo build -p conductor-core
+cargo build -p conductor-daemon
 
 # Test workspace
 cargo test --workspace
@@ -221,20 +221,20 @@ cargo test --workspace
 #### Daemon Mode (Recommended)
 
 1. **Install binaries** (see Installation above)
-2. **Create config** at `~/.config/midimon/config.toml`
+2. **Create config** at `~/.config/conductor/config.toml`
 3. **Start daemon**:
    ```bash
    # macOS
-   launchctl load ~/Library/LaunchAgents/com.amiable.midimon.plist
+   launchctl load ~/Library/LaunchAgents/com.amiable.conductor.plist
 
    # Linux
-   systemctl --user start midimon
+   systemctl --user start conductor
    ```
 4. **Control daemon**:
    ```bash
-   midimonctl status   # Check daemon status
-   midimonctl reload   # Reload configuration
-   midimonctl ping     # Test connectivity
+   conductorctl status   # Check daemon status
+   conductorctl reload   # Reload configuration
+   conductorctl ping     # Test connectivity
    ```
 5. **Edit config** - Changes are auto-detected and reloaded in <10ms!
 
@@ -244,7 +244,7 @@ cargo test --workspace
 2. **Install necessary drivers** (Native Instruments Controller Editor for NI devices)
 3. **Run directly**:
    ```bash
-   midimon --config config.toml --log-level debug
+   conductor --config config.toml --log-level debug
    ```
 4. **Press pads** to trigger macros!
 
@@ -252,7 +252,7 @@ cargo test --workspace
 
 For gamepads with official templates (Xbox, PlayStation, Switch Pro):
 
-1. **Open MIDIMon GUI** (or use CLI with template config)
+1. **Open Conductor GUI** (or use CLI with template config)
 2. **Select Device Template**:
    - Navigate to "Device Templates" section
    - Filter by category: "Gamepad Controllers"
@@ -284,11 +284,11 @@ For joysticks, racing wheels, HOTAS, or custom controllers:
 1. **Create Base Configuration**:
    ```bash
    # Start with minimal config
-   cp config/examples/gamepad-basic.toml ~/.config/midimon/config.toml
+   cp config/examples/gamepad-basic.toml ~/.config/conductor/config.toml
    ```
 
 2. **Use MIDI Learn to Map Buttons**:
-   - Open MIDIMon GUI
+   - Open Conductor GUI
    - Enable "MIDI Learn" mode
    - Click on a mapping you want to configure
    - Press the button/axis on your controller
@@ -324,7 +324,7 @@ For joysticks, racing wheels, HOTAS, or custom controllers:
 
 4. **Test Your Configuration**:
    ```bash
-   midimonctl reload
+   conductorctl reload
    # Move sticks, press buttons to trigger actions
    ```
 
@@ -494,35 +494,35 @@ action = "Up"
 
 ## Daemon Control
 
-### midimonctl CLI
+### conductorctl CLI
 
 Control the daemon from the command line:
 
 ```bash
 # Check daemon status
-midimonctl status
+conductorctl status
 
 # Reload configuration
-midimonctl reload
+conductorctl reload
 
 # Test connectivity
-midimonctl ping
+conductorctl ping
 
 # Stop daemon
-midimonctl stop
+conductorctl stop
 
 # Validate config before applying
-midimonctl validate --config new-config.toml
+conductorctl validate --config new-config.toml
 
 # JSON output for scripting
-midimonctl --json status | jq .data.uptime_secs
+conductorctl --json status | jq .data.uptime_secs
 ```
 
 ### Performance Monitoring
 
 ```bash
 # View reload performance
-midimonctl status | grep -A5 "Reload Performance"
+conductorctl status | grep -A5 "Reload Performance"
 
 # Output includes:
 # - Last reload time (ms)
@@ -531,7 +531,7 @@ midimonctl status | grep -A5 "Reload Performance"
 # - Performance grade (A-F)
 ```
 
-See `man midimonctl` for full command reference.
+See `man conductorctl` for full command reference.
 
 ## Diagnostic Tools
 
@@ -598,7 +598,7 @@ Switch modes using:
 1. Check if gamepad is connected and recognized by OS
 2. Test with system gamepad settings or Steam Big Picture
 3. Ensure SDL2-compatible drivers are installed
-4. Check debug output: `midimon --log-level debug`
+4. Check debug output: `conductor --log-level debug`
 5. Verify gamepad shows in system controller list
 
 ### High Latency
@@ -647,7 +647,7 @@ app = "Terminal"
 
 ### Project Structure
 ```
-midimon/
+conductor/
 ├── src/
 │   ├── main.rs           # Main application
 │   ├── config.rs         # Configuration structures
@@ -683,7 +683,7 @@ midimon/
 
 Run benchmarks:
 ```bash
-cargo bench --package midimon-daemon
+cargo bench --package conductor-daemon
 ```
 
 Typical benchmark results (Apple M1):
@@ -702,34 +702,34 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - Coding standards
 - Pull request process
 
-Check out [good first issues](https://github.com/amiable-dev/midimon/labels/good-first-issue) to get started.
+Check out [good first issues](https://github.com/amiable-dev/conductor/labels/good-first-issue) to get started.
 
 ## Documentation
 
 - **[Deployment Guide](DEPLOYMENT.md)** - Complete installation and service setup
-- **[Full Documentation](https://amiable-dev.github.io/midimon/)** - Complete user guide
+- **[Full Documentation](https://amiable-dev.github.io/conductor/)** - Complete user guide
 - **[LED Feedback System](LED_FEEDBACK.md)** - LED control documentation
 - **[Configuration Reference](docs/configuration.md)** - TOML configuration guide
-- **[API Documentation](https://docs.rs/midimon)** - Rust API docs
-- **Man Pages**: `man midimon`, `man midimonctl`
+- **[API Documentation](https://docs.rs/conductor)** - Rust API docs
+- **Man Pages**: `man conductor`, `man conductorctl`
 
 ## Community & Support
 
-- **[Discussions](https://github.com/amiable-dev/midimon/discussions)** - Ask questions, share configs
-- **[Issues](https://github.com/amiable-dev/midimon/issues)** - Bug reports, feature requests
+- **[Discussions](https://github.com/amiable-dev/conductor/discussions)** - Ask questions, share configs
+- **[Issues](https://github.com/amiable-dev/conductor/issues)** - Bug reports, feature requests
 - **[Security](SECURITY.md)** - Security vulnerability reporting
 
 ## Roadmap
 
 ### ✅ Phase 1 - v0.2.0 (Complete)
-- Workspace architecture (midimon-core, midimon-daemon, midimon)
+- Workspace architecture (conductor-core, conductor-daemon, conductor)
 - Pure Rust engine library with zero UI dependencies
 - 339 tests, all passing
 
 ### ✅ Phase 2 - v1.0.0 (Complete)
 - Background daemon with IPC server
 - Config hot-reload with 0-10ms latency
-- CLI control tool (midimonctl)
+- CLI control tool (conductorctl)
 - systemd/launchd integration
 - Comprehensive documentation and deployment guides
 
@@ -760,11 +760,11 @@ Check out [good first issues](https://github.com/amiable-dev/midimon/labels/good
 - AI-powered natural language configuration
 - Workflow pattern recognition
 
-See [.research/](https://github.com/amiable-dev/midimon/tree/main/.research) for detailed implementation proposals.
+See [.research/](https://github.com/amiable-dev/conductor/tree/main/.research) for detailed implementation proposals.
 
 ## License
 
-MIDIMon is licensed under the [MIT License](LICENSE).
+Conductor is licensed under the [MIT License](LICENSE).
 
 Copyright (c) 2025 Amiable
 

@@ -2,10 +2,10 @@
 
 ## Overview
 
-This guide walks through installing and configuring MIDIMon v3.0.0 on Linux. MIDIMon now includes multi-protocol input support (MIDI controllers + game controllers), a background daemon service with systemd integration, and a modern Tauri-based GUI for visual configuration.
+This guide walks through installing and configuring Conductor v3.0.0 on Linux. Conductor now includes multi-protocol input support (MIDI controllers + game controllers), a background daemon service with systemd integration, and a modern Tauri-based GUI for visual configuration.
 
 **Installation Options**:
-- **Option 1 (Recommended)**: Download pre-built binaries from [GitHub Releases](https://github.com/amiable-dev/midimon/releases)
+- **Option 1 (Recommended)**: Download pre-built binaries from [GitHub Releases](https://github.com/amiable-dev/conductor/releases)
 - **Option 2**: Build from source (developers/advanced users)
 
 Installation takes approximately 15-20 minutes.
@@ -19,30 +19,30 @@ Installation takes approximately 15-20 minutes.
 
 ## Option 1: Install Pre-Built Binaries (Recommended)
 
-### 1. Download MIDIMon
+### 1. Download Conductor
 
-Visit the [Releases Page](https://github.com/amiable-dev/midimon/releases/latest) and download:
+Visit the [Releases Page](https://github.com/amiable-dev/conductor/releases/latest) and download:
 
 **For GUI + Daemon (Recommended)**:
-- `midimon-gui-linux-x86_64.tar.gz` - GUI application with daemon
-- **OR** download daemon separately: `midimon-x86_64-unknown-linux-gnu.tar.gz`
+- `conductor-gui-linux-x86_64.tar.gz` - GUI application with daemon
+- **OR** download daemon separately: `conductor-x86_64-unknown-linux-gnu.tar.gz`
 
 ### 2. Install the Binaries
 
 ```bash
 # Extract the archive
-tar xzf midimon-x86_64-unknown-linux-gnu.tar.gz
+tar xzf conductor-x86_64-unknown-linux-gnu.tar.gz
 
 # Make binaries executable
-chmod +x midimon midimonctl
+chmod +x conductor conductorctl
 
 # Move to PATH
-sudo install -m 755 midimon /usr/local/bin/
-sudo install -m 755 midimonctl /usr/local/bin/
+sudo install -m 755 conductor /usr/local/bin/
+sudo install -m 755 conductorctl /usr/local/bin/
 
 # Verify installation
-midimon --version
-midimonctl --version
+conductor --version
+conductorctl --version
 ```
 
 ### 3. Install systemd Service (Optional)
@@ -52,14 +52,14 @@ midimonctl --version
 mkdir -p ~/.config/systemd/user
 
 # Create service file
-cat > ~/.config/systemd/user/midimon.service << 'EOF'
+cat > ~/.config/systemd/user/conductor.service << 'EOF'
 [Unit]
-Description=MIDIMon Daemon - MIDI and Gamepad Macro Controller
+Description=Conductor Daemon - MIDI and Gamepad Macro Controller
 After=network.target sound.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/midimon --foreground
+ExecStart=/usr/local/bin/conductor --foreground
 Restart=on-failure
 RestartSec=5s
 
@@ -69,11 +69,11 @@ EOF
 
 # Reload systemd and enable service
 systemctl --user daemon-reload
-systemctl --user enable midimon
-systemctl --user start midimon
+systemctl --user enable conductor
+systemctl --user start conductor
 
 # Check status
-systemctl --user status midimon
+systemctl --user status conductor
 ```
 
 **Skip to [Hardware Requirements](#hardware-requirements)**
@@ -86,7 +86,7 @@ systemctl --user status midimon
 
 #### 1. Hardware Requirements
 
-MIDIMon v3.0 supports two types of input devices:
+Conductor v3.0 supports two types of input devices:
 
 **MIDI Controllers**:
 - Native Instruments Maschine Mikro MK3 (recommended, full RGB LED support)
@@ -100,13 +100,13 @@ MIDIMon v3.0 supports two types of input devices:
 - HOTAS: Hands On Throttle And Stick systems
 - Custom Controllers: Any SDL2-compatible HID device
 
-You need at least one MIDI controller OR one game controller to use MIDIMon. Both can be used simultaneously.
+You need at least one MIDI controller OR one game controller to use Conductor. Both can be used simultaneously.
 
 #### 2. Software Requirements
 
 **Rust Toolchain** (for building from source):
 
-MIDIMon is written in Rust and requires the Rust compiler and Cargo build system.
+Conductor is written in Rust and requires the Rust compiler and Cargo build system.
 
 **Check if Rust is already installed**:
 ```bash
@@ -134,7 +134,7 @@ cargo --version  # Should show: cargo 1.75.0 (or later)
 
 **SDL2 Library** (for game controllers):
 
-SDL2 is included via the `gilrs` v0.10 Rust crate. No additional installation required - it's built into MIDIMon automatically.
+SDL2 is included via the `gilrs` v0.10 Rust crate. No additional installation required - it's built into Conductor automatically.
 
 #### 3. Platform-Specific Requirements
 
@@ -199,7 +199,7 @@ jstest /dev/input/js0
 Create udev rules to allow non-root access to HID devices:
 
 ```bash
-sudo tee /etc/udev/rules.d/50-midimon.rules << 'EOF'
+sudo tee /etc/udev/rules.d/50-conductor.rules << 'EOF'
 # Native Instruments Maschine Mikro MK3
 SUBSYSTEM=="usb", ATTRS{idVendor}=="17cc", ATTRS{idProduct}=="1600", MODE="0666", GROUP="plugdev"
 
@@ -246,8 +246,8 @@ groups | grep -E "plugdev|input"
 cd ~/projects  # or wherever you keep code
 
 # Clone the repository
-git clone https://github.com/amiable-dev/midimon.git
-cd midimon
+git clone https://github.com/amiable-dev/conductor.git
+cd conductor
 ```
 
 #### 2. Build the Daemon
@@ -258,15 +258,15 @@ cd midimon
 cargo build --release --workspace
 
 # Or build just the daemon binary
-cargo build --release --package midimon-daemon
+cargo build --release --package conductor-daemon
 ```
 
-The release build takes 2-5 minutes on modern hardware and produces an optimized binary (~3-5MB) in `target/release/midimon`.
+The release build takes 2-5 minutes on modern hardware and produces an optimized binary (~3-5MB) in `target/release/conductor`.
 
 **Build output**:
 ```
-   Compiling midimon-core v3.0.0 (/home/you/projects/midimon/midimon-core)
-   Compiling midimon-daemon v3.0.0 (/home/you/projects/midimon/midimon-daemon)
+   Compiling conductor-core v3.0.0 (/home/you/projects/conductor/conductor-core)
+   Compiling conductor-daemon v3.0.0 (/home/you/projects/conductor/conductor-daemon)
     Finished release [optimized] target(s) in 2m 14s
 ```
 
@@ -281,7 +281,7 @@ sudo apt install -y nodejs npm
 sudo dnf install -y nodejs npm
 
 # Install frontend dependencies
-cd midimon-gui/ui
+cd conductor-gui/ui
 npm ci
 
 # Build the frontend
@@ -292,22 +292,22 @@ cd ../src-tauri
 cargo build --release
 
 # The GUI app bundle will be at:
-# midimon-gui/src-tauri/target/release/midimon-gui
+# conductor-gui/src-tauri/target/release/conductor-gui
 ```
 
 #### 4. Install Binaries
 
 ```bash
 # Return to project root
-cd ~/projects/midimon
+cd ~/projects/conductor
 
 # Install binaries
-sudo install -m 755 target/release/midimon /usr/local/bin/
-sudo install -m 755 target/release/midimonctl /usr/local/bin/
+sudo install -m 755 target/release/conductor /usr/local/bin/
+sudo install -m 755 target/release/conductorctl /usr/local/bin/
 
 # Verify installation
-midimon --version
-midimonctl --version
+conductor --version
+conductorctl --version
 ```
 
 ## Verifying Device Connection
@@ -398,14 +398,14 @@ You should see button and axis values update when you press buttons or move stic
 
 **Press Ctrl+C to exit jstest**
 
-#### Check via MIDIMon Status
+#### Check via Conductor Status
 
 ```bash
-# Start MIDIMon
-midimon --foreground &
+# Start Conductor
+conductor --foreground &
 
 # Check status
-midimonctl status
+conductorctl status
 
 # Look for gamepad in device list
 # Example output:
@@ -415,11 +415,11 @@ midimonctl status
 
 #### Test Gamepad Events
 
-Use MIDIMon's debug logging to verify gamepad inputs:
+Use Conductor's debug logging to verify gamepad inputs:
 
 ```bash
-# Start MIDIMon with debug logging
-DEBUG=1 midimon --foreground
+# Start Conductor with debug logging
+DEBUG=1 conductor --foreground
 ```
 
 Press buttons on your gamepad. You should see:
@@ -483,9 +483,9 @@ sudo usermod -a -G plugdev,input $USER
 
 v3.0.0 includes a visual configuration editor:
 
-1. **Open MIDIMon GUI**:
+1. **Open Conductor GUI**:
    ```bash
-   midimon-gui
+   conductor-gui
    ```
 
 2. **Connect your device** in the device panel (MIDI or gamepad)
@@ -496,7 +496,7 @@ v3.0.0 includes a visual configuration editor:
    - The trigger config auto-fills
    - Assign an action (keystroke, launch app, etc.)
 
-4. **Save configuration** - automatically writes to `~/.config/midimon/config.toml`
+4. **Save configuration** - automatically writes to `~/.config/conductor/config.toml`
 
 See [GUI Quick Start](../getting-started/gui-quick-start.md) for detailed tutorial.
 
@@ -504,13 +504,13 @@ See [GUI Quick Start](../getting-started/gui-quick-start.md) for detailed tutori
 
 If you prefer to edit `config.toml` manually:
 
-**Config location**: `~/.config/midimon/config.toml`
+**Config location**: `~/.config/conductor/config.toml`
 
 **Create a minimal config**:
 ```bash
-mkdir -p ~/.config/midimon
+mkdir -p ~/.config/conductor
 
-cat > ~/.config/midimon/config.toml << 'EOF'
+cat > ~/.config/conductor/config.toml << 'EOF'
 [device]
 name = "Mikro"
 auto_connect = true
@@ -547,7 +547,7 @@ note = 0
 hold_duration_ms = 3000
 [global_mappings.action]
 type = "Shell"
-command = "killall midimon"
+command = "killall conductor"
 EOF
 ```
 
@@ -559,48 +559,48 @@ This creates a basic configuration with:
 
 **Hot-reload**: The daemon automatically reloads config within 0-10ms when you save changes.
 
-## Running MIDIMon
+## Running Conductor
 
 ### Using the Daemon with systemd
 
-The recommended way to run MIDIMon on Linux:
+The recommended way to run Conductor on Linux:
 
 **Start the service**:
 ```bash
-systemctl --user start midimon
+systemctl --user start conductor
 ```
 
 **Check status**:
 ```bash
-systemctl --user status midimon
-midimonctl status
+systemctl --user status conductor
+conductorctl status
 ```
 
 **Enable auto-start on boot**:
 ```bash
-systemctl --user enable midimon
+systemctl --user enable conductor
 ```
 
 **Control the daemon**:
 ```bash
 # Reload configuration
-midimonctl reload
+conductorctl reload
 
 # Stop daemon
-systemctl --user stop midimon
+systemctl --user stop conductor
 
 # Restart daemon
-systemctl --user restart midimon
+systemctl --user restart conductor
 
 # View logs
-journalctl --user -u midimon -f
+journalctl --user -u conductor -f
 ```
 
 ### Using the GUI
 
 ```bash
 # Launch the GUI (starts daemon automatically)
-midimon-gui
+conductor-gui
 ```
 
 The GUI provides:
@@ -615,13 +615,13 @@ For testing or development:
 
 ```bash
 # Run in foreground
-midimon --foreground
+conductor --foreground
 
 # Run with debug logging
-DEBUG=1 midimon --foreground
+DEBUG=1 conductor --foreground
 
 # Run with specific config
-midimon --config ~/my-config.toml --foreground
+conductor --config ~/my-config.toml --foreground
 ```
 
 ## Troubleshooting
@@ -707,7 +707,7 @@ sudo pacman -S systemd-libs
 2. Test with jstest: `jstest /dev/input/js0`
 3. Check udev rules are loaded: `sudo udevadm control --reload-rules`
 4. Verify groups: `groups | grep -E "plugdev|input"`
-5. Check debug output: `DEBUG=1 midimon --foreground`
+5. Check debug output: `DEBUG=1 conductor --foreground`
 
 ---
 
@@ -715,7 +715,7 @@ sudo pacman -S systemd-libs
 
 **Solution**:
 1. Check file permissions: `ls -l /dev/input/js0`
-2. Verify udev rules: `cat /etc/udev/rules.d/50-midimon.rules`
+2. Verify udev rules: `cat /etc/udev/rules.d/50-conductor.rules`
 3. Add user to plugdev: `sudo usermod -a -G plugdev,input $USER`
 4. Reload udev: `sudo udevadm control --reload-rules && sudo udevadm trigger`
 5. Log out and back in
@@ -728,7 +728,7 @@ sudo pacman -S systemd-libs
 1. Use MIDI Learn to discover correct button IDs
 2. Verify button IDs are in range 128-255 (not 0-127)
 3. Test in jstest to verify hardware works
-4. Check that gamepad appears in `midimonctl status`
+4. Check that gamepad appears in `conductorctl status`
 5. Try USB connection instead of Bluetooth
 
 ---
@@ -780,10 +780,10 @@ bluetoothctl
 
 ```bash
 # Check service status
-systemctl --user status midimon
+systemctl --user status conductor
 
 # View logs
-journalctl --user -u midimon -n 50
+journalctl --user -u conductor -n 50
 
 # Common issues:
 # - Binary not in PATH
@@ -800,7 +800,7 @@ loginctl enable-linger $USER
 
 ## Next Steps
 
-Now that MIDIMon v3.0.0 is installed and running:
+Now that Conductor v3.0.0 is installed and running:
 
 ### For GUI Users
 1. **Learn the GUI**: Read [GUI Quick Start Guide](../getting-started/gui-quick-start.md)
@@ -811,7 +811,7 @@ Now that MIDIMon v3.0.0 is installed and running:
 
 ### For CLI Users
 1. **Daemon Control**: Read [Daemon & Hot-Reload Guide](../guides/daemon.md)
-2. **CLI Reference**: See [midimonctl Commands](../reference/cli.md)
+2. **CLI Reference**: See [conductorctl Commands](../reference/cli.md)
 3. **Manual Configuration**: Check [Configuration Overview](../configuration/overview.md)
 4. **Advanced Actions**: Explore [Actions Reference](../reference/actions.md)
 
@@ -826,8 +826,8 @@ If you encounter issues:
 
 1. Check [Common Issues](../troubleshooting/common-issues.md)
 2. Use [Diagnostic Tools](../troubleshooting/diagnostics.md)
-3. Enable debug logging: `DEBUG=1 midimon --foreground`
-4. Check system logs: `journalctl --user -u midimon -f`
+3. Enable debug logging: `DEBUG=1 conductor --foreground`
+4. Check system logs: `journalctl --user -u conductor -f`
 5. File an issue on GitHub with:
    - Linux distribution and version
    - Kernel version (`uname -r`)

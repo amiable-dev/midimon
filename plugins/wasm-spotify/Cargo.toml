@@ -1,9 +1,9 @@
 [package]
-name = "midimon-wasm-spotify"
+name = "conductor-wasm-spotify"
 version = "0.1.0"
 edition = "2021"
 authors = ["Amiable"]
-description = "Spotify control plugin for MIDIMon (WASM)"
+description = "Spotify control plugin for Conductor (WASM)"
 license = "MIT"
 
 [workspace]

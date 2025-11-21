@@ -1,6 +1,6 @@
 # Trigger Types
 
-Triggers define when an action should execute. MIDIMon supports a wide range of trigger types from simple note presses to complex patterns like chords and long presses.
+Triggers define when an action should execute. Conductor supports a wide range of trigger types from simple note presses to complex patterns like chords and long presses.
 
 ## Core Triggers
 

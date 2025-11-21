@@ -1,10 +1,10 @@
 # Plugin Development
 
-MIDIMon v2.3 introduces a powerful plugin architecture that allows third-party developers to create custom actions through dynamically loaded shared libraries.
+Conductor v2.3 introduces a powerful plugin architecture that allows third-party developers to create custom actions through dynamically loaded shared libraries.
 
 ## Overview
 
-Plugins extend MIDIMon's functionality by implementing the `ActionPlugin` trait. They can:
+Plugins extend Conductor's functionality by implementing the `ActionPlugin` trait. They can:
 
 - Execute custom logic when MIDI events occur
 - Access event metadata (velocity, mode, timestamp)
@@ -25,7 +25,7 @@ cd my_plugin
 
 ```toml
 [package]
-name = "midimon-my-plugin"
+name = "conductor-my-plugin"
 version = "1.0.0"
 edition = "2021"
 
@@ -33,14 +33,14 @@ edition = "2021"
 crate-type = ["cdylib"]  # Required for dynamic loading
 
 [dependencies]
-midimon-core = { path = "../midimon-core", features = ["plugin"] }
+conductor-core = { path = "../conductor-core", features = ["plugin"] }
 serde_json = "1.0"
 ```
 
 ### 3. Implement the ActionPlugin Trait
 
 ```rust
-use midimon_core::plugin::{ActionPlugin, Capability, TriggerContext};
+use conductor_core::plugin::{ActionPlugin, Capability, TriggerContext};
 use serde_json::Value;
 use std::error::Error;
 
@@ -56,7 +56,7 @@ impl ActionPlugin for MyPlugin {
     }
 
     fn description(&self) -> &str {
-        "My custom MIDIMon plugin"
+        "My custom Conductor plugin"
     }
 
     fn author(&self) -> &str {
@@ -93,12 +93,12 @@ Create `plugin.toml` in your plugin directory:
 [plugin]
 name = "my_plugin"
 version = "1.0.0"
-description = "My custom MIDIMon plugin"
+description = "My custom Conductor plugin"
 author = "Your Name"
-homepage = "https://github.com/yourname/midimon-my-plugin"
+homepage = "https://github.com/yourname/conductor-my-plugin"
 license = "MIT"
 type = "action"
-binary = "libmidimon_my_plugin.dylib"  # .so on Linux, .dll on Windows
+binary = "libconductor_my_plugin.dylib"  # .so on Linux, .dll on Windows
 checksum = ""  # Optional SHA256 checksum
 
 [plugin.capabilities]
@@ -111,10 +111,10 @@ network = true
 # Build the plugin
 cargo build --release
 
-# Install to MIDIMon plugins directory
-mkdir -p ~/.midimon/plugins/my_plugin
-cp target/release/libmidimon_my_plugin.dylib ~/.midimon/plugins/my_plugin/
-cp plugin.toml ~/.midimon/plugins/my_plugin/
+# Install to Conductor plugins directory
+mkdir -p ~/.conductor/plugins/my_plugin
+cp target/release/libconductor_my_plugin.dylib ~/.conductor/plugins/my_plugin/
+cp plugin.toml ~/.conductor/plugins/my_plugin/
 ```
 
 ### 6. Use in Configuration
@@ -132,7 +132,7 @@ action = { Plugin = {
 
 ## Capability System
 
-Plugins request capabilities to access system resources. MIDIMon uses a risk-level based security model:
+Plugins request capabilities to access system resources. Conductor uses a risk-level based security model:
 
 ### Capability Types
 
@@ -164,7 +164,7 @@ fn capabilities(&self) -> Vec<Capability> {
 
 ## Plugin Lifecycle
 
-1. **Discovery**: MIDIMon scans `~/.midimon/plugins/` for `plugin.toml` files
+1. **Discovery**: Conductor scans `~/.conductor/plugins/` for `plugin.toml` files
 2. **Load**: Binary is loaded via `libloading`, plugin instance created
 3. **Initialize**: `initialize()` method called (if implemented)
 4. **Execute**: `execute()` called for each MIDI event
@@ -287,7 +287,7 @@ pub struct LoggerPlugin {
 impl LoggerPlugin {
     pub fn new() -> Self {
         Self {
-            log_file: "/tmp/midimon.log".to_string(),
+            log_file: "/tmp/conductor.log".to_string(),
         }
     }
 }
@@ -335,10 +335,10 @@ impl ActionPlugin for LoggerPlugin {
 ### Directory Structure
 
 ```
-~/.midimon/plugins/
+~/.conductor/plugins/
   └── my_plugin/
       ├── plugin.toml
-      └── libmidimon_my_plugin.dylib
+      └── libconductor_my_plugin.dylib
 ```
 
 ### Checksum Verification
@@ -346,7 +346,7 @@ impl ActionPlugin for LoggerPlugin {
 Generate SHA256 for security:
 
 ```bash
-shasum -a 256 target/release/libmidimon_my_plugin.dylib
+shasum -a 256 target/release/libconductor_my_plugin.dylib
 ```
 
 Add to `plugin.toml`:
@@ -361,7 +361,7 @@ checksum = "abc123..."
 ### Plugin Not Discovered
 
 - Check `plugin.toml` is valid TOML
-- Verify `~/.midimon/plugins/` directory exists
+- Verify `~/.conductor/plugins/` directory exists
 - Ensure binary name matches in manifest
 
 ### Plugin Fails to Load
@@ -378,10 +378,10 @@ checksum = "abc123..."
 
 ## Further Reading
 
-- [PLUGIN_DEVELOPMENT_GUIDE.md](https://github.com/amiable-dev/midimon/blob/main/docs/PLUGIN_DEVELOPMENT_GUIDE.md) - Comprehensive guide
-- [HTTP Plugin Example](https://github.com/amiable-dev/midimon/tree/main/examples/http-plugin) - Reference implementation
+- [PLUGIN_DEVELOPMENT_GUIDE.md](https://github.com/amiable-dev/conductor/blob/main/docs/PLUGIN_DEVELOPMENT_GUIDE.md) - Comprehensive guide
+- [HTTP Plugin Example](https://github.com/amiable-dev/conductor/tree/main/examples/http-plugin) - Reference implementation
 - [Plugin API Reference](../reference/plugin-api.md) - Complete API documentation
 
 ## Community Plugins
 
-Share your plugins with the community! Submit a PR to add your plugin to the [Plugin Registry](https://github.com/amiable-dev/midimon-plugins).
+Share your plugins with the community! Submit a PR to add your plugin to the [Plugin Registry](https://github.com/amiable-dev/conductor-plugins).

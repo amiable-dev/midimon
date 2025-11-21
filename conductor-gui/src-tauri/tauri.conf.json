@@ -1,0 +1,43 @@
+{
+  "productName": "Conductor",
+  "version": "2.0.0",
+  "identifier": "com.amiable.conductor",
+  "build": {
+    "beforeDevCommand": "npm --prefix ui run dev",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm --prefix ui run build",
+    "frontendDist": "../ui/dist"
+  },
+  "bundle": {
+    "active": false,
+    "targets": ["dmg", "app"],
+    "copyright": "Copyright 2025 Amiable",
+    "category": "DeveloperTool",
+    "shortDescription": "MIDI Controller Mapping System",
+    "longDescription": "Transform MIDI devices into advanced macro pads with velocity sensitivity, long press detection, and visual configuration",
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    }
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Conductor Configuration",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "transparent": false,
+        "alwaysOnTop": false,
+        "devtools": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}

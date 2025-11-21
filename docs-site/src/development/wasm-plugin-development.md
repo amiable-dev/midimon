@@ -1,6 +1,6 @@
 # WASM Plugin Development
 
-This guide walks you through creating a WASM plugin for MIDIMon from scratch.
+This guide walks you through creating a WASM plugin for Conductor from scratch.
 
 ## Prerequisites
 
@@ -182,7 +182,7 @@ pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -> i32 {
         .expect("Invalid params");
 
     // Write to sandboxed directory
-    // Path: ~/Library/Application Support/midimon/plugin-data/
+    // Path: ~/Library/Application Support/conductor/plugin-data/
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)
@@ -285,7 +285,7 @@ pub extern "C" fn capabilities() -> *const u8 {
 Plugins are limited by "fuel" (instruction count):
 
 ```rust
-// MIDIMon automatically limits plugins to 100M instructions
+// Conductor automatically limits plugins to 100M instructions
 // This prevents infinite loops and excessive CPU usage
 
 // Check remaining fuel (from plugin side):
@@ -293,7 +293,7 @@ Plugins are limited by "fuel" (instruction count):
 pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -> i32 {
     // Your plugin code...
 
-    // MIDIMon will automatically terminate if fuel runs out
+    // Conductor will automatically terminate if fuel runs out
     0
 }
 ```
@@ -305,7 +305,7 @@ pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -> i32 {
 **Default:** 128 MB per plugin
 
 ```rust
-// MIDIMon enforces memory limits automatically
+// Conductor enforces memory limits automatically
 // Allocations beyond the limit will fail
 
 #[no_mangle]
@@ -322,9 +322,9 @@ pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -> i32 {
 
 Plugins with `Filesystem` capability can only access:
 
-**macOS:** `~/Library/Application Support/midimon/plugin-data/`
-**Linux:** `~/.local/share/midimon/plugin-data/`
-**Windows:** `%APPDATA%\midimon\plugin-data\`
+**macOS:** `~/Library/Application Support/conductor/plugin-data/`
+**Linux:** `~/.local/share/conductor/plugin-data/`
+**Windows:** `%APPDATA%\conductor\plugin-data\`
 
 ```rust
 // These paths are relative to the sandbox root:
@@ -429,8 +429,8 @@ cargo build --target wasm32-wasip1 --release
 # Test with wasmtime
 wasmtime target/wasm32-wasip1/release/my_plugin.wasm
 
-# Or use MIDIMon directly
-midimon --config test_config.toml 0
+# Or use Conductor directly
+conductor --config test_config.toml 0
 ```
 
 ## Debugging
@@ -444,7 +444,7 @@ pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -> i32 {
     eprintln!("DEBUG: Received {} bytes", params_len);
     eprintln!("DEBUG: Params: {:?}", params);
 
-    // This appears in MIDIMon's stderr
+    // This appears in Conductor's stderr
     0
 }
 ```
@@ -453,7 +453,7 @@ pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -> i32 {
 
 ```bash
 # See plugin debug output
-DEBUG=1 midimon --config test_config.toml 0 2>&1 | grep "DEBUG:"
+DEBUG=1 conductor --config test_config.toml 0 2>&1 | grep "DEBUG:"
 ```
 
 ### Common Issues
@@ -486,12 +486,12 @@ wasm-objdump -x target/wasm32-wasip1/release/my_plugin.wasm | grep wasi
 
 ```bash
 # Generate keypair (one-time)
-midimon-sign generate-key ~/.midimon/my-key
+conductor-sign generate-key ~/.conductor/my-key
 
 # Sign plugin
-midimon-sign sign \
+conductor-sign sign \
   target/wasm32-wasip1/release/my_plugin.wasm \
-  ~/.midimon/my-key \
+  ~/.conductor/my-key \
   --name "Your Name" \
   --email "you@example.com"
 
@@ -522,7 +522,7 @@ Brief description of what your plugin does.
 ## Installation
 
 1. Download `my_plugin.wasm` and `my_plugin.wasm.sig`
-2. Copy to `~/.midimon/wasm-plugins/`
+2. Copy to `~/.conductor/wasm-plugins/`
 3. Add to configuration (see example)
 
 ## Configuration
@@ -531,7 +531,7 @@ Brief description of what your plugin does.
 [[modes.mappings]]
 trigger = { Note = { note = 60 } }
 action = { WasmPlugin = {
-    path = "~/.midimon/wasm-plugins/my_plugin.wasm",
+    path = "~/.conductor/wasm-plugins/my_plugin.wasm",
     params = {
         "param1": "value1"
     }

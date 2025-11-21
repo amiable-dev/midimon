@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve MIDIMon's documentation! Clear docs are essential for a great user experience.
+        Thanks for helping improve Conductor's documentation! Clear docs are essential for a great user experience.
 
   - type: dropdown
     id: doc-type

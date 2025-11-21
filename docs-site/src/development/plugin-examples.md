@@ -1,12 +1,12 @@
 # Plugin Examples
 
-MIDIMon includes three official WASM plugins that demonstrate real-world integration patterns. All plugins are signed with the official MIDIMon team key and include full source code.
+Conductor includes three official WASM plugins that demonstrate real-world integration patterns. All plugins are signed with the official Conductor team key and include full source code.
 
 ## Official Plugins
 
 ### Spotify Web API Plugin
 
-**File:** `midimon_wasm_spotify.wasm`
+**File:** `conductor_wasm_spotify.wasm`
 **Capabilities:** Network
 **Status:** Production-ready
 
@@ -41,7 +41,7 @@ Control Spotify playback directly from your MIDI controller.
    [[modes.mappings]]
    trigger = { Note = { note = 60 } }
    action = { WasmPlugin = {
-       path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+       path = "~/.conductor/wasm-plugins/conductor_wasm_spotify.wasm",
        params = {
            "action": "play_pause"
        }
@@ -51,7 +51,7 @@ Control Spotify playback directly from your MIDI controller.
    [[modes.mappings]]
    trigger = { Note = { note = 61 } }
    action = { WasmPlugin = {
-       path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+       path = "~/.conductor/wasm-plugins/conductor_wasm_spotify.wasm",
        params = {
            "action": "next"
        }
@@ -61,7 +61,7 @@ Control Spotify playback directly from your MIDI controller.
    [[modes.mappings]]
    trigger = { Note = { note = 59 } }
    action = { WasmPlugin = {
-       path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+       path = "~/.conductor/wasm-plugins/conductor_wasm_spotify.wasm",
        params = {
            "action": "previous"
        }
@@ -71,7 +71,7 @@ Control Spotify playback directly from your MIDI controller.
    [[modes.mappings]]
    trigger = { Note = { note = 62 } }
    action = { WasmPlugin = {
-       path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+       path = "~/.conductor/wasm-plugins/conductor_wasm_spotify.wasm",
        params = {
            "action": "volume",
            "level": "{velocity}"  # 0-127 mapped to 0-100%
@@ -107,15 +107,15 @@ trigger = { VelocityRange = {
 }}
 actions = [
     { WasmPlugin = {
-        path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+        path = "~/.conductor/wasm-plugins/conductor_wasm_spotify.wasm",
         params = { "action": "volume", "delta": "-10" }
     }},
     { WasmPlugin = {
-        path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+        path = "~/.conductor/wasm-plugins/conductor_wasm_spotify.wasm",
         params = { "action": "get_state" }
     }},
     { WasmPlugin = {
-        path = "~/.midimon/wasm-plugins/midimon_wasm_spotify.wasm",
+        path = "~/.conductor/wasm-plugins/conductor_wasm_spotify.wasm",
         params = { "action": "volume", "delta": "+10" }
     }}
 ]
@@ -125,7 +125,7 @@ actions = [
 
 ### OBS Studio Control Plugin
 
-**File:** `midimon_wasm_obs_control.wasm`
+**File:** `conductor_wasm_obs_control.wasm`
 **Capabilities:** Network
 **Status:** Production-ready
 
@@ -154,7 +154,7 @@ Control OBS Studio streaming/recording via WebSocket.
    [[modes.mappings]]
    trigger = { Note = { note = 48 } }
    action = { WasmPlugin = {
-       path = "~/.midimon/wasm-plugins/midimon_wasm_obs_control.wasm",
+       path = "~/.conductor/wasm-plugins/conductor_wasm_obs_control.wasm",
        params = {
            "action": "set_scene",
            "scene_name": "Gaming",
@@ -167,7 +167,7 @@ Control OBS Studio streaming/recording via WebSocket.
    [[modes.mappings]]
    trigger = { Note = { note = 49 } }
    action = { WasmPlugin = {
-       path = "~/.midimon/wasm-plugins/midimon_wasm_obs_control.wasm",
+       path = "~/.conductor/wasm-plugins/conductor_wasm_obs_control.wasm",
        params = {
            "action": "start_streaming",
            "host": "localhost:4455"
@@ -178,7 +178,7 @@ Control OBS Studio streaming/recording via WebSocket.
    [[modes.mappings]]
    trigger = { Note = { note = 50 } }
    action = { WasmPlugin = {
-       path = "~/.midimon/wasm-plugins/midimon_wasm_obs_control.wasm",
+       path = "~/.conductor/wasm-plugins/conductor_wasm_obs_control.wasm",
        params = {
            "action": "stop_streaming",
            "host": "localhost:4455"
@@ -189,7 +189,7 @@ Control OBS Studio streaming/recording via WebSocket.
    [[modes.mappings]]
    trigger = { Note = { note = 51 } }
    action = { WasmPlugin = {
-       path = "~/.midimon/wasm-plugins/midimon_wasm_obs_control.wasm",
+       path = "~/.conductor/wasm-plugins/conductor_wasm_obs_control.wasm",
        params = {
            "action": "toggle_mute",
            "source_name": "Microphone",
@@ -243,7 +243,7 @@ action = { WasmPlugin = { path = "...", params = { "action": "set_scene", "scene
 
 ### System Utilities Plugin
 
-**File:** `midimon_wasm_system_utils.wasm`
+**File:** `conductor_wasm_system_utils.wasm`
 **Capabilities:** SystemControl
 **Status:** Production-ready
 
@@ -265,7 +265,7 @@ System-level operations like screen lock, sleep, notifications.
 [[modes.mappings]]
 trigger = { LongPress = { note = 60, duration_ms = 2000 } }
 action = { WasmPlugin = {
-    path = "~/.midimon/wasm-plugins/midimon_wasm_system_utils.wasm",
+    path = "~/.conductor/wasm-plugins/conductor_wasm_system_utils.wasm",
     params = {
         "action": "lock_screen"
     }
@@ -275,7 +275,7 @@ action = { WasmPlugin = {
 [[modes.mappings]]
 trigger = { Note = { note = 61 } }
 action = { WasmPlugin = {
-    path = "~/.midimon/wasm-plugins/midimon_wasm_system_utils.wasm",
+    path = "~/.conductor/wasm-plugins/conductor_wasm_system_utils.wasm",
     params = {
         "action": "notify",
         "title": "Recording Started",
@@ -288,7 +288,7 @@ action = { WasmPlugin = {
 [[modes.mappings]]
 trigger = { Note = { note = 62 } }
 action = { WasmPlugin = {
-    path = "~/.midimon/wasm-plugins/midimon_wasm_system_utils.wasm",
+    path = "~/.conductor/wasm-plugins/conductor_wasm_system_utils.wasm",
     params = {
         "action": "brightness",
         "level": "{velocity}"  # 0-127 mapped to 0-100%
@@ -299,7 +299,7 @@ action = { WasmPlugin = {
 [[modes.mappings]]
 trigger = { Note = { note = 63 } }
 action = { WasmPlugin = {
-    path = "~/.midimon/wasm-plugins/midimon_wasm_system_utils.wasm",
+    path = "~/.conductor/wasm-plugins/conductor_wasm_system_utils.wasm",
     params = {
         "action": "launch",
         "app": "Spotify"
@@ -348,8 +348,8 @@ action = { WasmPlugin = {
 Start with the official template:
 
 ```bash
-git clone https://github.com/amiable-dev/midimon-wasm-plugin-template
-cd midimon-wasm-plugin-template
+git clone https://github.com/amiable-dev/conductor-wasm-plugin-template
+cd conductor-wasm-plugin-template
 ```
 
 ### Example: Simple Notification Plugin
@@ -386,7 +386,7 @@ pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -> i32 {
     #[cfg(target_os = "macos")]
     {
         let cmd = format!(
-            "osascript -e 'display notification \"{}\" with title \"MIDIMon\"'",
+            "osascript -e 'display notification \"{}\" with title \"Conductor\"'",
             params.message
         );
         std::process::Command::new("sh")
@@ -408,9 +408,9 @@ pub extern "C" fn execute(params_ptr: *const u8, params_len: usize) -> i32 {
 cargo build --target wasm32-wasip1 --release
 
 # Sign
-midimon-sign sign \
+conductor-sign sign \
   target/wasm32-wasip1/release/my_notify_plugin.wasm \
-  ~/.midimon/my-key \
+  ~/.conductor/my-key \
   --name "Your Name" --email "you@example.com"
 
 # Test
@@ -423,7 +423,7 @@ action = { WasmPlugin = {
 }}
 EOF
 
-midimon --config test_config.toml 0
+conductor --config test_config.toml 0
 ```
 
 ## Best Practices
@@ -528,7 +528,7 @@ pub extern "C" fn shutdown() {
 
 1. **Check logs:**
    ```bash
-   DEBUG=1 midimon --config config.toml 0 2>&1 | grep WASM
+   DEBUG=1 conductor --config config.toml 0 2>&1 | grep WASM
    ```
 
 2. **Verify WASM format:**
@@ -539,7 +539,7 @@ pub extern "C" fn shutdown() {
 
 3. **Check signature:**
    ```bash
-   midimon-sign verify my_plugin.wasm
+   conductor-sign verify my_plugin.wasm
    ```
 
 ### Out of Fuel
@@ -585,4 +585,4 @@ match client.get(url).send().await {
 - [WASM Plugin Development Guide](wasm-plugin-development.md)
 - [Plugin Security](plugin-security.md)
 - [WASM Plugins Overview](wasm-plugins.md)
-- [Official Plugin Source Code](https://github.com/amiable-dev/midimon/tree/main/plugins)
+- [Official Plugin Source Code](https://github.com/amiable-dev/conductor/tree/main/plugins)

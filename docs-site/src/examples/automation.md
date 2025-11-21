@@ -4,7 +4,7 @@ Advanced productivity automation for form filling, app switching, window managem
 
 ## Overview
 
-MIDIMon enables power users to automate complex workflows that traditional macro tools can't handle. Use velocity sensitivity for multi-function buttons, context-aware profiles for app-specific shortcuts, and sequences for multi-step automation.
+Conductor enables power users to automate complex workflows that traditional macro tools can't handle. Use velocity sensitivity for multi-function buttons, context-aware profiles for app-specific shortcuts, and sequences for multi-step automation.
 
 **What You'll Learn**:
 - Form automation (one-button form filling)

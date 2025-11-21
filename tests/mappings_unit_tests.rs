@@ -12,7 +12,7 @@
 //! - Action compilation
 //! - Event routing to correct mappings
 
-use midimon::{
+use conductor::{
     config::{ActionConfig, Config, DeviceConfig, Mapping, Mode, Trigger},
     event_processor::MidiEvent,
     mappings::MappingEngine,

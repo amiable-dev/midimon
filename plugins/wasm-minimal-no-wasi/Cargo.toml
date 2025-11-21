@@ -1,5 +1,5 @@
 [package]
-name = "midimon-wasm-minimal-no-wasi"
+name = "conductor-wasm-minimal-no-wasi"
 version = "0.1.0"
 edition = "2021"
 

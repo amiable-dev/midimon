@@ -1,10 +1,10 @@
 # Music Production Workflows
 
-Complete MIDIMon configurations for music producers using DAWs, sample libraries, and production software.
+Complete Conductor configurations for music producers using DAWs, sample libraries, and production software.
 
 ## Overview
 
-MIDIMon transforms MIDI controllers into intelligent, context-aware control surfaces for music production. Use velocity sensitivity, per-app profiles, and LED feedback to create efficient recording and mixing workflows.
+Conductor transforms MIDI controllers into intelligent, context-aware control surfaces for music production. Use velocity sensitivity, per-app profiles, and LED feedback to create efficient recording and mixing workflows.
 
 **What You'll Learn**:
 - Velocity-sensitive recording workflows
@@ -352,7 +352,7 @@ keys = "DownArrow"
 ### MIDI Latency Issues
 - **Problem**: Delayed response from MIDI pads
 - **Solution**: Reduce buffer size in DAW preferences (128 samples or lower)
-- **MIDIMon Impact**: <1ms latency on MIDIMon side, latency is DAW-side
+- **Conductor Impact**: <1ms latency on Conductor side, latency is DAW-side
 
 ### Velocity Not Working
 - **Problem**: All presses trigger same action regardless of velocity
@@ -361,7 +361,7 @@ keys = "DownArrow"
 
 ### Per-App Profiles Not Switching
 - **Problem**: Same mappings work in all apps
-- **Solution**: Enable per-app profiles in MIDIMon config
+- **Solution**: Enable per-app profiles in Conductor config
 - **Check**: Ensure app names match exactly (case-sensitive)
 
 ---

@@ -1,5 +1,5 @@
 name: Feature Request
-description: Suggest a new feature or enhancement for MIDIMon
+description: Suggest a new feature or enhancement for Conductor
 title: "[Feature]: "
 labels: ["enhancement", "needs-triage"]
 body:
@@ -24,7 +24,7 @@ body:
       label: Proposed Solution
       description: How would you like this feature to work?
       placeholder: |
-        I would like MIDIMon to support...
+        I would like Conductor to support...
         Example config:
         ```toml
         [[modes.mappings]]
@@ -151,5 +151,5 @@ body:
           required: true
         - label: I have described the problem this feature solves, not just the solution
           required: true
-        - label: I have considered how this fits with MIDIMon's existing architecture
+        - label: I have considered how this fits with Conductor's existing architecture
           required: false

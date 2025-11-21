@@ -1,6 +1,6 @@
 # Actions Reference
 
-Actions define what happens when a trigger condition is met. MIDIMon supports a rich set of action types that can be composed in powerful ways.
+Actions define what happens when a trigger condition is met. Conductor supports a rich set of action types that can be composed in powerful ways.
 
 ## Quick Reference
 

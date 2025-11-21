@@ -1,10 +1,10 @@
 # Game Controllers (HID) - Rust API Documentation
 
-This document provides comprehensive API documentation for MIDIMon v3.0's Game Controller (HID) support. These types enable integration of gamepads, joysticks, racing wheels, flight sticks, HOTAS setups, and other HID-compliant game controllers.
+This document provides comprehensive API documentation for Conductor v3.0's Game Controller (HID) support. These types enable integration of gamepads, joysticks, racing wheels, flight sticks, HOTAS setups, and other HID-compliant game controllers.
 
 ## Overview
 
-MIDIMon v3.0 introduces a unified input system that supports both MIDI controllers and Game Controllers (HID) simultaneously. The architecture uses protocol-agnostic abstractions to enable hybrid setups where MIDI and gamepad inputs coexist without ID conflicts.
+Conductor v3.0 introduces a unified input system that supports both MIDI controllers and Game Controllers (HID) simultaneously. The architecture uses protocol-agnostic abstractions to enable hybrid setups where MIDI and gamepad inputs coexist without ID conflicts.
 
 **Key Design Principles:**
 - **Non-overlapping ID ranges**: Gamepad buttons use IDs 128-255, MIDI uses 0-127
@@ -40,7 +40,7 @@ MIDIMon v3.0 introduces a unified input system that supports both MIDI controlle
 
 ### InputMode
 
-**Location**: `midimon-daemon/src/input_manager.rs`
+**Location**: `conductor-daemon/src/input_manager.rs`
 
 Enum representing the device selection mode for the unified input system.
 
@@ -67,7 +67,7 @@ pub enum InputMode {
 #### Examples
 
 ```rust
-use midimon_daemon::input_manager::{InputManager, InputMode};
+use conductor_daemon::input_manager::{InputManager, InputMode};
 
 // MIDI-only setup (traditional)
 let midi_manager = InputManager::new(
@@ -95,7 +95,7 @@ let hybrid_manager = InputManager::new(
 
 ### GamepadDeviceManager
 
-**Location**: `midimon-daemon/src/gamepad_device.rs`
+**Location**: `conductor-daemon/src/gamepad_device.rs`
 
 Manages the lifecycle of gamepad/HID device connections with automatic reconnection support and robust error handling.
 
@@ -140,7 +140,7 @@ Creates a new gamepad device manager.
 **Example:**
 
 ```rust
-use midimon_daemon::gamepad_device::GamepadDeviceManager;
+use conductor_daemon::gamepad_device::GamepadDeviceManager;
 
 let manager = GamepadDeviceManager::new(true);
 assert!(!manager.is_connected());
@@ -176,7 +176,7 @@ Connects to the first available gamepad and starts the polling loop.
 **Example:**
 
 ```rust
-use midimon_daemon::gamepad_device::GamepadDeviceManager;
+use conductor_daemon::gamepad_device::GamepadDeviceManager;
 use tokio::sync::mpsc;
 
 async fn connect_gamepad() -> Result<(), String> {
@@ -259,7 +259,7 @@ Lists all connected gamepads. Returns a vector of `(GamepadId, Name, UUID)` tupl
 **Example:**
 
 ```rust
-use midimon_daemon::gamepad_device::GamepadDeviceManager;
+use conductor_daemon::gamepad_device::GamepadDeviceManager;
 
 fn show_gamepads() -> Result<(), String> {
     let gamepads = GamepadDeviceManager::list_gamepads()?;
@@ -298,7 +298,7 @@ When a gamepad disconnects and `auto_reconnect` is enabled:
 
 ### InputManager
 
-**Location**: `midimon-daemon/src/input_manager.rs`
+**Location**: `conductor-daemon/src/input_manager.rs`
 
 Unified manager for both MIDI and gamepad input devices. Provides a single `InputEvent` stream for all inputs.
 
@@ -337,7 +337,7 @@ Creates a new unified input manager.
 **Example:**
 
 ```rust
-use midimon_daemon::input_manager::{InputManager, InputMode};
+use conductor_daemon::input_manager::{InputManager, InputMode};
 
 // MIDI + Gamepad hybrid setup
 let manager = InputManager::new(
@@ -379,7 +379,7 @@ Connects to input devices based on the configured mode.
 **Example:**
 
 ```rust
-use midimon_daemon::input_manager::{InputManager, InputMode};
+use conductor_daemon::input_manager::{InputManager, InputMode};
 use tokio::sync::mpsc;
 
 async fn start_unified_input() -> Result<(), String> {
@@ -471,7 +471,7 @@ Lists all available gamepads (delegates to `GamepadDeviceManager::list_gamepads(
 
 ### InputEvent
 
-**Location**: `midimon-core/src/events.rs`
+**Location**: `conductor-core/src/events.rs`
 
 Protocol-agnostic input event abstraction. All gamepad events are converted to this type.
 
@@ -549,7 +549,7 @@ Gamepad events are converted to `InputEvent` as follows:
 
 ### Button ID Constants
 
-**Location**: `midimon-core/src/gamepad_events.rs`
+**Location**: `conductor-core/src/gamepad_events.rs`
 
 Gamepad buttons use IDs 128-255 to avoid conflicts with MIDI note numbers (0-127).
 
@@ -643,7 +643,7 @@ pub mod encoder_ids {
 
 ### Button Conversion
 
-**Location**: `midimon-core/src/gamepad_events.rs`
+**Location**: `conductor-core/src/gamepad_events.rs`
 
 #### `button_to_id()`
 
@@ -651,13 +651,13 @@ pub mod encoder_ids {
 pub fn button_to_id(button: gilrs::Button) -> u8
 ```
 
-Converts gilrs `Button` enum to MIDIMon button ID (128-255 range).
+Converts gilrs `Button` enum to Conductor button ID (128-255 range).
 
 **Example:**
 
 ```rust
 use gilrs::Button;
-use midimon_core::gamepad_events::button_to_id;
+use conductor_core::gamepad_events::button_to_id;
 
 let id = button_to_id(Button::South);
 assert_eq!(id, 128); // SOUTH (A/Cross/B)
@@ -675,7 +675,7 @@ Converts gilrs `ButtonPressed` event to `InputEvent::PadPressed` with default ve
 
 ```rust
 use gilrs::Button;
-use midimon_core::gamepad_events::button_pressed_to_input;
+use conductor_core::gamepad_events::button_pressed_to_input;
 
 let event = button_pressed_to_input(Button::South);
 // Returns: InputEvent::PadPressed { pad: 128, velocity: 100, time: now() }
@@ -697,13 +697,13 @@ Converts gilrs `ButtonReleased` event to `InputEvent::PadReleased`.
 pub fn axis_to_encoder_id(axis: gilrs::Axis) -> u8
 ```
 
-Converts gilrs `Axis` enum to MIDIMon encoder ID (128-133 range).
+Converts gilrs `Axis` enum to Conductor encoder ID (128-133 range).
 
 **Example:**
 
 ```rust
 use gilrs::Axis;
-use midimon_core::gamepad_events::axis_to_encoder_id;
+use conductor_core::gamepad_events::axis_to_encoder_id;
 
 let id = axis_to_encoder_id(Axis::LeftStickX);
 assert_eq!(id, 128); // LEFT_STICK_X
@@ -726,7 +726,7 @@ Normalizes gilrs axis values (-1.0 to 1.0) to MIDI-compatible range (0-127).
 **Example:**
 
 ```rust
-use midimon_core::gamepad_events::normalize_axis;
+use conductor_core::gamepad_events::normalize_axis;
 
 assert_eq!(normalize_axis(0.0), 64);   // Center
 assert_eq!(normalize_axis(1.0), 127);  // Max right/up
@@ -746,7 +746,7 @@ Converts gilrs `AxisChanged` event to `InputEvent::EncoderTurned`.
 
 ```rust
 use gilrs::Axis;
-use midimon_core::gamepad_events::axis_changed_to_input;
+use conductor_core::gamepad_events::axis_changed_to_input;
 
 let event = axis_changed_to_input(Axis::LeftStickX, 0.5);
 // Returns: InputEvent::EncoderTurned { encoder: 128, value: 95, time: now() }
@@ -759,10 +759,10 @@ let event = axis_changed_to_input(Axis::LeftStickX, 0.5);
 ### Basic Gamepad Connection
 
 ```rust
-use midimon_daemon::gamepad_device::GamepadDeviceManager;
+use conductor_daemon::gamepad_device::GamepadDeviceManager;
 use tokio::sync::mpsc;
-use midimon_core::events::InputEvent;
-use midimon_daemon::DaemonCommand;
+use conductor_core::events::InputEvent;
+use conductor_daemon::DaemonCommand;
 
 async fn basic_gamepad_example() -> Result<(), String> {
     // Create channels
@@ -803,9 +803,9 @@ async fn basic_gamepad_example() -> Result<(), String> {
 ### Hybrid MIDI + Gamepad Setup
 
 ```rust
-use midimon_daemon::input_manager::{InputManager, InputMode};
-use midimon_core::events::InputEvent;
-use midimon_core::gamepad_events::button_ids;
+use conductor_daemon::input_manager::{InputManager, InputMode};
+use conductor_core::events::InputEvent;
+use conductor_core::gamepad_events::button_ids;
 use tokio::sync::mpsc;
 
 async fn hybrid_example() -> Result<(), String> {
@@ -863,10 +863,10 @@ async fn hybrid_example() -> Result<(), String> {
 ### Integrating with MappingEngine
 
 ```rust
-use midimon_core::event_processor::EventProcessor;
-use midimon_core::mapping::MappingEngine;
-use midimon_core::config::Config;
-use midimon_daemon::input_manager::{InputManager, InputMode};
+use conductor_core::event_processor::EventProcessor;
+use conductor_core::mapping::MappingEngine;
+use conductor_core::config::Config;
+use conductor_daemon::input_manager::{InputManager, InputMode};
 use tokio::sync::mpsc;
 
 async fn full_integration_example() -> Result<(), String> {
@@ -905,7 +905,7 @@ async fn full_integration_example() -> Result<(), String> {
 ### Listing Available Gamepads
 
 ```rust
-use midimon_daemon::gamepad_device::GamepadDeviceManager;
+use conductor_daemon::gamepad_device::GamepadDeviceManager;
 
 fn list_gamepads_example() -> Result<(), String> {
     let gamepads = GamepadDeviceManager::list_gamepads()?;
@@ -962,7 +962,7 @@ while let Some(command) = command_rx.recv().await {
 ### Manual Error Handling
 
 ```rust
-use midimon_daemon::gamepad_device::GamepadDeviceManager;
+use conductor_daemon::gamepad_device::GamepadDeviceManager;
 
 fn safe_connect() {
     let mut manager = GamepadDeviceManager::new(false); // no auto-reconnect
@@ -1150,7 +1150,7 @@ The gamepad system supports any HID-compliant game controller:
 RUST_LOG=debug cargo run
 
 # Filter for gamepad-specific logs
-RUST_LOG=midimon_daemon::gamepad_device=trace cargo run
+RUST_LOG=conductor_daemon::gamepad_device=trace cargo run
 ```
 
 ### Diagnostic Commands
@@ -1169,12 +1169,12 @@ cargo run --bin event_console
 ### Example Debug Output
 
 ```
-[DEBUG midimon_daemon::gamepad_device] Connecting to gamepad: Xbox Controller (ID: GamepadId(0))
-[TRACE midimon_daemon::gamepad_device] Gamepad event: Event { id: GamepadId(0), event: ButtonPressed(South, 0) }
-[DEBUG midimon_daemon::gamepad_device] Button 128 (SOUTH) pressed
-[TRACE midimon_daemon::gamepad_device] Sent InputEvent::PadPressed { pad: 128, velocity: 100 }
-[TRACE midimon_daemon::gamepad_device] Gamepad event: Event { id: GamepadId(0), event: AxisChanged(LeftStickX, 0.523, 0) }
-[DEBUG midimon_daemon::gamepad_device] Encoder 128 (LEFT_STICK_X) value: 95
+[DEBUG conductor_daemon::gamepad_device] Connecting to gamepad: Xbox Controller (ID: GamepadId(0))
+[TRACE conductor_daemon::gamepad_device] Gamepad event: Event { id: GamepadId(0), event: ButtonPressed(South, 0) }
+[DEBUG conductor_daemon::gamepad_device] Button 128 (SOUTH) pressed
+[TRACE conductor_daemon::gamepad_device] Sent InputEvent::PadPressed { pad: 128, velocity: 100 }
+[TRACE conductor_daemon::gamepad_device] Gamepad event: Event { id: GamepadId(0), event: AxisChanged(LeftStickX, 0.523, 0) }
+[DEBUG conductor_daemon::gamepad_device] Encoder 128 (LEFT_STICK_X) value: 95
 ```
 
 ---
@@ -1240,6 +1240,6 @@ impl GamepadDeviceManager {
 **Last Updated**: 2025-11-21
 **API Version**: v3.0
 **Crate Versions**:
-- `midimon-core`: 3.0.0
-- `midimon-daemon`: 3.0.0
+- `conductor-core`: 3.0.0
+- `conductor-daemon`: 3.0.0
 - `gilrs`: 0.11.0

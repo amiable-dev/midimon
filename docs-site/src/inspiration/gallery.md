@@ -1,6 +1,6 @@
 # Setup Gallery
 
-Visual showcase of real MIDIMon configurations. Get inspired and download ready-to-use configs!
+Visual showcase of real Conductor configurations. Get inspired and download ready-to-use configs!
 
 ---
 
@@ -25,7 +25,7 @@ Visual showcase of real MIDIMon configurations. Get inspired and download ready-
 **Why This Works**:
 > "I keep my hands on the MIDI pads for recording, but use my thumbs on the Xbox controller for transport and navigation. No more reaching for the keyboard mid-performance."
 
-**[Download Config →](https://github.com/amiable/midimon-configs/tree/main/hybrid/producer-desk)**
+**[Download Config →](https://github.com/amiable/conductor-configs/tree/main/hybrid/producer-desk)**
 
 ---
 
@@ -48,7 +48,7 @@ Visual showcase of real MIDIMon configurations. Get inspired and download ready-
 **Why This Works**:
 > "I have visual confirmation from the Launchpad LEDs for scene switching, and the DualSense triggers let me fade audio smoothly. Best of both worlds."
 
-**[Download Config →](https://github.com/amiable/midimon-configs/tree/main/hybrid/streaming-center)**
+**[Download Config →](https://github.com/amiable/conductor-configs/tree/main/hybrid/streaming-center)**
 
 ---
 
@@ -87,9 +87,9 @@ Menu Buttons:
 ```
 
 **Why This Works**:
-> "I was about to buy a Stream Deck. Then I realized my Xbox controller has 15+ buttons doing nothing. Configured MIDIMon in 20 minutes, saved $300."
+> "I was about to buy a Stream Deck. Then I realized my Xbox controller has 15+ buttons doing nothing. Configured Conductor in 20 minutes, saved $300."
 
-**[Download Config →](https://github.com/amiable/midimon-configs/tree/main/streaming/xbox-obs-basic)**
+**[Download Config →](https://github.com/amiable/conductor-configs/tree/main/streaming/xbox-obs-basic)**
 
 ---
 
@@ -129,7 +129,7 @@ Shoulders:
 **Why This Works**:
 > "Velocity-sensitive git operations are incredible. Soft press = regular pull/push, hard press = force operations. One button, two functions."
 
-**[Download Config →](https://github.com/amiable/midimon-configs/tree/main/development/dualsense-vscode)**
+**[Download Config →](https://github.com/amiable/conductor-configs/tree/main/development/dualsense-vscode)**
 
 ---
 
@@ -161,7 +161,7 @@ Wheel Rotation:
 **Why This Works**:
 > "Analog pedal control for timeline speed is game-changing. I can smoothly ramp from 10% to 200% playback, which is impossible with keyboard shortcuts. Plus, it's ergonomic—my feet are doing work my hands don't have to."
 
-**[Download Config →](https://github.com/amiable/midimon-configs/tree/main/video-editing/g29-davinci)**
+**[Download Config →](https://github.com/amiable/conductor-configs/tree/main/video-editing/g29-davinci)**
 
 ---
 
@@ -191,7 +191,7 @@ Throttle:
 **Why This Works**:
 > "Dual-stage trigger for build operations is brilliant. Half-pull compiles, full-pull runs. Plus, having 20+ buttons within thumb reach is incredibly efficient."
 
-**[Download Config →](https://github.com/amiable/midimon-configs/tree/main/productivity/hotas-macos)**
+**[Download Config →](https://github.com/amiable/conductor-configs/tree/main/productivity/hotas-macos)**
 
 ---
 
@@ -228,15 +228,15 @@ Mode 4 (Red): Live Performance
 **Why This Works**:
 > "RGB LED feedback is essential. I see what mode I'm in and what each pad does at a glance. Blue = recording mode, green = mixing, etc."
 
-**[Download Config →](https://github.com/amiable/midimon-configs/tree/main/music/launchpad-logic-pro)**
+**[Download Config →](https://github.com/amiable/conductor-configs/tree/main/music/launchpad-logic-pro)**
 
 ---
 
 ## Share Your Setup
 
-Have an interesting MIDIMon configuration? Share it with the community!
+Have an interesting Conductor configuration? Share it with the community!
 
-**[Submit Your Setup →](https://github.com/amiable/midimon/discussions/new?category=show-and-tell)**
+**[Submit Your Setup →](https://github.com/amiable/conductor/discussions/new?category=show-and-tell)**
 
 Include:
 - Photos of your hardware setup
@@ -256,4 +256,4 @@ Include:
 - **[Success Stories](success-stories.md)** - User testimonials and results
 - **[Device Templates](../guides/device-templates.md)** - Pre-built configs for popular controllers
 - **[Configuration Examples](../configuration/examples.md)** - Copy-paste ready configs
-- **[Community Discussions](https://github.com/amiable/midimon/discussions)** - Ask questions, share ideas
+- **[Community Discussions](https://github.com/amiable/conductor/discussions)** - Ask questions, share ideas

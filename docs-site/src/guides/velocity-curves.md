@@ -16,7 +16,7 @@ Velocity mappings allow you to transform the input velocity (how hard you press 
 
 ## Velocity Mapping Types
 
-MIDIMon supports four velocity mapping types:
+Conductor supports four velocity mapping types:
 
 ### 1. Fixed
 **Output is always the same velocity, regardless of input**

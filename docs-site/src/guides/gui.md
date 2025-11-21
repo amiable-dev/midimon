@@ -1,6 +1,6 @@
 # GUI Configuration
 
-The MIDIMon GUI provides a visual interface for configuring your MIDI controller without manually editing TOML files.
+The Conductor GUI provides a visual interface for configuring your MIDI controller without manually editing TOML files.
 
 ## Overview
 
@@ -20,10 +20,10 @@ The GUI application is built with Tauri v2 and provides:
 
 ```bash
 # Start the GUI application
-./midimon-gui
+./conductor-gui
 
 # Or if installed system-wide
-midimon-gui
+conductor-gui
 ```
 
 The GUI will appear in your system tray with quick access to:
@@ -101,7 +101,7 @@ The fastest way to create mappings:
 
 1. Click **🎹 MIDI Learn** button
 2. Press/turn the button/knob on your device
-3. MIDIMon detects the pattern (note, velocity, long press, etc.)
+3. Conductor detects the pattern (note, velocity, long press, etc.)
 4. The trigger is auto-filled
 5. Configure the action (what to do)
 6. Click **Save Mapping**
@@ -252,7 +252,7 @@ Debug MIDI events in real-time:
 
 ### Application Settings
 
-Configure MIDIMon preferences:
+Configure Conductor preferences:
 
 - **Auto-start**: Launch on system startup
 - **Log Level**: Control logging verbosity (debug, info, warn, error)
@@ -282,7 +282,7 @@ The menu bar icon provides quick access:
   - Media
 - **View Logs**: Open system logs
 - **Open Config File**: Edit configuration
-- **Quit MIDIMon**: Stop daemon and quit
+- **Quit Conductor**: Stop daemon and quit
 
 ### Icon States
 
@@ -321,10 +321,10 @@ Global shortcuts (when GUI is focused):
 
 ### GUI Won't Connect to Daemon
 
-1. Check daemon is running: `midimonctl status`
-2. Start daemon if needed: `midimon`
-3. Check IPC socket exists: `ls /tmp/midimon.sock`
-4. Restart daemon: `midimonctl stop && midimon`
+1. Check daemon is running: `conductorctl status`
+2. Start daemon if needed: `conductor`
+3. Check IPC socket exists: `ls /tmp/conductor.sock`
+4. Restart daemon: `conductorctl stop && conductor`
 
 ### Mappings Not Saving
 

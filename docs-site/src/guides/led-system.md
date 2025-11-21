@@ -1,6 +1,6 @@
 # LED System
 
-MIDIMon provides RGB LED feedback for controllers that support it, creating visual indicators for pad presses, modes, and system state.
+Conductor provides RGB LED feedback for controllers that support it, creating visual indicators for pad presses, modes, and system state.
 
 ## Overview
 
@@ -40,7 +40,7 @@ LEDs respond to pad velocity and fade after release:
 
 ```bash
 # Enable reactive mode
-midimon --led reactive 2
+conductor --led reactive 2
 ```
 
 ### Rainbow
@@ -48,7 +48,7 @@ midimon --led reactive 2
 Rotating rainbow pattern across all pads:
 
 ```bash
-midimon --led rainbow 2
+conductor --led rainbow 2
 ```
 
 ### Breathing
@@ -56,7 +56,7 @@ midimon --led rainbow 2
 Pulsing effect synced across all pads:
 
 ```bash
-midimon --led breathing 2
+conductor --led breathing 2
 ```
 
 ### Wave
@@ -64,7 +64,7 @@ midimon --led breathing 2
 Cascading wave pattern:
 
 ```bash
-midimon --led wave 2
+conductor --led wave 2
 ```
 
 ### Sparkle
@@ -72,7 +72,7 @@ midimon --led wave 2
 Random twinkling effect:
 
 ```bash
-midimon --led sparkle 2
+conductor --led sparkle 2
 ```
 
 ### VU Meter
@@ -80,7 +80,7 @@ midimon --led sparkle 2
 Bottom-to-top audio level visualization:
 
 ```bash
-midimon --led vumeter 2
+conductor --led vumeter 2
 ```
 
 ### Static
@@ -88,7 +88,7 @@ midimon --led vumeter 2
 Solid color based on current mode:
 
 ```bash
-midimon --led static 2
+conductor --led static 2
 ```
 
 ### Off
@@ -96,7 +96,7 @@ midimon --led static 2
 Disable LED feedback:
 
 ```bash
-midimon --led off 2
+conductor --led off 2
 ```
 
 ## Configuration
@@ -158,7 +158,7 @@ duration_ms = 500  # Override fade time
 
 ### Direct RGB Access
 
-MIDIMon uses HID for precise RGB control:
+Conductor uses HID for precise RGB control:
 
 - **Latency**: <1ms response time
 - **Color depth**: 24-bit RGB (16.7M colors)
@@ -207,7 +207,7 @@ pub fn led_chase_pattern(leds: &mut MikroMK3LEDs, frame: u32) {
 
 ### Standard MIDI Devices
 
-For devices without HID RGB support, MIDIMon uses MIDI:
+For devices without HID RGB support, Conductor uses MIDI:
 
 ```toml
 [led_settings]
@@ -246,7 +246,7 @@ color_map = { red = 5, green = 21, yellow = 13 }
 
 ### Via Settings Panel
 
-1. Open MIDIMon GUI
+1. Open Conductor GUI
 2. Navigate to **Settings** tab
 3. Scroll to **LED Configuration**
 4. Select scheme from dropdown
@@ -290,7 +290,7 @@ color = "off"  # No LED feedback in this mode
 
 2. **Verify permissions** (macOS):
    - System Settings → Privacy & Security → Input Monitoring
-   - Grant access to MIDIMon
+   - Grant access to Conductor
 
 3. **Test with diagnostic tool**:
    ```bash
@@ -300,7 +300,7 @@ color = "off"  # No LED feedback in this mode
 4. **Check HID access**:
    ```bash
    # macOS: Ensure shared device access
-   DEBUG=1 midimon 2 --led reactive
+   DEBUG=1 conductor 2 --led reactive
    ```
 
 ### Wrong Colors
@@ -319,16 +319,16 @@ color = "off"  # No LED feedback in this mode
 
 ### LEDs Stuck On/Off
 
-1. Restart MIDIMon
+1. Restart Conductor
 2. Power cycle MIDI device
 3. Check for conflicting LED control (e.g., Native Instruments software)
-4. Reset LEDs: `midimon --led off 2` then restart
+4. Reset LEDs: `conductor --led off 2` then restart
 
 ## Advanced Customization
 
 ### Create Custom Schemes
 
-Write custom lighting patterns in `~/.config/midimon/led_schemes/`:
+Write custom lighting patterns in `~/.config/conductor/led_schemes/`:
 
 ```rust
 // custom_pulse.rs
@@ -407,7 +407,7 @@ flash_duration_ms = 500
 Display audio levels:
 
 ```bash
-midimon --led vumeter --audio-input "System Audio" 2
+conductor --led vumeter --audio-input "System Audio" 2
 ```
 
 ### Custom Mode Indicators

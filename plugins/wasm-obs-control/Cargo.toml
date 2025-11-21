@@ -1,5 +1,5 @@
 [package]
-name = "midimon-wasm-obs-control"
+name = "conductor-wasm-obs-control"
 version = "0.1.0"
 edition = "2021"
 authors = ["Amiable Team"]

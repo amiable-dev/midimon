@@ -62,44 +62,44 @@ jobs:
 
             ### GUI Application (Recommended for v2.0+)
 
-            Download the MIDIMon GUI for your platform:
-            - **macOS**: midimon-gui-macos-universal.tar.gz (Universal binary for Intel & Apple Silicon)
-            - **Linux**: midimon-gui-linux-x86_64.tar.gz (or .AppImage/.deb)
+            Download the Conductor GUI for your platform:
+            - **macOS**: conductor-gui-macos-universal.tar.gz (Universal binary for Intel & Apple Silicon)
+            - **Linux**: conductor-gui-linux-x86_64.tar.gz (or .AppImage/.deb)
 
             Extract and run:
             ```bash
             # macOS
-            tar xzf midimon-gui-macos-universal.tar.gz
-            open "MIDIMon GUI.app"
+            tar xzf conductor-gui-macos-universal.tar.gz
+            open "Conductor GUI.app"
 
             # Linux (tarball)
-            tar xzf midimon-gui-linux-x86_64.tar.gz
-            chmod +x midimon-gui
-            ./midimon-gui
+            tar xzf conductor-gui-linux-x86_64.tar.gz
+            chmod +x conductor-gui
+            ./conductor-gui
 
             # Linux (AppImage)
             chmod +x *.AppImage
             ./*.AppImage
 
             # Linux (.deb package)
-            sudo dpkg -i midimon-gui_*_amd64.deb
+            sudo dpkg -i conductor-gui_*_amd64.deb
             ```
 
             ### Daemon Binary (CLI/headless usage)
 
             Download the appropriate daemon binary for your platform:
-            - **macOS (Apple Silicon)**: midimon-aarch64-apple-darwin.tar.gz
-            - **macOS (Intel)**: midimon-x86_64-apple-darwin.tar.gz
-            - **Linux**: midimon-x86_64-unknown-linux-gnu.tar.gz
+            - **macOS (Apple Silicon)**: conductor-aarch64-apple-darwin.tar.gz
+            - **macOS (Intel)**: conductor-x86_64-apple-darwin.tar.gz
+            - **Linux**: conductor-x86_64-unknown-linux-gnu.tar.gz
 
             Extract and make it executable:
             ```bash
-            tar xzf midimon-*.tar.gz
-            chmod +x midimon
-            sudo mv midimon /usr/local/bin/
+            tar xzf conductor-*.tar.gz
+            chmod +x conductor
+            sudo mv conductor /usr/local/bin/
             ```
 
-            See [README.md](https://github.com/amiable-dev/midimon#installation) for full installation instructions.
+            See [README.md](https://github.com/amiable-dev/conductor#installation) for full installation instructions.
 
             ---
 
@@ -120,13 +120,13 @@ jobs:
         include:
           - os: macos-latest
             target: x86_64-apple-darwin
-            binary_name: midimon
+            binary_name: conductor
           - os: macos-latest
             target: aarch64-apple-darwin
-            binary_name: midimon
+            binary_name: conductor
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            binary_name: midimon
+            binary_name: conductor
     steps:
       - uses: actions/checkout@v4
 
@@ -142,7 +142,7 @@ jobs:
           sudo apt-get install -y libasound2-dev libudev-dev pkg-config
 
       - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }} --package midimon-daemon
+        run: cargo build --release --target ${{ matrix.target }} --package conductor-daemon
 
       - name: Strip binary (Linux/macOS)
         if: runner.os != 'Windows'
@@ -151,15 +151,15 @@ jobs:
       - name: Create tarball
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf midimon-${{ matrix.target }}.tar.gz ${{ matrix.binary_name }}
-          shasum -a 256 midimon-${{ matrix.target }}.tar.gz > midimon-${{ matrix.target }}.tar.gz.sha256
+          tar czf conductor-${{ matrix.target }}.tar.gz ${{ matrix.binary_name }}
+          shasum -a 256 conductor-${{ matrix.target }}.tar.gz > conductor-${{ matrix.target }}.tar.gz.sha256
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            target/${{ matrix.target }}/release/midimon-${{ matrix.target }}.tar.gz
-            target/${{ matrix.target }}/release/midimon-${{ matrix.target }}.tar.gz.sha256
+            target/${{ matrix.target }}/release/conductor-${{ matrix.target }}.tar.gz
+            target/${{ matrix.target }}/release/conductor-${{ matrix.target }}.tar.gz.sha256
 
   build-tauri-gui:
     name: Build Tauri GUI Release (${{ matrix.platform }})
@@ -188,7 +188,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: midimon-gui/ui/package-lock.json
+          cache-dependency-path: conductor-gui/ui/package-lock.json
 
       - name: Install system dependencies (Ubuntu)
         if: runner.os == 'Linux'
@@ -205,12 +205,12 @@ jobs:
             patchelf
 
       - name: Install frontend dependencies
-        working-directory: midimon-gui/ui
+        working-directory: conductor-gui/ui
         run: npm ci
 
       - name: Build Tauri app (macOS)
         if: runner.os == 'macOS'
-        working-directory: midimon-gui
+        working-directory: conductor-gui
         run: |
           cd ui
           npm run build
@@ -219,7 +219,7 @@ jobs:
 
       - name: Build Tauri app (Linux)
         if: runner.os == 'Linux'
-        working-directory: midimon-gui
+        working-directory: conductor-gui
         run: |
           cd ui
           npm run build
@@ -228,34 +228,34 @@ jobs:
 
       - name: Create macOS DMG
         if: runner.os == 'macOS'
-        working-directory: midimon-gui/src-tauri
+        working-directory: conductor-gui/src-tauri
         run: |
           # Create .dmg installer (macOS)
           mkdir -p dist
           # Copy app bundle if it exists
-          if [ -d "target/release/bundle/macos/MIDIMon GUI.app" ]; then
-            cp -r "target/release/bundle/macos/MIDIMon GUI.app" dist/
+          if [ -d "target/release/bundle/macos/Conductor GUI.app" ]; then
+            cp -r "target/release/bundle/macos/Conductor GUI.app" dist/
             cd dist
-            tar czf midimon-gui-macos-universal.tar.gz "MIDIMon GUI.app"
-            shasum -a 256 midimon-gui-macos-universal.tar.gz > midimon-gui-macos-universal.tar.gz.sha256
+            tar czf conductor-gui-macos-universal.tar.gz "Conductor GUI.app"
+            shasum -a 256 conductor-gui-macos-universal.tar.gz > conductor-gui-macos-universal.tar.gz.sha256
           else
             echo "Warning: App bundle not found, creating tarball from binary"
             cd target/release
-            tar czf ../../dist/midimon-gui-macos-universal.tar.gz midimon-gui
+            tar czf ../../dist/conductor-gui-macos-universal.tar.gz conductor-gui
             cd ../../dist
-            shasum -a 256 midimon-gui-macos-universal.tar.gz > midimon-gui-macos-universal.tar.gz.sha256
+            shasum -a 256 conductor-gui-macos-universal.tar.gz > conductor-gui-macos-universal.tar.gz.sha256
           fi
 
       - name: Create Linux packages
         if: runner.os == 'Linux'
-        working-directory: midimon-gui/src-tauri
+        working-directory: conductor-gui/src-tauri
         run: |
           mkdir -p dist
           cd target/release
           # Create tarball
-          tar czf ../../dist/midimon-gui-linux-x86_64.tar.gz midimon-gui
+          tar czf ../../dist/conductor-gui-linux-x86_64.tar.gz conductor-gui
           cd ../../dist
-          sha256sum midimon-gui-linux-x86_64.tar.gz > midimon-gui-linux-x86_64.tar.gz.sha256
+          sha256sum conductor-gui-linux-x86_64.tar.gz > conductor-gui-linux-x86_64.tar.gz.sha256
           # Copy AppImage if it exists
           if [ -f "../target/release/bundle/appimage/*.AppImage" ]; then
             cp ../target/release/bundle/appimage/*.AppImage ./ || true
@@ -270,15 +270,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            midimon-gui/src-tauri/dist/midimon-gui-macos-universal.tar.gz
-            midimon-gui/src-tauri/dist/midimon-gui-macos-universal.tar.gz.sha256
+            conductor-gui/src-tauri/dist/conductor-gui-macos-universal.tar.gz
+            conductor-gui/src-tauri/dist/conductor-gui-macos-universal.tar.gz.sha256
 
       - name: Upload Tauri GUI Release Assets (Linux)
         if: runner.os == 'Linux'
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            midimon-gui/src-tauri/dist/midimon-gui-linux-x86_64.tar.gz
-            midimon-gui/src-tauri/dist/midimon-gui-linux-x86_64.tar.gz.sha256
-            midimon-gui/src-tauri/dist/*.AppImage
-            midimon-gui/src-tauri/dist/*.deb
+            conductor-gui/src-tauri/dist/conductor-gui-linux-x86_64.tar.gz
+            conductor-gui/src-tauri/dist/conductor-gui-linux-x86_64.tar.gz.sha256
+            conductor-gui/src-tauri/dist/*.AppImage
+            conductor-gui/src-tauri/dist/*.deb

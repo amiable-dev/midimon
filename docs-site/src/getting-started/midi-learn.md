@@ -1,6 +1,6 @@
 # Input Learn Mode
 
-**Input Learn** is the fastest way to create mappings in MIDIMon v3.0. Instead of manually entering note numbers, button IDs, or MIDI parameters, simply press a control on your device and let MIDIMon auto-detect everything.
+**Input Learn** is the fastest way to create mappings in Conductor v3.0. Instead of manually entering note numbers, button IDs, or MIDI parameters, simply press a control on your device and let Conductor auto-detect everything.
 
 ## What is Input Learn?
 
@@ -8,7 +8,7 @@ Input Learn (formerly "MIDI Learn") is a one-click workflow that works with both
 
 1. **Click "Learn"** next to a trigger field
 2. **Press a control** on your device (pad, button, stick, encoder, etc.)
-3. **MIDIMon auto-fills** the trigger configuration
+3. **Conductor auto-fills** the trigger configuration
 4. **Assign an action** and save
 
 That's it! No need to know note numbers, button IDs, CC values, or MIDI channels.
@@ -34,7 +34,7 @@ Input Learn works with:
 
 ### Basic Workflow
 
-1. **Open MIDIMon GUI** and ensure your device is connected
+1. **Open Conductor GUI** and ensure your device is connected
 
 2. **Navigate to Mappings** panel
 
@@ -329,16 +329,16 @@ Input Learn is **smart** - it detects patterns automatically:
 #### MIDI Patterns
 
 **Long Press Detection**:
-- If you hold a pad for >1 second during Learn mode, MIDIMon suggests a Long Press trigger
+- If you hold a pad for >1 second during Learn mode, Conductor suggests a Long Press trigger
 
 **Double-Tap Detection**:
-- If you tap a pad twice quickly, MIDIMon suggests a Double-Tap trigger
+- If you tap a pad twice quickly, Conductor suggests a Double-Tap trigger
 
 **Chord Detection**:
-- If you press multiple pads within 100ms, MIDIMon suggests a Chord trigger
+- If you press multiple pads within 100ms, Conductor suggests a Chord trigger
 
 **Velocity Variation**:
-- If you press the same pad with varying velocities, MIDIMon suggests a Velocity Range trigger
+- If you press the same pad with varying velocities, Conductor suggests a Velocity Range trigger
 
 #### Game Controller Patterns
 
@@ -485,7 +485,7 @@ You can freely mix MIDI and gamepad inputs:
    - Linux: `ls /dev/input/js*`
    - Windows: Devices and Printers
 3. **Try USB instead of Bluetooth** (or vice versa)
-4. **Restart MIDIMon daemon**: `midimonctl stop && midimon --foreground`
+4. **Restart Conductor daemon**: `conductorctl stop && conductor --foreground`
 
 ### Multiple Events Detected
 
@@ -645,7 +645,7 @@ This helps debug "Learn not detecting" issues.
 
 When creating **per-app profiles**, Learn with that app in focus:
 1. Switch to target app (e.g., Logic Pro)
-2. Switch back to MIDIMon GUI
+2. Switch back to Conductor GUI
 3. Use Input Learn
 4. Assign action relevant to that app
 

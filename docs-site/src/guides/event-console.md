@@ -17,7 +17,7 @@ The Event Console displays:
 
 ### GUI Method
 
-1. Open MIDIMon GUI
+1. Open Conductor GUI
 2. Navigate to **Settings** tab
 3. Click **📊 Show Event Console**
 4. View live events in real-time
@@ -26,13 +26,13 @@ The Event Console displays:
 
 ```bash
 # Monitor all events
-midimonctl events
+conductorctl events
 
 # Filter by event type
-midimonctl events --type note
+conductorctl events --type note
 
 # Follow mode (live tail)
-midimonctl events --follow
+conductorctl events --follow
 ```
 
 ## Event Types
@@ -119,45 +119,45 @@ Trigger matched: "Volume Up" (mapping #2)
 
 ```bash
 # Only note events
-midimonctl events --type note
+conductorctl events --type note
 
 # Only CC events
-midimonctl events --type cc
+conductorctl events --type cc
 
 # Only processed events
-midimonctl events --type processed
+conductorctl events --type processed
 
 # Only actions
-midimonctl events --type action
+conductorctl events --type action
 
 # Only errors
-midimonctl events --type error
+conductorctl events --type error
 ```
 
 ### By MIDI Channel
 
 ```bash
-midimonctl events --channel 1
+conductorctl events --channel 1
 ```
 
 ### By Note Range
 
 ```bash
 # Only pads (notes 36-51)
-midimonctl events --note-min 36 --note-max 51
+conductorctl events --note-min 36 --note-max 51
 ```
 
 ### By Time Range
 
 ```bash
 # Last 5 minutes
-midimonctl events --since 5m
+conductorctl events --since 5m
 
 # Last hour
-midimonctl events --since 1h
+conductorctl events --since 1h
 
 # Specific time
-midimonctl events --since "2025-01-15 12:00"
+conductorctl events --since "2025-01-15 12:00"
 ```
 
 ## Use Cases
@@ -312,13 +312,13 @@ View live statistics:
 Record event sequences for analysis:
 
 ```bash
-midimonctl record-events --duration 30s --output session.json
+conductorctl record-events --duration 30s --output session.json
 ```
 
 Playback recorded events:
 
 ```bash
-midimonctl playback-events session.json
+conductorctl playback-events session.json
 ```
 
 ### Event Filtering Rules
@@ -341,7 +341,7 @@ min_severity = "warning"
 Activate filter in GUI or CLI:
 
 ```bash
-midimonctl events --filter "Only My Pads"
+conductorctl events --filter "Only My Pads"
 ```
 
 ### Event Triggers
@@ -373,7 +373,7 @@ track_memory = true
 View profiling data:
 
 ```bash
-midimonctl events --profiling
+conductorctl events --profiling
 ```
 
 Output includes:
@@ -386,10 +386,10 @@ Output includes:
 
 ### Console Not Updating
 
-1. Check daemon is running: `midimonctl status`
+1. Check daemon is running: `conductorctl status`
 2. Verify events are being generated (press pads)
-3. Restart daemon: `midimonctl restart`
-4. Check event monitoring is active: `midimonctl is-event-monitoring-active`
+3. Restart daemon: `conductorctl restart`
+4. Check event monitoring is active: `conductorctl is-event-monitoring-active`
 
 ### Too Many Events
 
@@ -397,10 +397,10 @@ Filter aggressively:
 
 ```bash
 # Only errors and warnings
-midimonctl events --type error --type warning
+conductorctl events --type error --type warning
 
 # Debounce rapid events
-midimonctl events --debounce 100ms
+conductorctl events --debounce 100ms
 ```
 
 Or reduce update rate in config:
@@ -428,7 +428,7 @@ max_events_per_second = 30
 
 3. Check log level:
    ```bash
-   DEBUG=1 midimonctl events
+   DEBUG=1 conductorctl events
    ```
 
 ## Best Practices
@@ -446,7 +446,7 @@ max_events_per_second = 30
 ### Export to CSV for Analysis
 
 ```bash
-midimonctl events --output events.csv --duration 60s
+conductorctl events --output events.csv --duration 60s
 ```
 
 Analyze in Excel/Google Sheets:
@@ -458,14 +458,14 @@ Analyze in Excel/Google Sheets:
 
 ```bash
 # Stream events to external tool
-midimonctl events --format json | jq '.' | your-monitoring-tool
+conductorctl events --format json | jq '.' | your-monitoring-tool
 ```
 
 ### Log to File
 
 ```bash
 # Continuous logging
-midimonctl events -f >> midimon-events.log
+conductorctl events -f >> conductor-events.log
 ```
 
 ## Next Steps

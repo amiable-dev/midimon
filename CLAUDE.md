@@ -6,13 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ✅ **v3.0: Game Controllers (HID) Support Complete**
 
-MIDIMon has completed v3.0 development, adding comprehensive support for all SDL2-compatible HID devices (gamepads, joysticks, racing wheels, flight sticks, HOTAS, and custom controllers) alongside existing MIDI controller support.
+Conductor has completed v3.0 development, adding comprehensive support for all SDL2-compatible HID devices (gamepads, joysticks, racing wheels, flight sticks, HOTAS, and custom controllers) alongside existing MIDI controller support.
 
 ### Current Architecture (v3.0)
 
-MIDIMon uses a **3-crate workspace structure** with unified input device support:
+Conductor uses a **3-crate workspace structure** with unified input device support:
 
-1. **midimon-core**: Pure Rust engine library (truly UI-independent)
+1. **conductor-core**: Pure Rust engine library (truly UI-independent)
    - Event processing, mapping engine, configuration
    - **Unified InputEvent abstraction** for MIDI and Game Controllers (HID)
    - **ID range allocation**: MIDI (0-127), HID (128-255)
@@ -23,7 +23,7 @@ MIDIMon uses a **3-crate workspace structure** with unified input device support
    - **gamepad_events.rs**: Protocol-agnostic event mapping (gilrs v0.10)
    - **60+ tests passing** (100% pass rate)
 
-2. **midimon-daemon**: Background service with system interaction
+2. **conductor-daemon**: Background service with system interaction
    - **Action Executor** (Phase 2: moved from core)
      - Keyboard/mouse simulation via enigo
      - Shell command execution
@@ -42,12 +42,12 @@ MIDIMon uses a **3-crate workspace structure** with unified input device support
      - Lifecycle management (8-state machine)
      - Performance metrics with grading system
    - **CLI tools**:
-     - `midimonctl` - Daemon control (status, reload, stop, validate, ping)
-     - `midimon` - Main daemon binary
+     - `conductorctl` - Daemon control (status, reload, stop, validate, ping)
+     - `conductor` - Main daemon binary
    - **Diagnostic tools** (6 binaries)
    - **40+ tests passing** + 1 ignored (file watching)
 
-3. **midimon-gui**: Tauri v2 configuration interface
+3. **conductor-gui**: Tauri v2 configuration interface
    - Full CRUD operations for modes, mappings, devices, settings
    - Real-time daemon synchronization
    - **MIDI Learn mode with gamepad support** (v3.0)
@@ -55,8 +55,8 @@ MIDIMon uses a **3-crate workspace structure** with unified input device support
    - LED scheme configuration
    - **26 tests passing** + 1 ignored
 
-4. **midimon** (root): Backward compatibility layer
-   - Re-exports midimon-core types for existing tests
+4. **conductor** (root): Backward compatibility layer
+   - Re-exports conductor-core types for existing tests
    - Maintains v0.1.0 import paths
    - Zero breaking changes for end users
 
@@ -71,7 +71,7 @@ MIDIMon uses a **3-crate workspace structure** with unified input device support
 - ✅ **Phase 3** (v1.0.0): Daemon infrastructure & config hot-reload
   - IPC server (<1ms latency)
   - Config hot-reload (0-10ms)
-  - CLI tool (midimonctl)
+  - CLI tool (conductorctl)
   - State persistence
 - ✅ **Phase 4** (v2.0.0): Tauri v2 GUI & visual configuration
   - MIDI Learn mode
@@ -96,13 +96,13 @@ MIDIMon uses a **3-crate workspace structure** with unified input device support
 
 ```
 ┌──────────────────────────────────────────────────┐
-│  midimonctl (CLI)                                │
+│  conductorctl (CLI)                                │
 │  - status, reload, stop, validate, ping          │
 └────────────┬─────────────────────────────────────┘
              │ IPC (JSON over Unix socket)
              ▼
 ┌──────────────────────────────────────────────────┐
-│  midimon-daemon Service                          │
+│  conductor-daemon Service                          │
 │  ┌────────────────────────────────────────────┐ │
 │  │  IPC Server                                │ │
 │  │  - Accept connections                      │ │
@@ -143,7 +143,7 @@ MIDIMon uses a **3-crate workspace structure** with unified input device support
              │
              ▼
 ┌──────────────────────────────────────────────────┐
-│  midimon-core Engine (UI-Independent)            │
+│  conductor-core Engine (UI-Independent)            │
 │  - Event processing (MIDI + Gamepad)             │
 │  - Mapping execution (protocol-agnostic)         │
 │  - Action dispatch (data only)                   │
@@ -160,7 +160,7 @@ MIDIMon uses a **3-crate workspace structure** with unified input device support
 
 ### Game Controllers (HID) Architecture (v3.0)
 
-MIDIMon v3.0 introduces comprehensive support for all SDL2-compatible HID devices through a unified input abstraction:
+Conductor v3.0 introduces comprehensive support for all SDL2-compatible HID devices through a unified input abstraction:
 
 #### Design Principles
 
@@ -227,7 +227,7 @@ pub enum InputMode {
 
 #### gilrs Library Integration
 
-MIDIMon uses **gilrs v0.10** for cross-platform gamepad support:
+Conductor uses **gilrs v0.10** for cross-platform gamepad support:
 
 - **Platform Support**: Windows, macOS, Linux, BSD
 - **Device Types**: All SDL2-compatible controllers (gamepads, joysticks, racing wheels, flight sticks, HOTAS)
@@ -247,16 +247,16 @@ MIDIMon uses **gilrs v0.10** for cross-platform gamepad support:
 
 ## Project Overview
 
-MIDIMon is a Rust-based input device mapping system that transforms MIDI controllers and Game Controllers (HID) into advanced macro pads with velocity sensitivity, long press detection, double-tap, chord detection, and full RGB LED feedback.
+Conductor is a Rust-based input device mapping system that transforms MIDI controllers and Game Controllers (HID) into advanced macro pads with velocity sensitivity, long press detection, double-tap, chord detection, and full RGB LED feedback.
 
 **Supported Devices**:
 - **MIDI Controllers**: Native Instruments Maschine Mikro MK3, Launchpad, KORG nanoKONTROL, etc.
 - **Game Controllers (HID)**: Xbox controllers, PlayStation controllers, Nintendo Switch Pro, racing wheels, flight sticks, HOTAS, joysticks, and all SDL2-compatible devices
 
 **Current Architecture**: Cargo workspace with 3 packages
-- `midimon-core`: Pure engine library (UI-independent)
-- `midimon-daemon`: CLI binaries and daemon
-- `midimon`: Compatibility layer
+- `conductor-core`: Pure engine library (UI-independent)
+- `conductor-daemon`: CLI binaries and daemon
+- `conductor`: Compatibility layer
 
 ## Build, Run & Development Commands
 
@@ -269,8 +269,8 @@ cargo build --workspace
 cargo build --release --workspace
 
 # Build specific package
-cargo build --package midimon-core
-cargo build --package midimon-daemon
+cargo build --package conductor-core
+cargo build --package conductor-daemon
 
 # Build times (release mode, M1 Mac)
 # - Clean build: ~26s
@@ -347,9 +347,9 @@ cargo run --bin test_midi
 cargo test --workspace
 
 # Run tests for specific package
-cargo test --package midimon-core
-cargo test --package midimon-daemon
-cargo test --package midimon
+cargo test --package conductor-core
+cargo test --package conductor-daemon
+cargo test --package conductor
 
 # Run with verbose output
 cargo test --workspace -- --nocapture
@@ -362,9 +362,9 @@ cargo test --workspace -- --nocapture
 ### Workspace Structure
 
 ```
-midimon/                          # Root workspace
+conductor/                          # Root workspace
 ├── Cargo.toml                    # Workspace manifest
-├── midimon-core/                 # Pure engine library
+├── conductor-core/                 # Pure engine library
 │   ├── src/
 │   │   ├── lib.rs               # Public API exports
 │   │   ├── config.rs            # Config structures & parsing
@@ -379,7 +379,7 @@ midimon/                          # Root workspace
 │   │   ├── mikro_leds.rs        # HID LED implementation
 │   │   └── midi_feedback.rs     # MIDI LED fallback
 │   └── tests/                   # Integration tests
-├── midimon-daemon/              # CLI daemon + tools
+├── conductor-daemon/              # CLI daemon + tools
 │   ├── src/
 │   │   ├── main.rs              # Main daemon binary
 │   │   ├── input_manager.rs     # Unified input manager (v3.0)
@@ -396,18 +396,18 @@ midimon/                          # Root workspace
 
 The system follows a unified architecture supporting both MIDI and Game Controllers (HID):
 
-1. **Input Collection** (midimon-daemon)
+1. **Input Collection** (conductor-daemon)
    - **MidiDeviceManager**: Raw MIDI bytes → `MidiEvent` → `InputEvent`
    - **GamepadDeviceManager**: gilrs events → `InputEvent`
    - **InputManager**: Unified stream management
-2. **Event Processing** (midimon-core/src/event_processor.rs)
+2. **Event Processing** (conductor-core/src/event_processor.rs)
    - `InputEvent` → `ProcessedEvent`
    - Detects velocity levels, long press, double-tap, chords, encoder/stick direction
-3. **Mapping & Execution** (midimon-core/src/mapping.rs, actions.rs)
+3. **Mapping & Execution** (conductor-core/src/mapping.rs, actions.rs)
    - `ProcessedEvent` → `Action` → execution
    - Protocol-agnostic: same mapping logic for MIDI and HID
 
-### Core Components (midimon-core)
+### Core Components (conductor-core)
 
 - **config.rs**: Configuration structures for TOML parsing (Trigger, Action, Mode)
 - **events.rs**: Unified InputEvent abstraction (v3.0) - protocol-agnostic
@@ -421,7 +421,7 @@ The system follows a unified architecture supporting both MIDI and Game Controll
 - **mikro_leds.rs**: HID-based RGB LED control (Maschine Mikro MK3)
 - **midi_feedback.rs**: Standard MIDI LED feedback fallback
 
-### Core Components (midimon-daemon)
+### Core Components (conductor-daemon)
 
 - **input_manager.rs**: Unified input device manager (v3.0) - MIDI + HID
 - **gamepad_device.rs**: Gamepad device lifecycle management (v3.0)
@@ -684,7 +684,7 @@ DEBUG=1 cargo run --release -- --gamepad
 ### Hybrid MIDI + Gamepad Issues (v3.0)
 - Verify InputMode is set to `Both` in daemon configuration
 - Check that both devices are connected and recognized
-- Use `midimonctl status` to verify both device managers are active
+- Use `conductorctl status` to verify both device managers are active
 - Ensure no ID conflicts (MIDI: 0-127, Gamepad: 128-255)
 
 ## Performance Characteristics
@@ -710,9 +710,9 @@ The release profile in Cargo.toml uses:
 The target monorepo structure has been achieved:
 
 ```
-midimon/
+conductor/
 ├── Cargo.toml                      # Workspace root
-├── midimon-core/                   # Pure Rust engine crate (UI-free)
+├── conductor-core/                   # Pure Rust engine crate (UI-free)
 │   ├── Cargo.toml
 │   └── src/
 │       ├── lib.rs
@@ -722,7 +722,7 @@ midimon/
 │       ├── mapping.rs              # Mapping engine
 │       ├── actions.rs              # Action executor
 │       └── config.rs               # Config loading & watching
-├── midimon-daemon/                 # Background service (headless)
+├── conductor-daemon/                 # Background service (headless)
 │   ├── Cargo.toml
 │   └── src/
 │       ├── main.rs
@@ -730,7 +730,7 @@ midimon/
 │       ├── gamepad_device.rs       # Gamepad device manager ✅ v3.0
 │       ├── midi_device.rs          # MIDI device manager ✅
 │       └── daemon/                 # Daemon infrastructure ✅
-├── midimon-gui/                    # Tauri v2 UI for configuration ✅
+├── conductor-gui/                    # Tauri v2 UI for configuration ✅
 │   ├── Cargo.toml
 │   ├── src-tauri/
 │   │   ├── Cargo.toml
@@ -756,7 +756,7 @@ midimon/
 
 ### Key Architectural Principles (Achieved)
 
-1. ✅ **Engine Independence**: `midimon-core` has zero UI dependencies - pure event processing, mapping, and actions
+1. ✅ **Engine Independence**: `conductor-core` has zero UI dependencies - pure event processing, mapping, and actions
 2. ✅ **Plugin Architecture**: Device profiles as external TOML templates, easily shareable
 3. ✅ **Hot Reload**: Config file watching with `notify` crate for zero-downtime updates
 4. ✅ **Menu Bar UX**: Tauri tray icon with quick actions (Pause, Reload, Open Config)
@@ -773,8 +773,8 @@ midimon/
 - ✅ All 314 tests passing
 
 **Phase 2: Extract Core Engine** ✅ COMPLETE (v0.2.0)
-- ✅ Created `midimon-core` crate (pure Rust library, zero UI dependencies)
-- ✅ Created `midimon-daemon` with 7 binaries
+- ✅ Created `conductor-core` crate (pure Rust library, zero UI dependencies)
+- ✅ Created `conductor-daemon` with 7 binaries
 - ✅ Created backward compatibility layer
 - ✅ 339 tests passing (100% pass rate)
 - ✅ Zero breaking changes
@@ -783,7 +783,7 @@ midimon/
 
 **Phase 3: Add Daemon & UI** ✅ COMPLETE (v1.0.0-v2.0.0)
 - ✅ Created Tauri-based menu bar UI
-- ✅ Added Tauri-based `midimon-gui` for visual configuration
+- ✅ Added Tauri-based `conductor-gui` for visual configuration
 - ✅ Implemented config hot-reloading
 - ✅ Added frontmost app detection for per-app profiles
 
