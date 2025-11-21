@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide walks through installing and configuring MIDIMon v2.0.0 on macOS. MIDIMon now includes a background daemon service with a modern Tauri-based GUI for visual configuration.
+This guide walks through installing and configuring MIDIMon v3.0.0 on macOS. MIDIMon now includes multi-protocol input support (MIDI controllers + game controllers), a background daemon service, and a modern Tauri-based GUI for visual configuration.
 
 **Installation Options**:
 - **Option 1 (Recommended)**: Download pre-built GUI app + daemon binaries from [GitHub Releases](https://github.com/amiable-dev/midimon/releases)
@@ -59,7 +59,27 @@ midimon --version
 
 ### Prerequisites
 
-#### 1. Rust Toolchain
+#### 1. Hardware Requirements
+
+MIDIMon v3.0 supports two types of input devices:
+
+**MIDI Controllers**:
+- Native Instruments Maschine Mikro MK3 (recommended, full RGB LED support)
+- Generic MIDI controllers (keyboard controllers, pad controllers, etc.)
+- USB-MIDI or MIDI over Bluetooth
+
+**Game Controllers (HID)** (v3.0+):
+- Gamepads: Xbox (360, One, Series X|S), PlayStation (DualShock 4, DualSense), Switch Pro Controller
+- Joysticks: Flight sticks, arcade sticks
+- Racing Wheels: Logitech, Thrustmaster, or any SDL2-compatible wheel
+- HOTAS: Hands On Throttle And Stick systems
+- Custom Controllers: Any SDL2-compatible HID device
+
+You need at least one MIDI controller OR one game controller to use MIDIMon. Both can be used simultaneously.
+
+#### 2. Software Requirements
+
+**Rust Toolchain** (for building from source):
 
 MIDIMon is written in Rust and requires the Rust compiler and Cargo build system.
 
@@ -69,7 +89,7 @@ rustc --version
 cargo --version
 ```
 
-If you see version numbers (e.g., `rustc 1.75.0`), skip to step 2.
+If you see version numbers (e.g., `rustc 1.75.0`), skip to the next section.
 
 **Install Rust using rustup**:
 ```bash
@@ -87,7 +107,7 @@ rustc --version  # Should show: rustc 1.75.0 (or later)
 cargo --version  # Should show: cargo 1.75.0 (or later)
 ```
 
-#### 2. Node.js and npm (for GUI only)
+**Node.js and npm** (for GUI only):
 
 Required if building the Tauri GUI:
 
@@ -100,7 +120,25 @@ node --version  # Should show: v20.x.x
 npm --version   # Should show: 10.x.x
 ```
 
-### 2. Native Instruments Drivers (for Maschine Mikro MK3)
+**SDL2 Library** (for game controllers):
+
+SDL2 is included via the `gilrs` v0.10 Rust crate. No additional installation required - it's built into MIDIMon automatically.
+
+#### 3. Platform-Specific Requirements
+
+**Xcode Command Line Tools** (Required):
+
+Required for compiling native dependencies:
+
+```bash
+xcode-select --install
+```
+
+If already installed, you'll see: "command line tools are already installed".
+
+#### 4. Device-Specific Drivers (Optional)
+
+**Native Instruments Drivers** (for Maschine Mikro MK3 only):
 
 If using a Maschine Mikro MK3, install Native Instruments drivers for full RGB LED support.
 
@@ -124,15 +162,15 @@ Maschine Mikro MK3:
   Vendor ID: 0x17cc  (Native Instruments)
 ```
 
-### 3. Xcode Command Line Tools
+**Game Controller Drivers**:
 
-Required for compiling native dependencies:
+Most modern game controllers work natively on macOS without additional drivers:
+- **Xbox Controllers**: Native support (360, One, Series X|S)
+- **PlayStation Controllers**: Native support via Bluetooth or USB
+- **Switch Pro Controller**: Native support via Bluetooth or USB
+- **Generic SDL2 Controllers**: Usually work without drivers
 
-```bash
-xcode-select --install
-```
-
-If already installed, you'll see: "command line tools are already installed".
+No additional drivers are required for gamepad support.
 
 ### Building from Source
 
@@ -269,11 +307,128 @@ This creates a basic configuration with:
 
 **Hot-reload**: The daemon automatically reloads config within 0-10ms when you save changes.
 
+## Verifying Device Connection
+
+### Verifying MIDI Controller Connection
+
+#### Check USB Device Enumeration
+
+```bash
+system_profiler SPUSBDataType | grep -i mikro
+```
+
+Expected output:
+```
+Maschine Mikro MK3:
+  Product ID: 0x1600
+  Vendor ID: 0x17cc (Native Instruments)
+  Serial Number: XXXXX
+  Location ID: 0x14200000 / 5
+```
+
+#### Check MIDI Connectivity
+
+```bash
+# Open Audio MIDI Setup
+open -a "Audio MIDI Setup"
+```
+
+In the **MIDI Studio** window (Window → Show MIDI Studio):
+- You should see "Maschine Mikro MK3" listed
+- It should be connected (not grayed out)
+- Double-click to view its properties
+
+#### Test MIDI Events
+
+```bash
+# Run diagnostic tool
+cargo run --bin midi_diagnostic 2
+```
+
+Press pads on your controller. You should see:
+```
+[NoteOn] ch:0 note:12 vel:87
+[NoteOff] ch:0 note:12 vel:0
+```
+
+If nothing appears:
+- Check USB connection
+- Verify correct port number (try 0, 1, 2, etc.)
+- Restart the device
+- Check Audio MIDI Setup
+
+### Verifying Game Controller Connection
+
+#### Check System Recognition
+
+```bash
+# Open System Settings
+open /System/Library/PreferencePanes/GameController.prefPane
+```
+
+Or manually navigate:
+- Open **System Settings** → **Game Controllers**
+- Your gamepad should appear in the list
+- Click to test buttons and analog sticks
+
+**Supported indicators**:
+- Green icon: Controller is connected and working
+- Controller name displayed (e.g., "Xbox Wireless Controller")
+- Button test interface available
+
+#### Check via MIDIMon Status
+
+```bash
+# Start MIDIMon and check status
+midimonctl status
+
+# Look for gamepad in device list
+# Example output:
+# Connected Devices:
+#   - Xbox Wireless Controller (Gamepad)
+```
+
+#### Test Gamepad Events
+
+Use MIDIMon's event console to verify gamepad inputs:
+
+```bash
+# Start MIDIMon with debug logging
+DEBUG=1 midimon --foreground
+```
+
+Press buttons on your gamepad. You should see:
+```
+[GamepadButton] button:128 (A/Cross/B)
+[GamepadButton] button:129 (B/Circle/A)
+[GamepadAnalogStick] axis:128 value:255 (Left stick right)
+```
+
+If nothing appears:
+- Check USB or Bluetooth connection
+- Verify controller appears in System Settings → Game Controllers
+- Try reconnecting the controller
+- Restart MIDIMon
+- Check battery level (wireless controllers)
+
+#### Platform-Specific Troubleshooting
+
+**Bluetooth Connection Issues**:
+1. Forget the device in Bluetooth settings
+2. Put controller in pairing mode
+3. Re-pair the controller
+4. Test in Game Controllers settings
+
+**USB Connection Issues**:
+1. Try a different USB port
+2. Try a different USB cable
+3. Restart the controller (unplug/replug or hold power button)
+
 ## Configuring macOS Permissions
 
 ### Input Monitoring Permission (Required for HID/LED Control)
 
-macOS requires explicit permission for applications to access HID devices like the Maschine Mikro MK3.
+macOS requires explicit permission for applications to access HID devices like the Maschine Mikro MK3 and game controllers.
 
 **Grant permission**:
 1. Run MIDIMon once:
@@ -293,6 +448,11 @@ macOS requires explicit permission for applications to access HID devices like t
    cargo run --release 2
    ```
 
+**Why this permission is required**:
+- **MIDI Controllers**: HID-based RGB LED control (Maschine Mikro MK3)
+- **Game Controllers**: Reading gamepad button and analog stick inputs
+- **Input Simulation**: Simulating keyboard/mouse actions
+
 **Verify HID access**:
 ```bash
 DEBUG=1 cargo run --release 2
@@ -302,12 +462,14 @@ Look for:
 ```
 [DEBUG] HID device opened successfully
 [DEBUG] LED controller initialized
+[DEBUG] Gamepad connected: Xbox Wireless Controller
 ```
 
-If you see "HID device open failed", check:
+If you see "HID device open failed" or gamepad not detected:
 - Input Monitoring permission is enabled
-- USB cable is connected
-- Native Instruments drivers are installed
+- USB cable is connected (or Bluetooth paired)
+- Native Instruments drivers are installed (for Mikro MK3)
+- Controller appears in System Settings → Game Controllers
 
 ### Accessibility Permission (Optional, for Advanced Actions)
 
@@ -319,54 +481,6 @@ Some actions (e.g., controlling other apps programmatically) may require Accessi
 4. Click **Open**
 
 This is optional and only needed for specific advanced features.
-
-## Verifying USB Connection
-
-### Check USB Device Enumeration
-
-```bash
-system_profiler SPUSBDataType | grep -i mikro
-```
-
-Expected output:
-```
-Maschine Mikro MK3:
-  Product ID: 0x1600
-  Vendor ID: 0x17cc (Native Instruments)
-  Serial Number: XXXXX
-  Location ID: 0x14200000 / 5
-```
-
-### Check MIDI Connectivity
-
-```bash
-# Open Audio MIDI Setup
-open -a "Audio MIDI Setup"
-```
-
-In the **MIDI Studio** window (Window → Show MIDI Studio):
-- You should see "Maschine Mikro MK3" listed
-- It should be connected (not grayed out)
-- Double-click to view its properties
-
-### Test MIDI Events
-
-```bash
-# Run diagnostic tool
-cargo run --bin midi_diagnostic 2
-```
-
-Press pads on your controller. You should see:
-```
-[NoteOn] ch:0 note:12 vel:87
-[NoteOff] ch:0 note:12 vel:0
-```
-
-If nothing appears:
-- Check USB cable
-- Verify correct port number (try 0, 1, 2, etc.)
-- Restart the device
-- Check Audio MIDI Setup
 
 ## Running MIDIMon
 
@@ -676,7 +790,7 @@ cargo build --release
 
 ---
 
-### Runtime Errors
+### Runtime Errors - MIDI
 
 **Error**: `No MIDI input ports available`
 
@@ -713,7 +827,41 @@ cargo build --release
 
 ---
 
-### LED Issues
+### Runtime Errors - Game Controllers
+
+**Error**: `Gamepad not detected`
+
+**Solution**:
+1. Check connection (USB or Bluetooth)
+2. Verify controller appears in System Settings → Game Controllers
+3. Grant Input Monitoring permission
+4. Try reconnecting the controller
+5. Check debug output: `DEBUG=1 midimon --foreground`
+
+---
+
+**Error**: `Gamepad buttons not responding`
+
+**Solution**:
+1. Use MIDI Learn to discover correct button IDs
+2. Verify button IDs are in range 128-255 (not 0-127)
+3. Check that Input Monitoring permission is granted
+4. Test in System Settings → Game Controllers
+5. Try a different USB cable or re-pair Bluetooth
+
+---
+
+**Error**: `Analog stick not working`
+
+**Solution**:
+1. Check axis IDs (128-131 for sticks, 132-133 for triggers)
+2. Verify direction is correct (Clockwise/CounterClockwise)
+3. Adjust dead zone if too sensitive
+4. Use button triggers instead of analog for precise control
+
+---
+
+### LED Issues (MIDI Controllers Only)
 
 **LEDs not lighting up**:
 1. Verify Native Instruments drivers installed
@@ -736,15 +884,42 @@ cargo build --release
    cargo run --bin pad_mapper
    ```
 
+---
+
+### Gamepad-Specific Issues
+
+**Controller works in games but not MIDIMon**:
+1. Ensure MIDIMon has Input Monitoring permission
+2. Check that controller is SDL2-compatible
+3. Try USB connection instead of Bluetooth
+4. Restart MIDIMon after connecting controller
+
+**Bluetooth pairing issues**:
+1. Forget device in Bluetooth settings
+2. Put controller in pairing mode (varies by controller):
+   - **Xbox**: Hold pair button until LED flashes
+   - **PlayStation**: Hold Share + PS button
+   - **Switch Pro**: Hold sync button on top
+3. Re-pair and test in System Settings
+4. Use USB cable as fallback
+
+**Battery/Power issues (wireless)**:
+1. Charge or replace batteries
+2. Use USB cable for wired mode
+3. Check battery indicator in System Settings
+
+For more troubleshooting help, see [Gamepad Support Guide](../guides/gamepad-support.md) and [Common Issues](../troubleshooting/common-issues.md).
+
 ## Next Steps
 
-Now that MIDIMon v2.0.0 is installed and running:
+Now that MIDIMon v3.0.0 is installed and running:
 
 ### For GUI Users
 1. **Learn the GUI**: Read [GUI Quick Start Guide](../getting-started/gui-quick-start.md)
 2. **MIDI Learn Tutorial**: See [MIDI Learn Mode](../getting-started/midi-learn.md)
 3. **Device Templates**: Check [Using Device Templates](../guides/device-templates.md)
 4. **Per-App Profiles**: Set up [Application-Specific Profiles](../guides/per-app-profiles.md)
+5. **Gamepad Setup**: Read [Gamepad Support Guide](../guides/gamepad-support.md) (v3.0+)
 
 ### For CLI Users
 1. **Daemon Control**: Read [Daemon & Hot-Reload Guide](../guides/daemon.md)
@@ -753,6 +928,7 @@ Now that MIDIMon v2.0.0 is installed and running:
 4. **Advanced Actions**: Explore [Actions Reference](../reference/actions.md)
 
 ### For All Users
+- **Gamepad Support**: [Gamepad Support Guide](../guides/gamepad-support.md) (v3.0+)
 - **Troubleshooting**: [Common Issues](../troubleshooting/common-issues.md)
 - **LED Customization**: [LED System Documentation](../guides/led-system.md)
 - **Diagnostic Tools**: [Debugging Guide](../troubleshooting/diagnostics.md)
@@ -773,6 +949,7 @@ If you encounter issues:
 
 ---
 
-**Last Updated**: November 14, 2025 (v2.0.0)
+**Last Updated**: November 21, 2025 (v3.0.0)
 **macOS Support**: 11.0+ (Big Sur and later)
 **Architecture**: Universal Binary (Intel + Apple Silicon)
+**Input Support**: MIDI Controllers + Game Controllers (HID)
