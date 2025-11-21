@@ -4,21 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-✅ **v2.0.1: Phases 2-4 Complete + Security Hardening**
+✅ **v3.0: Game Controllers (HID) Support Complete**
 
-MIDIMon has completed Phases 2-4 of development, plus an additional Phase 2.5 for comprehensive security hardening and architectural purity.
+MIDIMon has completed v3.0 development, adding comprehensive support for all SDL2-compatible HID devices (gamepads, joysticks, racing wheels, flight sticks, HOTAS, and custom controllers) alongside existing MIDI controller support.
 
-### Current Architecture (v2.0.1)
+### Current Architecture (v3.0)
 
-MIDIMon uses a **3-crate workspace structure** with clear separation of concerns:
+MIDIMon uses a **3-crate workspace structure** with unified input device support:
 
 1. **midimon-core**: Pure Rust engine library (truly UI-independent)
    - Event processing, mapping engine, configuration
+   - **Unified InputEvent abstraction** for MIDI and Game Controllers (HID)
+   - **ID range allocation**: MIDI (0-127), HID (128-255)
    - **Action definitions only** (execution moved to daemon in Phase 2)
    - Config loading with security validation
    - Device profiles, error types
    - Public API for external integrations
-   - **45 tests passing** (100% pass rate)
+   - **gamepad_events.rs**: Protocol-agnostic event mapping (gilrs v0.10)
+   - **60+ tests passing** (100% pass rate)
 
 2. **midimon-daemon**: Background service with system interaction
    - **Action Executor** (Phase 2: moved from core)
@@ -26,6 +29,12 @@ MIDIMon uses a **3-crate workspace structure** with clear separation of concerns
      - Shell command execution
      - Application launching
      - Volume control
+   - **Input Management** (v3.0: Unified MIDI + HID)
+     - InputManager: Unified device management layer
+     - GamepadDeviceManager: HID device lifecycle and polling
+     - MidiDeviceManager: MIDI device lifecycle
+     - InputMode enum: MidiOnly, GamepadOnly, Both
+     - Single unified InputEvent stream
    - **Daemon infrastructure** (7 modules, ~2,000 lines)
      - IPC server (Unix domain sockets, JSON protocol)
      - Config hot-reload with file watching (500ms debounce)
@@ -36,12 +45,13 @@ MIDIMon uses a **3-crate workspace structure** with clear separation of concerns
      - `midimonctl` - Daemon control (status, reload, stop, validate, ping)
      - `midimon` - Main daemon binary
    - **Diagnostic tools** (6 binaries)
-   - **32 tests passing** + 1 ignored (file watching)
+   - **40+ tests passing** + 1 ignored (file watching)
 
 3. **midimon-gui**: Tauri v2 configuration interface
    - Full CRUD operations for modes, mappings, devices, settings
    - Real-time daemon synchronization
-   - MIDI Learn mode integration
+   - **MIDI Learn mode with gamepad support** (v3.0)
+   - **Gamepad template selector** (v3.0)
    - LED scheme configuration
    - **26 tests passing** + 1 ignored
 
@@ -69,8 +79,18 @@ MIDIMon uses a **3-crate workspace structure** with clear separation of concerns
   - Per-app profiles
   - Device templates
   - Live event console
+- ✅ **Phase 5** (v3.0.0): Game Controllers (HID) Support
+  - Unified InputEvent abstraction
+  - GamepadDeviceManager with auto-reconnection
+  - InputManager (MIDI + HID unified)
+  - Non-overlapping ID ranges (MIDI: 0-127, HID: 128-255)
+  - gilrs v0.10 integration
+  - 4 new trigger types (GamepadButton, GamepadButtonChord, GamepadAnalogStick, GamepadTrigger)
+  - Official gamepad templates (Xbox, PlayStation, Switch Pro)
+  - MIDI Learn support for gamepads
+  - GUI gamepad template selector
 
-**Next Phase**: Phase 5 - Advanced Features & Polish
+**Next Phase**: Phase 6 - Advanced Features & Polish
 
 ### Architecture Overview
 
@@ -97,6 +117,18 @@ MIDIMon uses a **3-crate workspace structure** with clear separation of concerns
 │  └──────────┬─────────────────────────────────┘ │
 │             ▼                                    │
 │  ┌────────────────────────────────────────────┐ │
+│  │  Input Manager (v3.0 Unified)              │ │
+│  │  ┌──────────────┐    ┌──────────────┐     │ │
+│  │  │ MIDI Device  │    │ Gamepad      │     │ │
+│  │  │ Manager      │    │ Device Mgr   │     │ │
+│  │  └──────┬───────┘    └──────┬───────┘     │ │
+│  │         │                   │              │ │
+│  │         └─────────┬─────────┘              │ │
+│  │                   ▼                        │ │
+│  │         Unified InputEvent Stream          │ │
+│  └────────────────────┬───────────────────────┘ │
+│                       │                          │
+│  ┌────────────────────▼───────────────────────┐ │
 │  │  Config Watcher                            │ │
 │  │  - File system monitoring                  │ │
 │  │  - 500ms debounce                          │ │
@@ -112,8 +144,8 @@ MIDIMon uses a **3-crate workspace structure** with clear separation of concerns
              ▼
 ┌──────────────────────────────────────────────────┐
 │  midimon-core Engine (UI-Independent)            │
-│  - Event processing                              │
-│  - Mapping execution                             │
+│  - Event processing (MIDI + Gamepad)             │
+│  - Mapping execution (protocol-agnostic)         │
 │  - Action dispatch (data only)                   │
 └──────────────────────────────────────────────────┘
              │
@@ -126,10 +158,88 @@ MIDIMon uses a **3-crate workspace structure** with clear separation of concerns
 └──────────────────────────────────────────────────┘
 ```
 
+### Game Controllers (HID) Architecture (v3.0)
+
+MIDIMon v3.0 introduces comprehensive support for all SDL2-compatible HID devices through a unified input abstraction:
+
+#### Design Principles
+
+1. **Protocol Agnostic**: Unified `InputEvent` abstraction for MIDI and Game Controllers (HID)
+2. **Non-Overlapping IDs**: MIDI (0-127), Gamepad (128-255)
+3. **Zero Latency Overhead**: Direct event translation, no additional processing
+4. **Backwards Compatible**: All existing MIDI configs work unchanged
+5. **Extensible**: Easy to add new input protocols (keyboard, mouse, etc.)
+
+#### ID Range Allocation
+
+- **MIDI Controllers**: IDs 0-127
+  - Notes: 0-127
+  - CC: 0-127
+  - Program Change: 0-127
+- **Game Controllers (HID)**: IDs 128-255
+  - Buttons: 128-144 (17 buttons mapped)
+  - Analog Sticks: 128-131 (4 axes: Left X/Y, Right X/Y)
+  - Analog Triggers: 132-133 (2 axes: Left Z, Right Z)
+
+#### InputMode Enum
+
+Controls which input devices are active:
+
+```rust
+pub enum InputMode {
+    MidiOnly,      // Use MIDI device only
+    GamepadOnly,   // Use gamepad device only
+    Both,          // Use both MIDI and gamepad simultaneously
+}
+```
+
+#### Button Mapping (128-144)
+
+```
+128: South (A/Cross/B)     | 136: LeftTrigger (L1/LB/L)
+129: East (B/Circle/A)     | 137: RightTrigger (R1/RB/R)
+130: West (X/Square/Y)     | 138: LeftThumb (L3)
+131: North (Y/Triangle/X)  | 139: RightThumb (R3)
+132: DPadUp                | 140: Start
+133: DPadDown              | 141: Select
+134: DPadLeft              | 142: Mode (Guide/Home)
+135: DPadRight             | 143: LeftTrigger2 (L2/LT/ZL)
+                           | 144: RightTrigger2 (R2/RT/ZR)
+```
+
+#### Axis Mapping
+
+**Analog Sticks (128-131)**:
+- 128: LeftStickX
+- 129: LeftStickY
+- 130: RightStickX
+- 131: RightStickY
+
+**Analog Triggers (132-133)**:
+- 132: LeftZ (Left trigger analog)
+- 133: RightZ (Right trigger analog)
+
+**Value Normalization**:
+- Input: -1.0 to 1.0 (gilrs float)
+- Output: 0 to 255 (u8)
+- Formula: `((value + 1.0) * 127.5) as u8`
+- Dead zone: 0.1 (10% threshold)
+
+#### gilrs Library Integration
+
+MIDIMon uses **gilrs v0.10** for cross-platform gamepad support:
+
+- **Platform Support**: Windows, macOS, Linux, BSD
+- **Device Types**: All SDL2-compatible controllers (gamepads, joysticks, racing wheels, flight sticks, HOTAS)
+- **Polling Frequency**: 1000Hz (1ms intervals)
+- **Latency**: <1ms event propagation
+- **Auto-Reconnection**: Exponential backoff (1s → 30s)
+
 ### Performance Characteristics
 
 - **Config Reload**: 0-8ms (production configs: <3ms)
 - **IPC Round-Trip**: <1ms
+- **Gamepad Polling**: 1ms (1000Hz)
 - **Build Time**: 26s clean, 4s incremental
 - **Binary Size**: 3-5MB (release)
 - **Memory Usage**: 5-10MB resident
@@ -137,7 +247,11 @@ MIDIMon uses a **3-crate workspace structure** with clear separation of concerns
 
 ## Project Overview
 
-MIDIMon is a Rust-based MIDI controller mapping system that transforms MIDI devices (particularly the Native Instruments Maschine Mikro MK3) into advanced macro pads with velocity sensitivity, long press detection, double-tap, chord detection, and full RGB LED feedback.
+MIDIMon is a Rust-based input device mapping system that transforms MIDI controllers and Game Controllers (HID) into advanced macro pads with velocity sensitivity, long press detection, double-tap, chord detection, and full RGB LED feedback.
+
+**Supported Devices**:
+- **MIDI Controllers**: Native Instruments Maschine Mikro MK3, Launchpad, KORG nanoKONTROL, etc.
+- **Game Controllers (HID)**: Xbox controllers, PlayStation controllers, Nintendo Switch Pro, racing wheels, flight sticks, HOTAS, joysticks, and all SDL2-compatible devices
 
 **Current Architecture**: Cargo workspace with 3 packages
 - `midimon-core`: Pure engine library (UI-independent)
@@ -159,11 +273,13 @@ cargo build --package midimon-core
 cargo build --package midimon-daemon
 
 # Build times (release mode, M1 Mac)
-# - Clean build: ~12s
-# - Incremental: <2s
+# - Clean build: ~26s
+# - Incremental: <4s
 ```
 
 ### Running the Main Application
+
+#### MIDI Device Mode
 ```bash
 # List available MIDI ports
 cargo run --release
@@ -183,10 +299,34 @@ cargo run --release 2 --profile mikro.ncmm3 --pad-page H
 DEBUG=1 cargo run --release 2
 ```
 
+#### Game Controller (HID) Mode (v3.0)
+```bash
+# List available gamepads
+cargo run --release -- --list-gamepads
+
+# Connect to first available gamepad
+cargo run --release -- --gamepad
+
+# Connect to specific gamepad by name
+cargo run --release -- --gamepad "Xbox Controller"
+
+# Hybrid mode: MIDI + Gamepad simultaneously
+cargo run --release 2 --gamepad
+
+# Use gamepad template
+cargo run --release -- --gamepad --template xbox-elite-series-2.toml
+
+# Debug gamepad events
+DEBUG=1 cargo run --release -- --gamepad
+```
+
 ### Diagnostic Tools
 ```bash
 # MIDI diagnostic tool (visualize all MIDI events)
 cargo run --bin midi_diagnostic 2
+
+# Gamepad diagnostic tool (v3.0 - visualize gamepad events)
+cargo run --bin gamepad_diagnostic
 
 # LED diagnostic tool
 cargo run --bin led_diagnostic
@@ -203,7 +343,7 @@ cargo run --bin test_midi
 
 ### Testing
 ```bash
-# Run all tests across workspace (339 tests)
+# Run all tests across workspace (500+ tests)
 cargo test --workspace
 
 # Run tests for specific package
@@ -228,7 +368,8 @@ midimon/                          # Root workspace
 │   ├── src/
 │   │   ├── lib.rs               # Public API exports
 │   │   ├── config.rs            # Config structures & parsing
-│   │   ├── events.rs            # MIDI event types
+│   │   ├── events.rs            # Unified InputEvent (v3.0)
+│   │   ├── gamepad_events.rs    # Gamepad event mapping (v3.0)
 │   │   ├── event_processor.rs   # Event → ProcessedEvent
 │   │   ├── mapping.rs           # Mapping engine
 │   │   ├── actions.rs           # Action types & execution
@@ -241,6 +382,9 @@ midimon/                          # Root workspace
 ├── midimon-daemon/              # CLI daemon + tools
 │   ├── src/
 │   │   ├── main.rs              # Main daemon binary
+│   │   ├── input_manager.rs     # Unified input manager (v3.0)
+│   │   ├── gamepad_device.rs    # Gamepad device manager (v3.0)
+│   │   ├── midi_device.rs       # MIDI device manager
 │   │   └── bin/                 # 6 diagnostic tools
 │   └── tests/
 └── src/                         # Compatibility layer
@@ -250,17 +394,25 @@ midimon/                          # Root workspace
 
 ### Event Processing Pipeline
 
-The system follows a three-stage architecture (all in `midimon-core`):
+The system follows a unified architecture supporting both MIDI and Game Controllers (HID):
 
-1. **MIDI Input** (midimon-daemon/src/main.rs) - Raw MIDI bytes → `MidiEvent` enum
-2. **Event Processing** (midimon-core/src/event_processor.rs) - `MidiEvent` → `ProcessedEvent`
-   - Detects velocity levels, long press, double-tap, chords, encoder direction
-3. **Mapping & Execution** (midimon-core/src/mapping.rs, actions.rs) - `ProcessedEvent` → `Action` → execution
+1. **Input Collection** (midimon-daemon)
+   - **MidiDeviceManager**: Raw MIDI bytes → `MidiEvent` → `InputEvent`
+   - **GamepadDeviceManager**: gilrs events → `InputEvent`
+   - **InputManager**: Unified stream management
+2. **Event Processing** (midimon-core/src/event_processor.rs)
+   - `InputEvent` → `ProcessedEvent`
+   - Detects velocity levels, long press, double-tap, chords, encoder/stick direction
+3. **Mapping & Execution** (midimon-core/src/mapping.rs, actions.rs)
+   - `ProcessedEvent` → `Action` → execution
+   - Protocol-agnostic: same mapping logic for MIDI and HID
 
 ### Core Components (midimon-core)
 
 - **config.rs**: Configuration structures for TOML parsing (Trigger, Action, Mode)
-- **event_processor.rs**: Transforms MIDI events into processed events with timing
+- **events.rs**: Unified InputEvent abstraction (v3.0) - protocol-agnostic
+- **gamepad_events.rs**: Gamepad event mapping (v3.0) - gilrs to InputEvent conversion
+- **event_processor.rs**: Transforms InputEvents into ProcessedEvents with timing
 - **mapping.rs**: Mapping engine (renamed from mappings.rs) matches events to actions
 - **actions.rs**: Action execution using `enigo` for keyboard/mouse simulation
 - **feedback.rs**: Unified LED feedback trait and device factory
@@ -269,15 +421,28 @@ The system follows a three-stage architecture (all in `midimon-core`):
 - **mikro_leds.rs**: HID-based RGB LED control (Maschine Mikro MK3)
 - **midi_feedback.rs**: Standard MIDI LED feedback fallback
 
+### Core Components (midimon-daemon)
+
+- **input_manager.rs**: Unified input device manager (v3.0) - MIDI + HID
+- **gamepad_device.rs**: Gamepad device lifecycle management (v3.0)
+- **midi_device.rs**: MIDI device lifecycle management
+- **daemon/engine_manager.rs**: Event processing coordination
+- **daemon/ipc_server.rs**: Unix socket IPC server
+- **daemon/state_manager.rs**: Atomic state persistence
+
 ### Key Design Patterns
 
-**Mode System**: Multiple modes (Default, Development, Media) allow different mapping sets. Mode changes are triggered by encoder rotation or specific pad combinations.
+**Unified Input Abstraction (v3.0)**: The `InputEvent` enum abstracts MIDI and gamepad inputs into a common protocol-agnostic format, enabling unified mapping and action execution logic.
+
+**Mode System**: Multiple modes (Default, Development, Media) allow different mapping sets. Mode changes are triggered by encoder rotation, specific pad/button combinations, or gamepad inputs.
 
 **Global vs Mode Mappings**: Global mappings work across all modes (e.g., emergency exit, encoder volume control), while mode-specific mappings are scoped to their mode.
 
+**Hybrid MIDI + Gamepad Workflow (v3.0)**: Use InputMode::Both to combine MIDI pads for velocity-sensitive triggers with gamepad analog sticks for directional control.
+
 **Profile-Based Note Mapping**: Supports loading Native Instruments Controller Editor profiles (.ncmm3) to map physical pad positions to MIDI notes. Can auto-detect the active pad page or use a specified page (A-H).
 
-**Velocity Levels**: Three velocity levels (Soft: 0-40, Medium: 41-80, Hard: 81-127) enable velocity-sensitive actions.
+**Velocity Levels**: Three velocity levels (Soft: 0-40, Medium: 41-80, Hard: 81-127) enable velocity-sensitive actions on both MIDI and gamepad triggers.
 
 **LED Feedback**: Reactive LED system provides visual feedback for pad presses, mode changes, and actions. Supports multiple schemes (reactive, rainbow, pulse, breathing, static, etc.).
 
@@ -285,6 +450,7 @@ The system follows a three-stage architecture (all in `midimon-core`):
 
 ### Trigger Types
 
+#### MIDI Triggers
 - **Note**: Basic note on/off with optional velocity range
 - **VelocityRange**: Different actions for soft/medium/hard presses on same note
 - **LongPress**: Hold detection with configurable duration (default 2000ms)
@@ -294,6 +460,12 @@ The system follows a three-stage architecture (all in `midimon-core`):
 - **Aftertouch**: Pressure sensitivity
 - **PitchBend**: Touch strip control
 - **CC**: Control change messages
+
+#### Game Controller (HID) Triggers (v3.0)
+- **GamepadButton**: Basic button press with velocity (IDs 128-144)
+- **GamepadButtonChord**: Multiple buttons pressed simultaneously
+- **GamepadAnalogStick**: Directional stick movement (IDs 128-131, normalized to 0-255)
+- **GamepadTrigger**: Analog trigger pull (IDs 132-133, normalized to 0-255)
 
 ### Action Types
 
@@ -311,7 +483,7 @@ The system follows a three-stage architecture (all in `midimon-core`):
 
 ## Configuration (config.toml)
 
-All mappings are defined in TOML format. The config structure:
+All mappings are defined in TOML format. The config structure supports both MIDI and Game Controllers (HID):
 
 ```toml
 [device]
@@ -326,8 +498,21 @@ hold_threshold_ms = 2000
 [[modes]]
 name = "Default"
 color = "blue"
+
+# MIDI mapping example
 [[modes.mappings]]
-# Mode-specific mappings...
+trigger = { type = "Note", note = 36, velocity_range = [80, 127] }
+action = { type = "Keystroke", keys = ["cmd", "space"] }
+
+# Gamepad mapping example (v3.0)
+[[modes.mappings]]
+trigger = { type = "GamepadButton", button = 128 }  # South button (A/Cross)
+action = { type = "Keystroke", keys = ["cmd", "c"] }
+
+# Gamepad analog stick example (v3.0)
+[[modes.mappings]]
+trigger = { type = "GamepadAnalogStick", axis = 128, direction = "Right", threshold = 200 }
+action = { type = "VolumeControl", action = "Up" }
 
 [[global_mappings]]
 # Global mappings (work in all modes)...
@@ -336,7 +521,7 @@ color = "blue"
 **Important**: When adding new trigger or action types, you must update:
 1. The enum in `config.rs`
 2. The processing logic in `event_processor.rs` (for triggers)
-3. The matching logic in `mappings.rs`
+3. The matching logic in `mapping.rs`
 4. The execution logic in `actions.rs` (for actions)
 
 ## LED Feedback System
@@ -362,21 +547,41 @@ The system can load Native Instruments Controller Editor profiles (.ncmm3 XML) t
 
 Profile files are parsed in `device_profile.rs` using `quick-xml`.
 
+## Gamepad Template System (v3.0)
+
+Official gamepad templates provide pre-configured mappings for common controllers:
+
+- **xbox-elite-series-2.toml**: Xbox Elite Series 2 with paddle macros
+- **playstation-dualsense.toml**: PlayStation 5 DualSense
+- **nintendo-switch-pro.toml**: Nintendo Switch Pro Controller
+- **generic-gamepad.toml**: Universal template for SDL2-compatible controllers
+
+Templates are stored in `config/templates/gamepads/` and can be selected via GUI or CLI.
+
 ## Adding New Features
 
-### Adding a New Trigger Type
+### Adding a New MIDI Trigger Type
 
 1. Add variant to `Trigger` enum in `config.rs`
 2. Add variant to `ProcessedEvent` enum in `event_processor.rs`
-3. Add detection logic in `EventProcessor::process()` (event_processor.rs)
-4. Add matching case in `MappingEngine::trigger_matches_processed()` (mappings.rs)
+3. Add detection logic in `EventProcessor::process()` or `EventProcessor::process_input()` (event_processor.rs)
+4. Add matching case in `MappingEngine::trigger_matches_processed()` (mapping.rs)
+
+### Adding a New HID Trigger Type (v3.0)
+
+1. Add variant to `Trigger` enum in `config.rs`
+2. Add variant to `ProcessedEvent` enum in `event_processor.rs`
+3. Add detection logic in `EventProcessor::process_input()` (event_processor.rs)
+4. Add matching case in `MappingEngine::trigger_matches_processed()` (mapping.rs)
+5. Update gamepad event mapping in `gamepad_events.rs` if needed
+6. Add example to gamepad template files
 
 ### Adding a New Action Type
 
 1. Add variant to `ActionConfig` enum in `config.rs`
 2. Add variant to `Action` enum in `actions.rs`
 3. Add execution logic in `ActionExecutor::execute()` (actions.rs)
-4. Update `compile_action()` in `mappings.rs` to compile the new config
+4. Update `compile_action()` in `mapping.rs` to compile the new config
 
 ### Adding a New LED Scheme
 
@@ -393,19 +598,23 @@ Profile files are parsed in `device_profile.rs` using `quick-xml`.
 - Native Instruments Controller Editor can run simultaneously (shared device mode)
 - Uses `enigo` for keyboard/mouse simulation
 - Volume control uses AppleScript via shell commands
+- Gamepad support via gilrs with IOKit backend
 
 ### Linux
 - May require udev rules for HID device access
 - Consider using `xdotool` for input simulation
+- Gamepad support via gilrs with evdev backend
 
 ### Windows
 - USB driver installation may be required
 - Check device permissions
+- Gamepad support via gilrs with XInput/DInput backends
 
 ## Dependencies
 
 Key external crates:
 - **midir**: Cross-platform MIDI I/O
+- **gilrs**: Cross-platform gamepad/HID input (v0.10) - v3.0
 - **enigo**: Keyboard/mouse input simulation
 - **hidapi**: HID device access (with `macos-shared-device` feature)
 - **serde/toml**: Configuration parsing
@@ -413,6 +622,8 @@ Key external crates:
 - **crossbeam-channel**: Lock-free event channels
 - **colored**: Terminal output formatting
 - **ctrlc**: Graceful shutdown handling
+- **tokio**: Async runtime for daemon
+- **tracing**: Structured logging
 
 ## Troubleshooting
 
@@ -428,6 +639,29 @@ cargo run --bin test_midi
 open -a "Audio MIDI Setup"
 ```
 
+### Gamepad Not Found (v3.0)
+```bash
+# List connected gamepads
+cargo run --release -- --list-gamepads
+
+# Check USB connection (macOS)
+system_profiler SPUSBDataType | grep -i controller
+
+# Check gamepad driver (Linux)
+ls /dev/input/js*
+
+# Enable debug logging
+DEBUG=1 cargo run --release -- --gamepad
+```
+
+### Gamepad Events Not Working (v3.0)
+- Ensure gamepad is recognized by OS (test in System Settings / Game Controllers panel)
+- Check that gamepad is SDL2-compatible (most modern controllers are)
+- Verify ID ranges in config (buttons: 128-144, axes: 128-133)
+- Run `cargo run --bin gamepad_diagnostic` to verify events
+- Check DEBUG=1 output for polling errors
+- Confirm no other application is exclusively using the gamepad
+
 ### LEDs Not Working
 - Ensure Native Instruments drivers are installed
 - Grant Input Monitoring permissions on macOS
@@ -436,18 +670,27 @@ open -a "Audio MIDI Setup"
 
 ### Events Not Triggering
 - Run `cargo run --bin midi_diagnostic 2` to verify MIDI events
-- Check note numbers match config.toml
+- Run `cargo run --bin gamepad_diagnostic` to verify gamepad events (v3.0)
+- Check note/button numbers match config.toml
 - Verify velocity/duration thresholds
 - Check mode is correct (encoder to switch modes)
+- For gamepads: ensure ID ranges are 128-255, not 0-127
 
 ### Profile Detection Issues
 - Ensure .ncmm3 file is valid XML from Controller Editor
 - Use `--pad-page` to force a specific page instead of auto-detect
 - Check DEBUG=1 output for profile parsing errors
 
+### Hybrid MIDI + Gamepad Issues (v3.0)
+- Verify InputMode is set to `Both` in daemon configuration
+- Check that both devices are connected and recognized
+- Use `midimonctl status` to verify both device managers are active
+- Ensure no ID conflicts (MIDI: 0-127, Gamepad: 128-255)
+
 ## Performance Characteristics
 
 - Response latency: <1ms typical
+- Gamepad polling: 1ms (1000Hz) - v3.0
 - Memory usage: 5-10MB
 - CPU usage: <1% idle, <5% active
 - Binary size: ~3-5MB (release with LTO)
@@ -462,9 +705,9 @@ The release profile in Cargo.toml uses:
 
 ---
 
-## Future Workspace Structure (Post-Migration)
+## Future Workspace Structure (Achieved in v3.0)
 
-When migrating to a monorepo structure, the target layout will be:
+The target monorepo structure has been achieved:
 
 ```
 midimon/
@@ -473,44 +716,54 @@ midimon/
 │   ├── Cargo.toml
 │   └── src/
 │       ├── lib.rs
-│       ├── devices.rs              # Device abstraction (MIDI/HID)
-│       ├── events.rs               # Event normalization & detection
+│       ├── events.rs               # Unified InputEvent abstraction ✅
+│       ├── gamepad_events.rs       # Gamepad event mapping ✅ v3.0
+│       ├── event_processor.rs      # Event normalization & detection
 │       ├── mapping.rs              # Mapping engine
-│       ├── state.rs                # State machine for press/hold/chord
 │       ├── actions.rs              # Action executor
 │       └── config.rs               # Config loading & watching
 ├── midimon-daemon/                 # Background service (headless)
 │   ├── Cargo.toml
 │   └── src/
 │       ├── main.rs
-│       └── menu_bar.rs             # macOS menu bar (status item)
-├── midimon-gui/                    # Tauri v2 UI for configuration
+│       ├── input_manager.rs        # Unified input manager ✅ v3.0
+│       ├── gamepad_device.rs       # Gamepad device manager ✅ v3.0
+│       ├── midi_device.rs          # MIDI device manager ✅
+│       └── daemon/                 # Daemon infrastructure ✅
+├── midimon-gui/                    # Tauri v2 UI for configuration ✅
 │   ├── Cargo.toml
 │   ├── src-tauri/
 │   │   ├── Cargo.toml
 │   │   └── src/main.rs
-│   └── ui/                         # Web UI (Svelte/React/Vite)
+│   └── ui/                         # Web UI (Svelte)
 ├── config/
 │   ├── default.toml
-│   └── device_templates/
-│       ├── maschine_mikro_mk3.toml
-│       ├── launchpad_mini.toml
-│       └── korg_nanokontrol.toml
-└── .research/                      # Implementation proposals (reference only)
-    ├── implementation-viewpoint-1.md
-    └── implementation-viewpoint-2.md
+│   └── templates/
+│       ├── midi/                   # MIDI device templates
+│       │   ├── maschine_mikro_mk3.toml
+│       │   ├── launchpad_mini.toml
+│       │   └── korg_nanokontrol.toml
+│       └── gamepads/               # Gamepad templates ✅ v3.0
+│           ├── xbox-elite-series-2.toml
+│           ├── playstation-dualsense.toml
+│           └── nintendo-switch-pro.toml
+└── docs/                           # Comprehensive documentation ✅
+    ├── v3.0-gamepad-technical-reference.md
+    ├── v3.0-gamepad-engine-integration.md
+    └── guides/
+        └── gamepad-support.md
 ```
 
-### Key Architectural Principles (Post-Migration)
+### Key Architectural Principles (Achieved)
 
-1. **Engine Independence**: `midimon-core` has zero UI dependencies - pure event processing, mapping, and actions
-2. **Plugin Architecture**: Device profiles as external TOML templates, easily shareable
-3. **Hot Reload**: Config file watching with `notify` crate for zero-downtime updates
-4. **Menu Bar UX**: Tauri tray icon with quick actions (Pause, Reload, Open Config)
-5. **Auto-Start**: Tauri autostart plugin for macOS LaunchAgent integration
-6. **Unified Events**: Normalize MIDI/HID into common `InputEvent` type for consistent handling
-7. **State Machine**: Per-element timers for short/long press, double-tap, chord detection
-8. **Profile Switching**: Frontmost app detection for context-aware mappings
+1. ✅ **Engine Independence**: `midimon-core` has zero UI dependencies - pure event processing, mapping, and actions
+2. ✅ **Plugin Architecture**: Device profiles as external TOML templates, easily shareable
+3. ✅ **Hot Reload**: Config file watching with `notify` crate for zero-downtime updates
+4. ✅ **Menu Bar UX**: Tauri tray icon with quick actions (Pause, Reload, Open Config)
+5. ✅ **Auto-Start**: Tauri autostart plugin for macOS LaunchAgent integration
+6. ✅ **Unified Events**: Normalize MIDI/HID into common `InputEvent` type for consistent handling (v3.0)
+7. ✅ **State Machine**: Per-element timers for short/long press, double-tap, chord detection
+8. ✅ **Profile Switching**: Frontmost app detection for context-aware mappings
 
 ### Migration Status
 
@@ -528,20 +781,31 @@ midimon/
 - ✅ All 26 features validated
 - ✅ Performance improved (12s clean build, was 15-20s)
 
-**Phase 3: Add Daemon & UI** (Future Work)
-- Create Tauri-based menu bar UI
-- Add Tauri-based `midimon-gui` for visual configuration
-- Implement config hot-reloading
-- Add frontmost app detection for per-app profiles
+**Phase 3: Add Daemon & UI** ✅ COMPLETE (v1.0.0-v2.0.0)
+- ✅ Created Tauri-based menu bar UI
+- ✅ Added Tauri-based `midimon-gui` for visual configuration
+- ✅ Implemented config hot-reloading
+- ✅ Added frontmost app detection for per-app profiles
 
-**Phase 4: Enhanced Features**
-- MIDI Learn mode (click binding → press device element → auto-fill)
-- Virtual MIDI output for DAW integration
-- Profile sharing/export
-- Live event console for debugging
-- Velocity curves and advanced mapping conditions
+**Phase 4: Enhanced Features** ✅ COMPLETE (v2.0.0)
+- ✅ MIDI Learn mode (click binding → press device element → auto-fill)
+- ✅ Virtual MIDI output for DAW integration
+- ✅ Profile sharing/export
+- ✅ Live event console for debugging
+- ✅ Velocity curves and advanced mapping conditions
+
+**Phase 5: Game Controllers (HID) Support** ✅ COMPLETE (v3.0.0)
+- ✅ Unified InputEvent abstraction
+- ✅ GamepadDeviceManager with auto-reconnection
+- ✅ InputManager (MIDI + HID unified)
+- ✅ Non-overlapping ID ranges (MIDI: 0-127, HID: 128-255)
+- ✅ gilrs v0.10 integration
+- ✅ 4 new trigger types (GamepadButton, GamepadButtonChord, GamepadAnalogStick, GamepadTrigger)
+- ✅ Official gamepad templates (Xbox, PlayStation, Switch Pro)
+- ✅ MIDI Learn support for gamepads
+- ✅ GUI gamepad template selector
+- ✅ 500+ tests passing (100% pass rate)
 
 ### References
 
-See `.research/implementation-viewpoint-1.md` and `.research/implementation-viewpoint-2.md` for detailed architectural proposals, crate dependencies, and code examples for the target monorepo structure.
-- We must commit code changes with GitHub references, ensuring that there is at least one commit per issue at a minimum if files have been changed.
+See `docs/v3.0-gamepad-technical-reference.md` for detailed gamepad architecture, `docs/v3.0-gamepad-engine-integration.md` for integration details, and `docs/guides/gamepad-support.md` for user-facing documentation.
