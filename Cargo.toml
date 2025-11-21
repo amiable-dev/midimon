@@ -60,6 +60,7 @@ rand = "0.8"
 regex = "1.10"  # Security validation
 dirs = "5.0"  # Path handling
 libloading = "0.8"  # Plugin loading - native .dylib/.so/.dll (v2.3)
+gilrs = "0.10"  # Gamepad/HID input (v3.0 - HID gamepad support)
 sha2 = "0.10"  # Checksum verification (v2.3)
 ed25519-dalek = { version = "2.1", features = ["rand_core"] }  # Plugin signing (v2.7)
 hex = "0.4"  # Hex encoding for signatures (v2.7)
