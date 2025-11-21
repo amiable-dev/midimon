@@ -1,12 +1,14 @@
 # Quick Start Guide
 
-Get MIDIMon v2.0.0 up and running in under 5 minutes using the visual GUI.
+Get MIDIMon v3.0+ up and running in under 5 minutes using the visual GUI.
 
 ## Prerequisites
 
 - **macOS 11.0+** (Big Sur or later) - Intel or Apple Silicon
-- **MIDI controller** (any USB MIDI device - Maschine Mikro MK3 recommended for full RGB LED support)
-- **10 minutes** for installation
+- **Input device**:
+  - MIDI controller (any USB MIDI device - Maschine Mikro MK3 recommended for full RGB LED support), OR
+  - Game controller (Xbox, PlayStation, Switch Pro, joystick, racing wheel, HOTAS, or any SDL2-compatible HID device)
+- **10 minutes** for installation (3-5 minutes for gamepad setup with templates)
 
 ## Step 1: Download MIDIMon
 
@@ -123,6 +125,168 @@ Skip manual configuration with built-in device templates:
 4. The template loads pre-configured mappings for common workflows
 
 5. **Customize** as needed using MIDI Learn
+
+## Quick Start with Game Controllers (v3.0+)
+
+MIDIMon v3.0+ supports game controllers (gamepads, joysticks, racing wheels, HOTAS, etc.) as macro input devices alongside MIDI controllers. You can use them individually or together!
+
+### Supported Device Types
+
+- **Gamepads**: Xbox, PlayStation, Nintendo Switch Pro (templates available)
+- **Joysticks**: Flight sticks, arcade sticks (manual config)
+- **Racing Wheels**: Logitech, Thrustmaster (manual config)
+- **HOTAS**: Throttle and stick controllers (manual config)
+- **Custom Controllers**: Any SDL2-compatible HID device
+
+### Option 1: Gamepad with Template (Fastest - ~3 minutes)
+
+The quickest way to set up an Xbox, PlayStation, or Switch Pro controller:
+
+1. **Connect your gamepad** via USB or Bluetooth
+
+2. **Verify it's recognized** by your system:
+   - macOS: System Settings → Game Controllers
+   - Linux: `ls /dev/input/js*`
+   - Windows: Devices and Printers
+
+3. **Open MIDIMon GUI** → **Device Templates**
+
+4. **Filter by "🎮 Game Controllers"**
+
+5. **Select your controller**:
+   - Xbox 360/One/Series X|S
+   - PlayStation DualShock 4/DualSense (PS5)
+   - Nintendo Switch Pro Controller
+
+6. **Click "Create Config"** → **Reload daemon**
+
+7. **Test buttons!** Press any button - the mapped action should execute
+
+**Time to completion**: ~3 minutes from connection to working mappings
+
+### Option 2: Manual Setup (Joysticks, Wheels, Other - ~10 minutes)
+
+For non-gamepad controllers (flight sticks, racing wheels, HOTAS):
+
+1. **Connect your HID device** via USB
+
+2. **Verify system recognition** (same commands as above)
+
+3. **Open MIDIMon GUI** → **MIDI Learn**
+
+4. **Create mappings using MIDI Learn**:
+   - Click "Add Mapping"
+   - Click "Learn" next to Trigger
+   - Press a button or move an axis on your controller
+   - MIDIMon auto-detects the input
+   - Choose an action (Keystroke, Launch, Shell, etc.)
+   - Click "Save"
+
+5. **Repeat for all buttons/axes** you want to map
+
+6. **Test your mappings!**
+
+**Time to completion**: ~10 minutes for 10-15 button mappings
+
+### Example: Flight Stick Setup
+
+**Trigger button → Launch flight simulator**:
+```toml
+[[modes.mappings]]
+description = "Flight stick trigger: Launch Flight Sim"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 128  # Auto-detected via MIDI Learn
+[modes.mappings.action]
+type = "Launch"
+path = "/Applications/Flight Simulator.app"
+```
+
+**Hat switch → Arrow keys**:
+```toml
+[[modes.mappings]]
+description = "Hat up: View up"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 132  # D-Pad/Hat up
+[modes.mappings.action]
+type = "Keystroke"
+keys = "UpArrow"
+```
+
+### Example: Racing Wheel Setup
+
+**Wheel rotation → Steering**:
+```toml
+[[modes.mappings]]
+description = "Wheel right: Steer right"
+[modes.mappings.trigger]
+type = "GamepadAnalogStick"
+axis = 128  # Wheel axis (auto-detected)
+direction = "Clockwise"
+[modes.mappings.action]
+type = "Keystroke"
+keys = "RightArrow"
+```
+
+**Pedals → Gas/Brake**:
+```toml
+[[modes.mappings]]
+description = "Gas pedal: Accelerate"
+[modes.mappings.trigger]
+type = "GamepadTrigger"
+trigger = 133  # Gas pedal axis
+threshold = 64  # 25% pedal press
+[modes.mappings.action]
+type = "Keystroke"
+keys = "w"
+```
+
+### Platform-Specific Notes
+
+**macOS**:
+- Most gamepads work via USB or Bluetooth without drivers
+- Xbox Wireless Adapter may require driver installation
+- Grant **Input Monitoring** permission when prompted
+
+**Linux**:
+- Ensure `jstest` recognizes your controller: `jstest /dev/input/js0`
+- May need udev rules for device permissions
+- Install `xdotool` for keystroke simulation
+
+**Windows**:
+- Xbox controllers work natively
+- PlayStation controllers may need DS4Windows or similar
+- Check Device Manager for driver status
+
+### Hybrid MIDI + Gamepad Setup
+
+You can use MIDI controllers and gamepads **simultaneously**:
+
+- **MIDI devices**: Button IDs 0-127
+- **Gamepad devices**: Button IDs 128-255
+- **No conflicts** - they work together seamlessly!
+
+**Example**: Use Maschine pads for music production, gamepad for application shortcuts.
+
+### Troubleshooting Game Controllers
+
+**Controller not detected**:
+1. Check USB/Bluetooth connection
+2. Verify system recognition (see commands above)
+3. Try USB instead of Bluetooth (or vice versa)
+4. Restart MIDIMon daemon: `midimonctl stop && midimonctl reload`
+
+**Buttons not working**:
+1. Use MIDI Learn to verify button IDs (should be 128-255)
+2. Check Event Console for incoming events
+3. Ensure no conflicting mappings exist
+
+**Analog stick too sensitive**:
+- MIDIMon uses a 10% automatic dead zone
+- For more precision, use discrete buttons (D-Pad) instead of analog sticks
+
+For more details, see the [Gamepad Support Guide](../guides/gamepad-support.md).
 
 ## Step 7: Enable Auto-Start (Optional)
 
@@ -266,6 +430,7 @@ Now that you're up and running:
 
 ### For All Users
 - [Understanding Modes](./modes.md) - Multi-mode workflow management
+- [Gamepad Support Guide](../guides/gamepad-support.md) - Complete HID controller guide (v3.0+)
 - [LED System](../guides/led-system.md) - Customize LED feedback
 - [Example Configurations](../configuration/examples.md) - Pre-built configs
 
@@ -288,4 +453,4 @@ MIDIMon v2.0.0 is highly optimized:
 
 ---
 
-**Congratulations!** You now have MIDIMon v2.0.0 running with visual configuration, hot-reload, and per-app profiles. 🎉
+**Congratulations!** You now have MIDIMon v3.0+ running with visual configuration, hot-reload, per-app profiles, and game controller support! 🎉

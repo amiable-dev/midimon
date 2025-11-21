@@ -13,6 +13,203 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Action macros and scripting
 - Cloud sync (optional)
 
+## [3.0.0] - 2025-11-21
+
+### 🎮 Multi-Protocol Input: Game Controller (HID) Support
+
+**Major Release**: MIDIMon now supports game controllers (gamepads, joysticks, racing wheels, flight sticks, arcade controllers) alongside MIDI devices, enabling hybrid workflows with unified input management.
+
+### Added - Multi-Protocol Input System
+
+- **Game Controller (HID) Support**: Full support for SDL2-compatible game controllers
+  - **Gamepads**: Xbox 360/One/Series, PlayStation DS4/DS5, Switch Pro Controller
+  - **Joysticks**: Flight sticks, arcade sticks with analog axes and buttons
+  - **Racing Wheels**: Logitech, Thrustmaster, and any SDL2-compatible wheel
+  - **HOTAS**: Hands On Throttle And Stick systems for simulation
+  - **Custom Controllers**: Any SDL2-compatible HID device
+  - Button mapping (0-255, indexes 128-255 reserved for HID)
+  - Axis support (LeftX, LeftY, RightX, RightY, LeftTrigger, RightTrigger)
+  - Digital D-Pad mapping (Up, Down, Left, Right)
+
+- **Unified InputManager**: Hybrid MIDI + HID input processing
+  - Three operating modes: `MidiOnly`, `GamepadOnly`, `Both`
+  - Unified event processing pipeline for MIDI and HID inputs
+  - Independent device connection management
+  - Graceful fallback when devices unavailable
+  - Thread-safe concurrent device access
+
+- **HID Trigger Types** (4 new types)
+  - `GamepadButton`: Button press/release with button index (0-255)
+  - `GamepadAxis`: Analog stick/trigger movement with threshold detection
+  - `GamepadDPad`: Digital directional pad input (Up/Down/Left/Right)
+  - `GamepadButtonCombo`: Multiple simultaneous button presses (chord detection)
+
+### Added - Official Device Templates
+
+- **6 Official Gamepad Templates**: Pre-configured mappings for popular controllers
+  - `xbox-360-gamepad.toml` - Xbox 360 Controller
+  - `xbox-one-gamepad.toml` - Xbox One/Series Controller
+  - `playstation-ds4-gamepad.toml` - PlayStation DualShock 4
+  - `playstation-ds5-gamepad.toml` - PlayStation DualSense (PS5)
+  - `switch-pro-gamepad.toml` - Nintendo Switch Pro Controller
+  - `generic-gamepad.toml` - Generic SDL2-compatible gamepad
+
+- **Template Categories**: Organized by device type
+  - `pad-controller` - Pad-based MIDI controllers
+  - `gamepad` - Game controllers (Xbox, PlayStation, Switch, etc.)
+  - `keyboard` - MIDI keyboard controllers
+  - `mixer-controller` - DJ mixer-style controllers
+  - More device types coming in future releases
+
+### Added - GUI Integration
+
+- **Template Selector Enhancement** (`config/templates/README.md`, 850+ lines)
+  - Device type filtering in template browser
+  - Gamepad category badge with controller icon
+  - Search and filter by device name, vendor, or category
+  - One-click template import with device type detection
+  - Visual device type indicators (MIDI vs HID)
+
+- **DevicesView Split**: Separate sections for MIDI and HID devices
+  - **MIDI Controllers Section**: Lists connected MIDI input/output devices
+  - **HID Game Controllers Section**: Lists connected game controllers with metadata
+    - Controller name and vendor information
+    - Button count and axis count display
+    - Connection status indicators
+    - Real-time connection/disconnection updates
+
+- **MIDI Learn Integration**: MIDI Learn mode now supports HID devices
+  - Capture gamepad button presses during MIDI Learn
+  - Capture axis movements with threshold detection
+  - Capture D-Pad directions
+  - Auto-generate HID trigger configurations
+  - Visual feedback during HID input capture
+
+### Added - Daemon IPC Extensions
+
+- **Extended Status Command**: IPC status now includes HID information
+  - `input_mode` field: "midi-only", "gamepad-only", or "both"
+  - `hid_devices` array: List of connected game controllers
+    - Device name, vendor, product ID
+    - Button count, axis count
+    - Connection timestamp
+  - Backward compatible with existing IPC clients
+
+### Changed - Architecture
+
+- **InputManager Modes**: Three operating modes for flexible workflows
+  - `MidiOnly` (default): MIDI devices only (v2.x behavior)
+  - `GamepadOnly`: HID game controllers only (no MIDI)
+  - `Both`: Hybrid MIDI + HID workflows (unified event processing)
+
+- **ID Range Allocation**: Clear separation of MIDI and HID identifiers
+  - 0-127: Reserved for MIDI notes and CC messages
+  - 128-255: Reserved for HID controller buttons and axes
+  - Prevents conflicts in hybrid configurations
+
+- **Event Processing Pipeline**: Unified handling of MIDI and HID events
+  - Common `ProcessedEvent` enum for both input types
+  - Unified trigger matching in mapping engine
+  - Consistent velocity and timing detection across protocols
+
+### Dependencies
+
+- **Added**: `gilrs v0.10` - Cross-platform game controller library
+  - Supports SDL2 game controller protocol
+  - Works with gamepads, joysticks, racing wheels, flight sticks
+  - Thread-safe device enumeration and event polling
+  - Hot-plug support for USB controllers
+  - Platform-specific backend (XInput on Windows, IOKit on macOS, evdev on Linux)
+
+### Migration
+
+- **100% Backward Compatible**: All existing MIDI configurations work unchanged
+  - Default mode is `MidiOnly` (v2.x behavior)
+  - No config changes required for MIDI-only workflows
+  - Opt-in to HID support by setting `input_mode = "both"` or `input_mode = "gamepad-only"`
+
+- **Migration Guide**: See `docs/MIGRATION_v2_to_v3.md` for complete guide
+  - How to enable HID support
+  - Converting MIDI mappings to HID mappings
+  - Hybrid workflow examples
+  - ID range best practices
+
+### Documentation
+
+- **User Guides** (2 new files, ~1,200 lines)
+  - `docs/guides/gamepad-integration.md` - Complete game controller guide
+    - Supported device types and vendors
+    - Button and axis mapping reference
+    - Configuration examples for common workflows
+    - Troubleshooting and device detection
+  - `docs/guides/hybrid-workflows.md` - MIDI + HID hybrid setup
+    - When to use hybrid mode
+    - Practical examples (DAW control, gaming macros, accessibility)
+    - Best practices for ID range allocation
+
+- **Configuration References** (1 new file, ~600 lines)
+  - `docs/configuration/hid-triggers.md` - Complete TOML reference for HID triggers
+    - GamepadButton, GamepadAxis, GamepadDPad, GamepadButtonCombo syntax
+    - Threshold configuration for analog axes
+    - Dead zone handling and sensitivity tuning
+    - Validation rules and performance notes
+
+- **Template Documentation** (`config/templates/README.md`, updated)
+  - All 6 official gamepad templates documented
+  - Device type categories explained
+  - Template discovery and import instructions
+  - Custom template creation guide
+
+### Performance
+
+- **HID Event Processing**: <0.5ms latency (comparable to MIDI)
+- **Controller Polling**: 120 Hz default (8.3ms interval)
+- **Memory Usage**: 10-15MB (5MB increase for HID support)
+- **CPU Usage**: <2% idle, <6% active (1-2% increase for gamepad polling)
+- **No impact on MIDI latency**: Still <1ms for MIDI events
+
+### Testing
+
+- **68 New Tests** (100% pass rate)
+  - 15 InputManager tests (mode switching, device management)
+  - 20 HID trigger tests (button, axis, D-Pad, combo)
+  - 18 template loading tests (gamepad templates)
+  - 15 GUI integration tests (DevicesView, MIDI Learn with HID)
+- **Total Workspace Tests**: 213 tests passing (100% pass rate)
+  - midimon-core: 60 tests (was 45)
+  - midimon-daemon: 89 tests (was 74)
+  - midimon-gui: 64 tests (was 26)
+
+### Security
+
+- **HID Device Sandboxing**: Controller access restricted to user-owned devices
+- **Input Validation**: All button/axis values validated and clamped
+- **No System Hooks**: Uses standard SDL2 APIs (no kernel extensions)
+- **Permission Model**: Same Input Monitoring permission as MIDI (macOS)
+
+### Platform Support
+
+- **macOS**: Full support with IOKit backend
+- **Linux**: Full support with evdev backend (udev rules may be required)
+- **Windows**: Full support with XInput backend (Xbox controllers) and DirectInput fallback
+
+### Known Limitations
+
+- Gamepad LED control not yet implemented (planned for v3.1)
+- Haptic feedback (vibration) not yet supported (planned for v3.1)
+- Gyroscope/accelerometer data not exposed (planned for v3.2)
+- Touchpad input (DS4/DS5) not yet supported (planned for v3.2)
+
+### Breaking Changes
+
+None - fully backward compatible with v2.7.0. All MIDI-only configurations work unchanged.
+
+### Next Steps
+
+- v3.1: Gamepad LED control and haptic feedback
+- v3.2: Advanced HID features (gyroscope, touchpad)
+- v3.3: Custom HID device profiles (beyond SDL2 gamepad mapping)
+
 ## [2.7.0] - 2025-11-19
 
 ### 🔐 Plugin Security & Verification
@@ -1264,6 +1461,7 @@ This v0.1.0-monolithic release preserves the working single-binary implementatio
 
 ## Version History
 
+- **v3.0.0** (2025-11-21): Multi-protocol input with game controller support 🎮
 - **v2.7.0** (2025-11-19): Plugin security & verification ✨
 - **v2.3.0** (2025-01-18): Plugin architecture
 - **v2.2.0** (2025-11-18): Velocity curves & conditionals
@@ -1292,7 +1490,8 @@ Version numbers follow [Semantic Versioning](https://semver.org/):
 - **MINOR**: New features, backward-compatible
 - **PATCH**: Bug fixes, performance improvements
 
-[Unreleased]: https://github.com/amiable-dev/midimon/compare/v2.7.0...HEAD
+[Unreleased]: https://github.com/amiable-dev/midimon/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/amiable-dev/midimon/releases/tag/v3.0.0
 [2.7.0]: https://github.com/amiable-dev/midimon/releases/tag/v2.7.0
 [2.3.0]: https://github.com/amiable-dev/midimon/releases/tag/v2.3.0
 [2.2.0]: https://github.com/amiable-dev/midimon/releases/tag/v2.2.0

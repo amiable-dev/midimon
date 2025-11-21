@@ -6,8 +6,9 @@
 [![codecov](https://codecov.io/gh/amiable-dev/midimon/branch/main/graph/badge.svg)](https://codecov.io/gh/amiable-dev/midimon)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://amiable-dev.github.io/midimon/)
 
-Transform MIDI controllers into advanced macro pads with velocity sensitivity, LED feedback, daemon architecture, and visual configuration GUI.
+Transform MIDI controllers and game controllers into advanced macro pads with multi-protocol input, velocity sensitivity, LED feedback, daemon architecture, and visual configuration GUI.
 
+**v3.0.0**: Multi-protocol input support - MIDI Controllers + Game Controllers (HID)
 **v2.0.0**: Full-featured Tauri GUI with MIDI Learn, per-app profiles, device templates, and live event console
 **v1.0.0**: Production-ready daemon with 0-10ms config reloads, IPC control, and auto-start support
 
@@ -16,12 +17,39 @@ Transform MIDI controllers into advanced macro pads with velocity sensitivity, L
 
 ## Features
 
-### Visual Configuration (v2.0.0 NEW!)
+### Multi-Protocol Input (v3.0.0 NEW!)
+
+MIDIMon now supports multiple input protocols through a unified input system:
+
+#### MIDI Controllers (v1.0+)
+- **Full MIDI Support** - All MIDI message types (Note, CC, Aftertouch, Pitch Bend)
+- **RGB LED Feedback** - Full HID-based LED control for supported devices
+- **Velocity Sensitivity** - Different actions for soft/medium/hard presses
+- **Device Templates** - 6 built-in templates for popular MIDI controllers
+
+#### Game Controllers (HID) (v3.0+)
+- **Gamepads**: Xbox (360, One, Series X|S), PlayStation (DualShock 4, DualSense), Switch Pro Controller
+- **Joysticks**: Flight sticks, arcade sticks (any SDL2-compatible device)
+- **Racing Wheels**: Logitech, Thrustmaster, any SDL2-compatible racing wheel
+- **HOTAS**: Hands On Throttle And Stick systems
+- **Custom Controllers**: Any SDL2-compatible HID device
+- **Official Templates**: 3 built-in templates (Xbox, PlayStation, Switch Pro)
+- **Analog Support**: Triggers, analog sticks with threshold detection
+- **Button Chords**: Multi-button combinations for complex macros
+
+#### Unified Input System
+- **Hybrid Workflows** - Use MIDI controller + gamepad simultaneously
+- **Hot-Plug Detection** - Automatic device connection/disconnection handling
+- **MIDI Learn Mode** - One-click auto-detection works with both MIDI and gamepad inputs
+- **Protocol-Agnostic** - Same event processing for all input types
+- **Non-Overlapping IDs** - MIDI (0-127), Gamepad (128-255), no conflicts
+
+### Visual Configuration (v2.0.0)
 - **Tauri GUI** - Modern desktop application for visual configuration
-- **MIDI Learn Mode** - One-click auto-detection of MIDI inputs
-- **Device Templates** - 6 built-in templates for popular controllers
+- **MIDI Learn Mode** - One-click auto-detection of MIDI and gamepad inputs
+- **Device Templates** - 9 built-in templates (6 MIDI + 3 gamepad)
 - **Per-App Profiles** - Automatic profile switching based on active application
-- **Live Event Console** - Real-time MIDI event monitoring and debugging
+- **Live Event Console** - Real-time input event monitoring and debugging
 - **Settings Panel** - Configure auto-start, theme, and preferences
 
 ### Core Features
@@ -30,20 +58,22 @@ Transform MIDI controllers into advanced macro pads with velocity sensitivity, L
 - **IPC Control** - Control daemon via `midimonctl` CLI or GUI
 - **Multi-mode operation** - Switch between different mapping sets
 - **Configurable mappings** - Visual editor or TOML-based configuration
-- **Ultra-low latency** - Sub-millisecond MIDI response, <20ms config reload
+- **Ultra-low latency** - Sub-millisecond input response, <20ms config reload
 - **Cross-platform** - Works on macOS and Linux (systemd/launchd)
 
 ### Enhanced Event Detection
 - **Velocity Sensitivity** - Different actions for soft/medium/hard presses
 - **Long Press Detection** - Hold actions with configurable thresholds
 - **Double-Tap Detection** - Quick double-tap triggers
-- **Chord Detection** - Multiple pads pressed simultaneously
+- **Chord Detection** - Multiple buttons/pads pressed simultaneously
 - **Encoder Direction** - Clockwise/counter-clockwise detection
-- **Aftertouch Support** - Pressure-sensitive actions
-- **Pitch Bend Support** - Touch strip integration
+- **Analog Sticks** - Directional detection with dead zones
+- **Analog Triggers** - Threshold-based trigger actions
+- **Aftertouch Support** - Pressure-sensitive actions (MIDI)
+- **Pitch Bend Support** - Touch strip integration (MIDI)
 
 ### LED Feedback System
-- **Visual Feedback** - Real-time LED feedback on supported devices
+- **Visual Feedback** - Real-time LED feedback on supported MIDI devices
 - **Multiple Schemes** - Rainbow, pulse, breathing, reactive, and more
 - **Mode Indication** - Color-coded modes for easy identification
 - **Velocity Visualization** - LED brightness matches pad velocity
@@ -54,12 +84,41 @@ Transform MIDI controllers into advanced macro pads with velocity sensitivity, L
 
 ## Hardware Compatibility
 
+### MIDI Controllers
+
 | Device | Status | LED Feedback | Notes |
 |--------|--------|--------------|-------|
 | Native Instruments Maschine Mikro MK3 | ✅ Full Support | RGB (HID) | Recommended |
 | Generic MIDI Controllers | ✅ Supported | Basic (MIDI) | Most features work |
 | Akai APC Mini | ⚠️ Untested | Basic (MIDI) | Should work |
 | Novation Launchpad | ⚠️ Untested | Basic (MIDI) | Should work |
+
+### Game Controllers (v3.0+)
+
+#### Gamepads (Official Templates Available)
+
+| Controller | Template | Status | Platform Compatibility |
+|-----------|----------|--------|----------------------|
+| Xbox Controller (360, One, Series X\|S) | ✅ Official | ✅ Full Support | Windows, macOS, Linux |
+| PlayStation Controller (DualShock 4, DualSense) | ✅ Official | ✅ Full Support | Windows, macOS, Linux |
+| Nintendo Switch Pro Controller | ✅ Official | ✅ Full Support | Windows, macOS, Linux |
+| Generic SDL2-Compatible Gamepads | ⚠️ Manual Config | ✅ Supported | Windows, macOS, Linux |
+
+#### Joysticks & Flight Controllers (Manual Configuration)
+
+| Device Type | Template | Status | Notes |
+|------------|----------|--------|-------|
+| Flight Sticks | ⚠️ Coming Soon | ✅ Supported | Any SDL2-compatible device works |
+| Arcade Sticks | ⚠️ Coming Soon | ✅ Supported | Button mapping via MIDI Learn |
+| HOTAS Systems | ⚠️ Coming Soon | ✅ Supported | Full analog axis support |
+
+#### Racing Wheels (Manual Configuration)
+
+| Device Type | Template | Status | Notes |
+|------------|----------|--------|-------|
+| Logitech Wheels | ⚠️ Coming Soon | ✅ Supported | Steering, pedals, buttons |
+| Thrustmaster Wheels | ⚠️ Coming Soon | ✅ Supported | All SDL2 axes supported |
+| Generic Racing Wheels | ⚠️ Coming Soon | ✅ Supported | Any SDL2-compatible wheel |
 
 **Want to add support for your device?** See [CONTRIBUTING.md](CONTRIBUTING.md#device-support)
 
@@ -157,7 +216,9 @@ cargo test --workspace
 
 ## Quick Start
 
-### Daemon Mode (Recommended)
+### Quick Start - MIDI Controllers
+
+#### Daemon Mode (Recommended)
 
 1. **Install binaries** (see Installation above)
 2. **Create config** at `~/.config/midimon/config.toml`
@@ -177,7 +238,7 @@ cargo test --workspace
    ```
 5. **Edit config** - Changes are auto-detected and reloaded in <10ms!
 
-### Manual Mode (Development/Testing)
+#### Manual Mode (Development/Testing)
 
 1. **Connect your MIDI controller** (e.g., Native Instruments Maschine Mikro MK3)
 2. **Install necessary drivers** (Native Instruments Controller Editor for NI devices)
@@ -187,11 +248,101 @@ cargo test --workspace
    ```
 4. **Press pads** to trigger macros!
 
+### Quick Start - Game Controllers (Template-Based)
+
+For gamepads with official templates (Xbox, PlayStation, Switch Pro):
+
+1. **Open MIDIMon GUI** (or use CLI with template config)
+2. **Select Device Template**:
+   - Navigate to "Device Templates" section
+   - Filter by category: "Gamepad Controllers"
+   - Choose your controller:
+     - **Xbox Controller** (Xbox 360, One, Series X|S)
+     - **PlayStation Controller** (DualShock 4, DualSense)
+     - **Switch Pro Controller**
+3. **Generate Configuration**:
+   - Click "Create from Template"
+   - Templates include pre-configured modes:
+     - **Desktop Mode**: Navigation, window management, shortcuts
+     - **Media Mode**: Playback control, volume adjustment
+     - **Additional Modes**: Browser (Switch), Gaming (PlayStation)
+4. **Connect Gamepad** and press buttons to trigger actions
+5. **Customize** via MIDI Learn or manual TOML editing
+
+**Pre-configured Features**:
+- Face buttons → Enter, Escape, Copy, Paste
+- D-Pad → Arrow keys
+- Shoulder buttons → Tab navigation
+- Guide/Home button → Spotlight search
+- Analog triggers → Volume control
+- Button chords → Mode switching
+
+### Quick Start - Game Controllers (Manual Configuration)
+
+For joysticks, racing wheels, HOTAS, or custom controllers:
+
+1. **Create Base Configuration**:
+   ```bash
+   # Start with minimal config
+   cp config/examples/gamepad-basic.toml ~/.config/midimon/config.toml
+   ```
+
+2. **Use MIDI Learn to Map Buttons**:
+   - Open MIDIMon GUI
+   - Enable "MIDI Learn" mode
+   - Click on a mapping you want to configure
+   - Press the button/axis on your controller
+   - Pattern detection will auto-suggest GamepadButton or GamepadAnalogStick
+   - Save the mapping
+
+3. **Manual TOML Configuration Example**:
+   ```toml
+   [[modes]]
+   name = "Flight Mode"
+   color = "blue"
+
+   [[modes.mappings]]
+   description = "Fire primary weapon"
+   [modes.mappings.trigger]
+   type = "GamepadButton"
+   button = 128  # First trigger button
+   [modes.mappings.action]
+   type = "Keystroke"
+   keys = "space"
+
+   [[modes.mappings]]
+   description = "Pitch control via stick"
+   [modes.mappings.trigger]
+   type = "GamepadAnalogStick"
+   axis = 129  # Y-axis
+   direction = "Up"
+   threshold = 0.5
+   [modes.mappings.action]
+   type = "Keystroke"
+   keys = "w"
+   ```
+
+4. **Test Your Configuration**:
+   ```bash
+   midimonctl reload
+   # Move sticks, press buttons to trigger actions
+   ```
+
+**Button ID Reference** (for manual config):
+- **Face Buttons**: 128-131
+- **D-Pad**: 132-135
+- **Shoulders**: 136-137 (bumpers), 143-144 (triggers)
+- **Stick Clicks**: 138-139
+- **Menu/System**: 140-142
+- **Analog Axes**: 128-133 (sticks + triggers)
+
+> 📖 **See technical documentation for complete button/axis mapping reference**
+
 ## Configuration
 
 Edit `config.toml` to customize your mappings. The enhanced configuration supports:
 
-### Basic Note Trigger
+### Basic Note Trigger (MIDI)
 ```toml
 [[modes.mappings]]
 description = "Spotlight Search"
@@ -206,7 +357,60 @@ keys = "space"
 modifiers = ["cmd"]
 ```
 
-### Velocity-Sensitive Actions
+### Gamepad Button Trigger (v3.0)
+```toml
+[[modes.mappings]]
+description = "Gamepad A Button"
+[modes.mappings.trigger]
+type = "GamepadButton"
+button = 128  # South button (A/Cross/B)
+[modes.mappings.action]
+type = "Keystroke"
+keys = "space"
+```
+
+### Gamepad Button Chord (v3.0)
+```toml
+[[modes.mappings]]
+description = "Quick Save (LB + A)"
+[modes.mappings.trigger]
+type = "GamepadButtonChord"
+buttons = [136, 128]  # LB + A
+max_interval_ms = 100
+[modes.mappings.action]
+type = "Keystroke"
+keys = "s"
+modifiers = ["ctrl"]
+```
+
+### Gamepad Analog Stick (v3.0)
+```toml
+[[modes.mappings]]
+description = "Left stick up → W key"
+[modes.mappings.trigger]
+type = "GamepadAnalogStick"
+axis = 129  # Left stick Y-axis
+direction = "Up"
+threshold = 0.5
+[modes.mappings.action]
+type = "Keystroke"
+keys = "w"
+```
+
+### Gamepad Analog Trigger (v3.0)
+```toml
+[[modes.mappings]]
+description = "Right trigger → Volume up"
+[modes.mappings.trigger]
+type = "GamepadTrigger"
+trigger = 133  # Right trigger analog axis
+threshold = 0.3
+[modes.mappings.action]
+type = "VolumeControl"
+action = "Up"
+```
+
+### Velocity-Sensitive Actions (MIDI)
 ```toml
 # Soft press
 [[modes.mappings]]
@@ -261,7 +465,7 @@ keys = "f"
 modifiers = ["ctrl", "cmd"]
 ```
 
-### Chord Detection
+### Chord Detection (MIDI)
 ```toml
 [[modes.mappings]]
 description = "Force Quit (chord)"
@@ -275,7 +479,7 @@ keys = "escape"
 modifiers = ["cmd", "option"]
 ```
 
-### Encoder Actions
+### Encoder Actions (MIDI)
 ```toml
 [[global_mappings]]
 description = "Volume Up"
@@ -378,9 +582,10 @@ The system supports multiple modes, each with its own set of mappings:
 4. **Custom Modes** - Create your own!
 
 Switch modes using:
-- Encoder rotation
-- Specific pad combinations
-- CC messages
+- Encoder rotation (MIDI)
+- Specific button/pad combinations
+- CC messages (MIDI)
+- Button chords (Gamepad)
 
 ## Troubleshooting
 
@@ -389,15 +594,23 @@ Switch modes using:
 2. Install necessary drivers (e.g., Native Instruments Controller Editor)
 3. Check Audio MIDI Setup: `open -a "Audio MIDI Setup"`
 
+### Gamepad Not Detected (v3.0)
+1. Check if gamepad is connected and recognized by OS
+2. Test with system gamepad settings or Steam Big Picture
+3. Ensure SDL2-compatible drivers are installed
+4. Check debug output: `midimon --log-level debug`
+5. Verify gamepad shows in system controller list
+
 ### High Latency
 - Build in release mode: `cargo build --release`
 - Close unnecessary applications
 - Check CPU usage
 
 ### Events Not Triggering
-- Run diagnostic tool to verify MIDI events
-- Check config.toml for correct note numbers
+- Run diagnostic tool to verify input events
+- Check config.toml for correct button/note numbers
 - Verify velocity/duration thresholds
+- For gamepads: Check button ID mapping (MIDI Learn recommended)
 
 ## Advanced Configuration
 
@@ -461,7 +674,7 @@ midimon/
 
 ## Performance
 
-- **MIDI Event Latency**: < 1ms typical
+- **Input Event Latency**: < 1ms typical
 - **Config Reload Time**: 0-10ms typical (Grade A: <20ms target)
 - **Startup Time**: < 500ms
 - **Memory Usage**: 5-10MB
@@ -520,19 +733,32 @@ Check out [good first issues](https://github.com/amiable-dev/midimon/labels/good
 - systemd/launchd integration
 - Comprehensive documentation and deployment guides
 
-### 🚀 Phase 3 - v1.5.0 (Future)
+### ✅ Phase 3 - v2.0.0 (Complete)
 - Tauri-based visual configurator
-- Menu bar UI for quick access
 - MIDI Learn mode (click → press → auto-map)
 - Per-app profiles with frontmost app detection
-- Advanced conditional mappings
-
-### 🔮 Phase 4 - v2.0.0 (Vision)
-- Virtual MIDI output for DAW integration
-- Profile sharing/export
+- Device templates for popular controllers
 - Live event console
-- WebSocket API
-- Plugin system
+
+### ✅ Phase 4 - v3.0.0 (Complete)
+- Multi-protocol input system (MIDI + HID/Gamepad)
+- Unified InputEvent abstraction
+- Gamepad device templates (Xbox, PlayStation, Switch Pro)
+- MIDI Learn support for gamepad buttons
+- Hot-plug detection for game controllers
+
+### 🚀 Phase 5 - v4.0.0 (Future)
+- OSC protocol support
+- Keyboard intercept (system-wide hotkeys)
+- Custom USB device support
+- Plugin system for community extensions
+
+### 🔮 Phase 6 - v5.0.0 (Vision)
+- Virtual MIDI output for DAW integration
+- Profile sharing/export marketplace
+- WebSocket API for remote control
+- AI-powered natural language configuration
+- Workflow pattern recognition
 
 See [.research/](https://github.com/amiable-dev/midimon/tree/main/.research) for detailed implementation proposals.
 
@@ -546,6 +772,7 @@ Copyright (c) 2025 Amiable
 
 Built with:
 - [midir](https://github.com/Boddlnagg/midir) - MIDI I/O
+- [gilrs](https://gitlab.com/gilrs-project/gilrs) - Game controller input (v3.0+)
 - [enigo](https://github.com/enigo-rs/enigo) - Input simulation
 - [colored](https://github.com/mackwic/colored) - Terminal colors
 - [serde](https://serde.rs/) - Serialization
