@@ -167,6 +167,8 @@
 pub mod action_executor;
 pub mod conditions;
 pub mod daemon;
+pub mod gamepad_device; // Gamepad/HID input management (v3.0)
+pub mod input_manager; // Unified MIDI + Gamepad input (v3.0)
 pub mod midi_device;
 pub mod plugin_manager;
 
@@ -186,7 +188,9 @@ pub use action_executor::{ActionExecutor, TriggerContext, parse_command_line};
 // Re-export condition evaluation for daemon use
 pub use conditions::{ConditionContext, evaluate_condition};
 
-// Re-export MIDI device manager for daemon use
+// Re-export device managers for daemon use
+pub use gamepad_device::GamepadDeviceManager; // Gamepad/HID (v3.0)
+pub use input_manager::{InputManager, InputMode}; // Unified input (v3.0)
 pub use midi_device::MidiDeviceManager;
 
 // Re-export PluginManager for daemon use (v2.3)

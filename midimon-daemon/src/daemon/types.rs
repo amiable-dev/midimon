@@ -93,6 +93,9 @@ pub enum DaemonCommand {
     /// Device reconnected
     DeviceReconnected,
 
+    /// Gamepad reconnected (v3.0)
+    ReconnectGamepad,
+
     /// Device reconnection failed after max attempts
     DeviceReconnectionFailed,
 

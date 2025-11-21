@@ -75,6 +75,7 @@ crossbeam-channel.workspace = true
 
 # HID device access (for LED diagnostic tools)
 hidapi.workspace = true
+gilrs.workspace = true  # Gamepad/HID input (v3.0)
 
 # Async runtime and utilities
 tokio = { version = "1.40", features = ["full"] }
