@@ -1,24 +1,26 @@
 // Copyright 2025 Amiable
 // SPDX-License-Identifier: MIT
 
-//! Gamepad Device Management
+//! HID Device Management (Game Controllers)
 //!
-//! This module manages the lifecycle of gamepad/HID device connections with automatic
-//! reconnection support and robust error handling.
+//! This module manages the lifecycle of HID input device connections (gamepads, joysticks,
+//! racing wheels, flight sticks, HOTAS controllers) with automatic reconnection support
+//! and robust error handling.
 //!
 //! # Features
 //!
 //! - **Automatic Reconnection**: Detects disconnections and attempts reconnection
 //! - **Thread Safety**: Arc/Mutex patterns for safe concurrent access
 //! - **Event Polling**: Continuous polling loop (1ms intervals)
-//! - **Device Discovery**: List all connected gamepads
+//! - **Device Discovery**: List all connected game controllers
 //! - **Connection Lifecycle**: Clean connection/disconnection with proper cleanup
+//! - **Multi-Device Support**: Gamepads, joysticks, racing wheels, flight sticks, HOTAS
 //!
 //! # Architecture
 //!
 //! ```text
 //! ┌─────────────────────────────────────────┐
-//! │  GamepadDeviceManager                   │
+//! │  HidDeviceManager                       │
 //! │  ┌───────────────────────────────────┐ │
 //! │  │  Connection State                 │ │
 //! │  │  - gamepad_id                     │ │
@@ -43,7 +45,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use midimon_daemon::gamepad_device::GamepadDeviceManager;
+//! use midimon_daemon::gamepad_device::HidDeviceManager;
 //! use tokio::sync::mpsc;
 //! use midimon_core::events::InputEvent;
 //! use midimon_daemon::DaemonCommand;
@@ -52,15 +54,15 @@
 //! let (event_tx, mut event_rx) = mpsc::channel::<InputEvent>(1024);
 //! let (command_tx, mut command_rx) = mpsc::channel::<DaemonCommand>(32);
 //!
-//! let mut manager = GamepadDeviceManager::new(true); // auto_reconnect
+//! let mut manager = HidDeviceManager::new(true); // auto_reconnect
 //!
-//! // Connect to first available gamepad
+//! // Connect to first available game controller
 //! let (gamepad_id, gamepad_name) = manager.connect(
 //!     event_tx.clone(),
 //!     command_tx.clone()
 //! )?;
 //!
-//! println!("Connected to gamepad: {} (ID {})", gamepad_name, gamepad_id);
+//! println!("Connected to game controller: {} (ID {})", gamepad_name, gamepad_id);
 //!
 //! // Process events
 //! while let Some(event) = event_rx.recv().await {
@@ -94,10 +96,11 @@ const RECONNECT_BACKOFF: &[u64] = &[1, 2, 4, 8, 16, 30];
 /// Maximum number of reconnection attempts
 const MAX_RECONNECT_ATTEMPTS: usize = 6;
 
-/// Gamepad device manager with automatic reconnection
+/// HID device manager with automatic reconnection
 ///
-/// Manages the connection to a gamepad/HID device with automatic reconnection
-/// support, continuous event polling, and thread-safe access patterns.
+/// Manages the connection to HID input devices (gamepads, joysticks, racing wheels,
+/// flight sticks, HOTAS controllers) with automatic reconnection support, continuous
+/// event polling, and thread-safe access patterns.
 ///
 /// # Thread Safety
 ///
@@ -106,7 +109,7 @@ const MAX_RECONNECT_ATTEMPTS: usize = 6;
 ///
 /// # Connection Lifecycle
 ///
-/// 1. **Connect**: Find first available gamepad and start polling thread
+/// 1. **Connect**: Find first available game controller and start polling thread
 /// 2. **Active**: Poll events at 1ms intervals, convert to InputEvent, send to channel
 /// 3. **Disconnect**: Detect disconnection, stop polling, optionally trigger reconnection
 /// 4. **Reconnect**: Background thread with exponential backoff
@@ -114,21 +117,21 @@ const MAX_RECONNECT_ATTEMPTS: usize = 6;
 /// # Example
 ///
 /// ```no_run
-/// use midimon_daemon::gamepad_device::GamepadDeviceManager;
+/// use midimon_daemon::gamepad_device::HidDeviceManager;
 /// use tokio::sync::mpsc;
 ///
 /// # async fn example() -> Result<(), String> {
 /// let (event_tx, _) = mpsc::channel(1024);
 /// let (command_tx, _) = mpsc::channel(32);
 ///
-/// let mut manager = GamepadDeviceManager::new(true);
+/// let mut manager = HidDeviceManager::new(true);
 /// manager.connect(event_tx, command_tx)?;
 ///
 /// assert!(manager.is_connected());
 /// # Ok(())
 /// # }
 /// ```
-pub struct GamepadDeviceManager {
+pub struct HidDeviceManager {
     /// Whether to automatically reconnect on disconnect
     auto_reconnect: bool,
 
@@ -148,8 +151,14 @@ pub struct GamepadDeviceManager {
     polling_thread: Arc<Mutex<Option<thread::JoinHandle<()>>>>,
 }
 
-impl GamepadDeviceManager {
-    /// Create a new gamepad device manager
+/// Type alias for backward compatibility (v3.0)
+///
+/// Use `HidDeviceManager` for new code. This alias ensures existing code
+/// using `GamepadDeviceManager` continues to work without modification.
+pub type GamepadDeviceManager = HidDeviceManager;
+
+impl HidDeviceManager {
+    /// Create a new HID device manager
     ///
     /// # Arguments
     ///
@@ -157,14 +166,14 @@ impl GamepadDeviceManager {
     ///
     /// # Returns
     ///
-    /// A new GamepadDeviceManager instance
+    /// A new HidDeviceManager instance
     ///
     /// # Example
     ///
     /// ```
-    /// use midimon_daemon::gamepad_device::GamepadDeviceManager;
+    /// use midimon_daemon::gamepad_device::HidDeviceManager;
     ///
-    /// let manager = GamepadDeviceManager::new(true);
+    /// let manager = HidDeviceManager::new(true);
     /// assert!(!manager.is_connected());
     /// ```
     pub fn new(auto_reconnect: bool) -> Self {
@@ -178,13 +187,13 @@ impl GamepadDeviceManager {
         }
     }
 
-    /// List all connected gamepads
+    /// List all connected game controllers
     ///
-    /// Returns a list of (ID, Name, UUID) tuples for all connected gamepads.
+    /// Returns a list of (ID, Name, UUID) tuples for all connected HID game controllers.
     ///
     /// # Returns
     ///
-    /// Vector of (GamepadId, Name, UUID) for each connected gamepad
+    /// Vector of (GamepadId, Name, UUID) for each connected game controller
     ///
     /// # Errors
     ///
@@ -193,12 +202,12 @@ impl GamepadDeviceManager {
     /// # Example
     ///
     /// ```no_run
-    /// use midimon_daemon::gamepad_device::GamepadDeviceManager;
+    /// use midimon_daemon::gamepad_device::HidDeviceManager;
     ///
     /// # fn example() -> Result<(), String> {
-    /// let gamepads = GamepadDeviceManager::list_gamepads()?;
+    /// let gamepads = HidDeviceManager::list_gamepads()?;
     /// for (id, name, uuid) in gamepads {
-    ///     println!("Gamepad: {} (ID: {:?}, UUID: {})", name, id, uuid);
+    ///     println!("Game controller: {} (ID: {:?}, UUID: {})", name, id, uuid);
     /// }
     /// # Ok(())
     /// # }
@@ -216,9 +225,9 @@ impl GamepadDeviceManager {
         Ok(gamepads)
     }
 
-    /// Connect to the first available gamepad
+    /// Connect to the first available game controller
     ///
-    /// Finds the first connected gamepad and starts the polling loop.
+    /// Finds the first connected HID game controller and starts the polling loop.
     ///
     /// # Arguments
     ///
@@ -227,26 +236,26 @@ impl GamepadDeviceManager {
     ///
     /// # Returns
     ///
-    /// Tuple of (GamepadId, Name) for the connected gamepad
+    /// Tuple of (GamepadId, Name) for the connected game controller
     ///
     /// # Errors
     ///
     /// Returns error string if:
     /// - gilrs initialization fails
-    /// - No gamepads are connected
-    /// - Already connected to a gamepad
+    /// - No game controllers are connected
+    /// - Already connected to a game controller
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use midimon_daemon::gamepad_device::GamepadDeviceManager;
+    /// use midimon_daemon::gamepad_device::HidDeviceManager;
     /// use tokio::sync::mpsc;
     ///
     /// # async fn example() -> Result<(), String> {
     /// let (event_tx, _) = mpsc::channel(1024);
     /// let (command_tx, _) = mpsc::channel(32);
     ///
-    /// let mut manager = GamepadDeviceManager::new(true);
+    /// let mut manager = HidDeviceManager::new(true);
     /// let (id, name) = manager.connect(event_tx, command_tx)?;
     /// println!("Connected to: {}", name);
     /// # Ok(())
@@ -258,21 +267,21 @@ impl GamepadDeviceManager {
         command_tx: mpsc::Sender<DaemonCommand>,
     ) -> Result<(gilrs::GamepadId, String), String> {
         if self.is_connected.load(Ordering::Relaxed) {
-            return Err("Already connected to a gamepad".to_string());
+            return Err("Already connected to a game controller".to_string());
         }
 
         // Initialize gilrs
         let gilrs =
             gilrs::Gilrs::new().map_err(|e| format!("Failed to initialize gilrs: {}", e))?;
 
-        // Find first connected gamepad
+        // Find first connected game controller
         let (gamepad_id, gamepad_name) = gilrs
             .gamepads()
             .next()
             .map(|(id, gamepad)| (id, gamepad.name().to_string()))
-            .ok_or_else(|| "No gamepads connected".to_string())?;
+            .ok_or_else(|| "No game controllers connected".to_string())?;
 
-        info!("Connecting to gamepad: {} (ID: {:?})", gamepad_name, gamepad_id);
+        info!("Connecting to game controller: {} (ID: {:?})", gamepad_name, gamepad_id);
 
         // Store connection info
         *self.gamepad_id.lock().unwrap() = Some(gamepad_id);
@@ -301,12 +310,12 @@ impl GamepadDeviceManager {
 
         *self.polling_thread.lock().unwrap() = Some(polling_handle);
 
-        info!("Gamepad polling thread started");
+        info!("Game controller polling thread started");
 
         Ok((gamepad_id, gamepad_name))
     }
 
-    /// Polling loop for gamepad events (runs in background thread)
+    /// Polling loop for HID game controller events (runs in background thread)
     ///
     /// Continuously polls gilrs for events, converts them to InputEvent,
     /// and sends them to the event channel. Handles disconnection and
@@ -326,15 +335,15 @@ impl GamepadDeviceManager {
         loop {
             // Check stop signal
             if stop_polling.load(Ordering::Relaxed) {
-                debug!("Gamepad polling loop stopped");
+                debug!("HID device polling loop stopped");
                 break;
             }
 
             // Poll for events
             while let Some(event) = gilrs.next_event() {
-                trace!("Gamepad event: {:?}", event);
+                trace!("HID device event: {:?}", event);
 
-                // Check if this event is from our connected gamepad
+                // Check if this event is from our connected game controller
                 if event.id != current_gamepad_id {
                     continue;
                 }
@@ -359,7 +368,7 @@ impl GamepadDeviceManager {
                         }
                     }
                     gilrs::EventType::Disconnected => {
-                        warn!("Gamepad disconnected: {:?}", current_gamepad_id);
+                        warn!("Game controller disconnected: {:?}", current_gamepad_id);
                         is_connected.store(false, Ordering::Relaxed);
                         *gamepad_id.lock().unwrap() = None;
 
@@ -388,19 +397,19 @@ impl GamepadDeviceManager {
 
     /// Reconnection loop with exponential backoff
     ///
-    /// Attempts to reconnect to a gamepad with exponential backoff.
-    /// Sends a DaemonCommand::ReconnectGamepad when a gamepad becomes available.
+    /// Attempts to reconnect to a game controller with exponential backoff.
+    /// Sends a DaemonCommand::ReconnectGamepad when a device becomes available.
     fn reconnect_loop(command_tx: mpsc::Sender<DaemonCommand>) {
         for (attempt, &delay) in RECONNECT_BACKOFF.iter().enumerate() {
             info!("Reconnection attempt {} in {}s...", attempt + 1, delay);
             thread::sleep(Duration::from_secs(delay));
 
-            // Try to list gamepads
+            // Try to list game controllers
             match Self::list_gamepads() {
                 Ok(gamepads) if !gamepads.is_empty() => {
-                    info!("Gamepad detected, sending reconnect command");
+                    info!("Game controller detected, sending reconnect command");
                     let (id, name, _uuid) = &gamepads[0];
-                    debug!("Found gamepad: {} (ID: {:?})", name, id);
+                    debug!("Found game controller: {} (ID: {:?})", name, id);
 
                     // Send reconnect command
                     if let Err(e) = command_tx.try_send(DaemonCommand::ReconnectGamepad) {
@@ -409,10 +418,10 @@ impl GamepadDeviceManager {
                     return;
                 }
                 Ok(_) => {
-                    debug!("No gamepads found, continuing backoff...");
+                    debug!("No game controllers found, continuing backoff...");
                 }
                 Err(e) => {
-                    error!("Error checking for gamepads: {}", e);
+                    error!("Error checking for game controllers: {}", e);
                 }
             }
         }
@@ -423,21 +432,21 @@ impl GamepadDeviceManager {
         );
     }
 
-    /// Disconnect from the current gamepad
+    /// Disconnect from the current game controller
     ///
     /// Stops the polling thread and cleans up the connection.
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use midimon_daemon::gamepad_device::GamepadDeviceManager;
+    /// use midimon_daemon::gamepad_device::HidDeviceManager;
     /// use tokio::sync::mpsc;
     ///
     /// # async fn example() -> Result<(), String> {
     /// let (event_tx, _) = mpsc::channel(1024);
     /// let (command_tx, _) = mpsc::channel(32);
     ///
-    /// let mut manager = GamepadDeviceManager::new(true);
+    /// let mut manager = HidDeviceManager::new(true);
     /// manager.connect(event_tx, command_tx)?;
     /// manager.disconnect();
     ///
@@ -450,7 +459,7 @@ impl GamepadDeviceManager {
             return;
         }
 
-        info!("Disconnecting from gamepad");
+        info!("Disconnecting from game controller");
 
         // Signal polling thread to stop
         self.stop_polling.store(true, Ordering::Relaxed);
@@ -465,10 +474,10 @@ impl GamepadDeviceManager {
         *self.gamepad_name.lock().unwrap() = None;
         self.is_connected.store(false, Ordering::Relaxed);
 
-        info!("Disconnected from gamepad");
+        info!("Disconnected from game controller");
     }
 
-    /// Check if currently connected to a gamepad
+    /// Check if currently connected to a game controller
     ///
     /// # Returns
     ///
@@ -477,16 +486,16 @@ impl GamepadDeviceManager {
     /// # Example
     ///
     /// ```
-    /// use midimon_daemon::gamepad_device::GamepadDeviceManager;
+    /// use midimon_daemon::gamepad_device::HidDeviceManager;
     ///
-    /// let manager = GamepadDeviceManager::new(true);
+    /// let manager = HidDeviceManager::new(true);
     /// assert!(!manager.is_connected());
     /// ```
     pub fn is_connected(&self) -> bool {
         self.is_connected.load(Ordering::Relaxed)
     }
 
-    /// Get the current gamepad name
+    /// Get the current game controller name
     ///
     /// # Returns
     ///
@@ -495,14 +504,14 @@ impl GamepadDeviceManager {
     /// # Example
     ///
     /// ```no_run
-    /// use midimon_daemon::gamepad_device::GamepadDeviceManager;
+    /// use midimon_daemon::gamepad_device::HidDeviceManager;
     /// use tokio::sync::mpsc;
     ///
     /// # async fn example() -> Result<(), String> {
     /// let (event_tx, _) = mpsc::channel(1024);
     /// let (command_tx, _) = mpsc::channel(32);
     ///
-    /// let mut manager = GamepadDeviceManager::new(true);
+    /// let mut manager = HidDeviceManager::new(true);
     /// manager.connect(event_tx, command_tx)?;
     ///
     /// if let Some(name) = manager.get_gamepad_name() {
@@ -516,7 +525,7 @@ impl GamepadDeviceManager {
     }
 }
 
-impl Drop for GamepadDeviceManager {
+impl Drop for HidDeviceManager {
     fn drop(&mut self) {
         self.disconnect();
     }
@@ -535,12 +544,12 @@ mod tests {
 
     #[test]
     fn test_list_gamepads() {
-        // This may pass or fail depending on whether gamepads are connected
-        let result = GamepadDeviceManager::list_gamepads();
+        // This may pass or fail depending on whether game controllers are connected
+        let result = HidDeviceManager::list_gamepads();
         assert!(result.is_ok(), "list_gamepads should not error");
 
         if let Ok(gamepads) = result {
-            println!("Found {} gamepads", gamepads.len());
+            println!("Found {} game controllers", gamepads.len());
             for (id, name, uuid) in gamepads {
                 println!("  - {} (ID: {:?}, UUID: {})", name, id, uuid);
             }

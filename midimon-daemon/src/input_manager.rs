@@ -30,7 +30,7 @@
 //! │  │  - Converts to: InputEvent                 │ │
 //! │  └────────────────────────────────────────────┘ │
 //! │  ┌────────────────────────────────────────────┐ │
-//! │  │  GamepadDeviceManager                      │ │
+//! │  │  HidDeviceManager                          │ │
 //! │  │  - Outputs: InputEvent (native)            │ │
 //! │  └────────────────────────────────────────────┘ │
 //! │  ┌────────────────────────────────────────────┐ │
@@ -68,7 +68,7 @@
 //! ```
 
 use crate::daemon::DaemonCommand;
-use crate::gamepad_device::GamepadDeviceManager;
+use crate::gamepad_device::HidDeviceManager;
 use crate::midi_device::MidiDeviceManager;
 use midimon_core::events::InputEvent;
 use midimon_core::event_processor::MidiEvent;
@@ -107,8 +107,8 @@ pub struct InputManager {
     /// MIDI device manager (optional)
     midi_manager: Option<MidiDeviceManager>,
 
-    /// Gamepad device manager (optional)
-    gamepad_manager: Option<GamepadDeviceManager>,
+    /// HID device manager (optional)
+    gamepad_manager: Option<HidDeviceManager>,
 
     /// Input mode selection
     mode: InputMode,
@@ -157,7 +157,7 @@ impl InputManager {
         };
 
         let gamepad_manager = if mode == InputMode::GamepadOnly || mode == InputMode::Both {
-            Some(GamepadDeviceManager::new(auto_reconnect))
+            Some(HidDeviceManager::new(auto_reconnect))
         } else {
             None
         };
@@ -336,7 +336,7 @@ impl InputManager {
     ///
     /// Returns a list of (GamepadId, name, UUID) tuples for all detected gamepads.
     pub fn list_gamepads() -> Result<Vec<(gilrs::GamepadId, String, String)>, String> {
-        GamepadDeviceManager::list_gamepads()
+        HidDeviceManager::list_gamepads()
     }
 }
 
