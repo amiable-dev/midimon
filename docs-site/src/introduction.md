@@ -1,10 +1,29 @@
 # Introduction
 
-**Transform any MIDI controller into an advanced, context-aware macro pad with professional-grade feedback and timing-based triggers.**
+**Transform any MIDI controller or gamepad into an advanced, context-aware automation platform with professional-grade feedback and timing-based triggers.**
 
-MIDIMon is a powerful Rust-based MIDI controller mapping system that goes beyond simple note-to-key bindings. It provides velocity sensitivity, long press detection, double-tap, chord recognition, and full RGB LED feedback for modern workflows.
+MIDIMon is a powerful Rust-based multi-protocol input mapping system that goes beyond simple note-to-key bindings. Supporting both MIDI controllers and HID gamepads, it provides velocity sensitivity, long press detection, double-tap, chord recognition, and full RGB LED feedback for modern workflows.
 
 ## Key Features
+
+### Multi-Protocol Input (v3.0+)
+
+**MIDI Controllers**:
+- Full MIDI controller support with RGB LED feedback
+- Native Instruments Maschine, Launchpad, APC Mini, and more
+- SysEx support for advanced LED control
+
+**HID Gamepads** (NEW!):
+- Xbox 360/One/Series controllers
+- PlayStation DualShock 4/DualSense controllers
+- Nintendo Switch Pro Controller
+- Button chords, analog sticks, triggers with full velocity sensitivity
+- See the [Gamepad Support Guide](guides/gamepad-support.md) for details
+
+**Coming Soon**:
+- OSC (Open Sound Control) for networked devices
+- Custom USB HID devices
+- Keyboard/mouse intercept for hybrid workflows
 
 ### Core Capabilities (v2.0.0)
 
@@ -46,23 +65,25 @@ Control DAWs, plugins, and effects with velocity-sensitive, multi-layer mappings
 Streamline coding workflows with mode-based hotkey systems and build tool shortcuts.
 
 ### Content Creators
-Manage streaming, recording, and editing with physical MIDI controls.
+Manage streaming, recording, and editing with physical controllers or use your existing gamepad as a powerful macro pad.
 
 ### Power Users
-Replace expensive macro pads with affordable MIDI controllers that do more.
+Replace expensive macro pads with affordable MIDI controllers or repurpose your $30 Xbox controller for advanced automation.
 
 ## Why MIDIMon?
 
 Unlike existing MIDI mapping tools, MIDIMon provides:
 
+- **Multi-Protocol Support**: Use MIDI controllers AND gamepads in the same workflow (v3.0+)
 - **Advanced Timing**: Long press, double-tap, chord detection out of the box
 - **Velocity Sensitivity**: Different actions for soft/medium/hard pad hits
 - **Full RGB Feedback**: Not just on/off LEDs, but animated schemes and reactive color
-- **Modern Architecture**: Fast Rust core, hot-reload config (coming soon), cross-platform
+- **Modern Architecture**: Fast Rust core, hot-reload config, cross-platform
 - **Open Source**: Fully customizable, extensible, community-driven
 
-## Quick Example
+## Quick Examples
 
+### MIDI Controller
 ```toml
 # Press pad lightly for copy, hard for paste
 [[modes.mappings]]
@@ -76,6 +97,19 @@ trigger = { type = "LongPress", note = 37, duration_ms = 2000 }
 action = { type = "Launch", path = "/Applications/Utilities/Terminal.app" }
 ```
 
+### Gamepad (v3.0+)
+```toml
+# Press A button to build your project
+[[modes.mappings]]
+trigger = { type = "GamepadButton", button = "South" }  # A on Xbox, X on PlayStation
+action = { type = "Shell", command = "cargo build" }
+
+# Hold B button for 1 second to run tests
+[[modes.mappings]]
+trigger = { type = "GamepadButton", button = "East", hold_ms = 1000 }
+action = { type = "Shell", command = "cargo test" }
+```
+
 ## Platform Support
 
 - **macOS**: Full support (11+ Big Sur, Apple Silicon + Intel)
@@ -84,9 +118,16 @@ action = { type = "Launch", path = "/Applications/Utilities/Terminal.app" }
 
 ## Device Compatibility
 
+### MIDI Controllers
 - **Fully Supported**: Native Instruments Maschine Mikro MK3 (RGB LEDs, HID access)
 - **MIDI-Only Support**: Any USB MIDI controller with basic LED feedback
 - **Coming Soon**: Launchpad, APC Mini, Korg nanoKontrol, and more
+
+### HID Gamepads (v3.0+)
+- **Xbox**: Xbox 360, Xbox One, Xbox Series X/S controllers
+- **PlayStation**: DualShock 4, DualSense (PS5)
+- **Nintendo**: Switch Pro Controller
+- **Generic**: Any gamepad with standard HID support
 
 ## Get Started
 
@@ -94,14 +135,21 @@ Ready to dive in? Check out the [Quick Start Guide](getting-started/quick-start.
 
 ## Project Status
 
-MIDIMon is currently at **v2.0.0** with production-ready daemon infrastructure and visual GUI configuration.
+MIDIMon is currently at **v3.0** with multi-protocol input support, production-ready daemon infrastructure, and visual GUI configuration.
 
-**What's New in v2.0.0**:
+**What's New in v3.0**:
+- 🎮 **HID Gamepad Support**: Xbox, PlayStation, Switch Pro controllers
+- 🎯 **Unified Input Manager**: MIDI + gamepad in single workflow
+- 📦 **Controller Templates**: 3 official gamepad templates (Xbox, PS, Switch)
+- 🔍 **MIDI Learn for Gamepads**: Auto-detect gamepad buttons
+- ⚡ **Hot-Plug Detection**: Automatic reconnection with exponential backoff
+
+**v2.0.0 Features**:
 - 🎛️ **Tauri GUI**: Visual configuration editor with MIDI Learn mode
 - 🔄 **Hot-Reload Daemon**: 0-10ms config reloads without restart
 - 🎯 **Per-App Profiles**: Automatic profile switching based on active app
-- 📊 **Live Event Console**: Real-time MIDI event monitoring
-- 📦 **Device Templates**: 6 built-in templates for popular controllers
+- 📊 **Live Event Console**: Real-time event monitoring
+- 📦 **Device Templates**: 6 built-in MIDI templates
 
 See the [Roadmap](resources/roadmap.md) for planned features and [Changelog](resources/changelog.md) for full release notes.
 

@@ -21,6 +21,7 @@
 - [Daemon & Hot-Reload](guides/daemon.md)
 - [GUI Configuration](guides/gui.md)
 - [Device Templates](guides/device-templates.md)
+- [Gamepad Support](guides/gamepad-support.md)
 - [Per-App Profiles](guides/per-app-profiles.md)
 - [LED System](guides/led-system.md)
 - [Event Console](guides/event-console.md)
