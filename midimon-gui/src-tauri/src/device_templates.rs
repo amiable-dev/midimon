@@ -167,6 +167,53 @@ impl DeviceTemplateRegistry {
             is_official: true,
             version: "1.0.0".to_string(),
         });
+
+        // ========== Gamepad Controllers (v3.0) ==========
+
+        // Xbox Controller (360, One, Series X|S)
+        self.register_template(DeviceTemplate {
+            id: "xbox-controller".to_string(),
+            name: "Xbox Controller".to_string(),
+            manufacturer: "Microsoft".to_string(),
+            model: "Xbox Controller".to_string(),
+            description: "Microsoft Xbox controller (Xbox 360, Xbox One, Xbox Series X|S) with analog triggers and dual sticks. Optimized for desktop navigation, media control, and gaming macros.".to_string(),
+            midi_patterns: vec![], // Gamepads don't have MIDI patterns
+            category: "gamepad-controller".to_string(),
+            config_template: include_str!("../templates/xbox-controller.toml").to_string(),
+            thumbnail_url: None,
+            is_official: true,
+            version: "1.0.0".to_string(),
+        });
+
+        // PlayStation Controller (DualShock 4, DualSense)
+        self.register_template(DeviceTemplate {
+            id: "playstation-controller".to_string(),
+            name: "PlayStation Controller".to_string(),
+            manufacturer: "Sony".to_string(),
+            model: "DualShock/DualSense".to_string(),
+            description: "Sony PlayStation controller (DualShock 4, DualSense) with adaptive triggers and haptic feedback support. Includes desktop navigation, media control, and gaming presets.".to_string(),
+            midi_patterns: vec![], // Gamepads don't have MIDI patterns
+            category: "gamepad-controller".to_string(),
+            config_template: include_str!("../templates/playstation-controller.toml").to_string(),
+            thumbnail_url: None,
+            is_official: true,
+            version: "1.0.0".to_string(),
+        });
+
+        // Nintendo Switch Pro Controller
+        self.register_template(DeviceTemplate {
+            id: "switch-pro-controller".to_string(),
+            name: "Switch Pro Controller".to_string(),
+            manufacturer: "Nintendo".to_string(),
+            model: "Switch Pro Controller".to_string(),
+            description: "Nintendo Switch Pro Controller with HD rumble and motion controls. Features desktop navigation, media control, and browser control modes.".to_string(),
+            midi_patterns: vec![], // Gamepads don't have MIDI patterns
+            category: "gamepad-controller".to_string(),
+            config_template: include_str!("../templates/switch-pro-controller.toml").to_string(),
+            thumbnail_url: None,
+            is_official: true,
+            version: "1.0.0".to_string(),
+        });
     }
 
     /// Register a template

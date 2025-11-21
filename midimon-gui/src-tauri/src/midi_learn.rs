@@ -5,7 +5,10 @@
 //!
 //! Provides session-based MIDI learning that captures raw MIDI input
 //! and converts it to trigger configuration suggestions.
+//!
+//! v3.0: Extended to support gamepad/HID input via unified InputEvent
 
+use midimon_core::events::InputEvent; // v3.0: Unified input event support
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -67,6 +70,23 @@ pub enum TriggerSuggestion {
     PitchBend {
         bend_range: (i16, i16),
     },
+    // Gamepad trigger suggestions (v3.0)
+    GamepadButton {
+        button: u8, // 128-255 range
+        velocity_range: Option<(u8, u8)>,
+    },
+    GamepadButtonChord {
+        buttons: Vec<u8>, // Multiple buttons 128-255
+        window_ms: u64,
+    },
+    GamepadAnalogStick {
+        axis: u8, // 128-131 range (left/right stick X/Y)
+        direction: Option<String>, // "Clockwise" (right/up), "CounterClockwise" (left/down)
+    },
+    GamepadTrigger {
+        trigger: u8, // 132-133 (left/right analog triggers)
+        threshold: u8,
+    },
 }
 
 /// MIDI Learn session state
@@ -79,11 +99,19 @@ pub enum LearnSessionState {
     Cancelled,
 }
 
-/// Event tracking for pattern detection
+/// Event tracking for pattern detection (MIDI)
 #[derive(Debug, Clone)]
 #[allow(dead_code)] // Used in event history tracking
 struct EventRecord {
     event: MidiEvent,
+    timestamp: Instant,
+}
+
+/// Event tracking for unified input (v3.0: MIDI + Gamepad)
+#[derive(Debug, Clone)]
+#[allow(dead_code)] // Used in event history tracking
+struct InputEventRecord {
+    event: InputEvent,
     timestamp: Instant,
 }
 
@@ -100,9 +128,12 @@ pub struct MidiLearnSession {
     start_time: Arc<RwLock<Instant>>,
     /// Timeout duration
     timeout: Duration,
-    /// Event history for pattern detection
+    /// Event history for pattern detection (MIDI events)
     #[allow(dead_code)] // Used for pattern analysis in capture_event
     event_history: Arc<RwLock<Vec<EventRecord>>>,
+    /// Input event history for unified pattern detection (v3.0)
+    #[allow(dead_code)] // Used for pattern analysis in capture_input_event
+    input_event_history: Arc<RwLock<Vec<InputEventRecord>>>,
     /// Note press times for long press detection (note -> press time)
     #[allow(dead_code)] // Used for long press detection
     note_press_times: Arc<RwLock<HashMap<u8, Instant>>>,
@@ -112,10 +143,19 @@ pub struct MidiLearnSession {
     /// Currently held notes for chord detection
     #[allow(dead_code)] // Used for chord detection
     held_notes: Arc<RwLock<Vec<u8>>>,
+    /// Button press times for long press detection (v3.0: gamepad support)
+    #[allow(dead_code)] // Used for long press detection
+    button_press_times: Arc<RwLock<HashMap<u8, Instant>>>,
+    /// Last button press times for double-tap detection (v3.0)
+    #[allow(dead_code)] // Used for double-tap detection
+    last_button_times: Arc<RwLock<HashMap<u8, Instant>>>,
+    /// Currently held buttons for chord detection (v3.0)
+    #[allow(dead_code)] // Used for chord detection
+    held_buttons: Arc<RwLock<Vec<u8>>>,
 }
 
 impl MidiLearnSession {
-    /// Create a new MIDI Learn session
+    /// Create a new MIDI Learn session (v3.0: supports MIDI + gamepad)
     pub fn new(timeout_secs: u64) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -124,9 +164,13 @@ impl MidiLearnSession {
             start_time: Arc::new(RwLock::new(Instant::now())),
             timeout: Duration::from_secs(timeout_secs),
             event_history: Arc::new(RwLock::new(Vec::new())),
+            input_event_history: Arc::new(RwLock::new(Vec::new())), // v3.0
             note_press_times: Arc::new(RwLock::new(HashMap::new())),
             last_note_times: Arc::new(RwLock::new(HashMap::new())),
             held_notes: Arc::new(RwLock::new(Vec::new())),
+            button_press_times: Arc::new(RwLock::new(HashMap::new())), // v3.0
+            last_button_times: Arc::new(RwLock::new(HashMap::new())),  // v3.0
+            held_buttons: Arc::new(RwLock::new(Vec::new())),           // v3.0
         }
     }
 
@@ -406,6 +450,363 @@ impl MidiLearnSession {
                 note: *note,
                 pressure_range: (*pressure, *pressure),
             },
+        }
+    }
+
+    /// Capture a unified InputEvent (v3.0: MIDI + gamepad support)
+    #[allow(dead_code)] // Part of MIDI Learn API, used for unified event capture
+    pub async fn capture_input_event(&self, event: InputEvent) {
+        let state = self.state.read().await;
+        if *state != LearnSessionState::Waiting {
+            return;
+        }
+        drop(state); // Release read lock
+
+        let now = Instant::now();
+
+        // Record event in history
+        let mut history = self.input_event_history.write().await;
+        history.push(InputEventRecord {
+            event: event.clone(),
+            timestamp: now,
+        });
+        drop(history);
+
+        // Pattern detection based on event type
+        match &event {
+            InputEvent::PadPressed { pad, velocity, .. } => {
+                // Distinguish between MIDI pads (0-127) and gamepad buttons (128-255)
+                if *pad >= 128 {
+                    // Gamepad button press
+                    self.handle_gamepad_button_press(*pad, *velocity, now)
+                        .await;
+                } else {
+                    // MIDI note press (treat as note for backwards compatibility)
+                    self.handle_note_press(*pad, *velocity, now).await;
+                }
+            }
+            InputEvent::PadReleased { pad, .. } => {
+                if *pad >= 128 {
+                    // Gamepad button release
+                    self.handle_gamepad_button_release(*pad, now).await;
+                } else {
+                    // MIDI note release
+                    self.handle_note_release(*pad, now).await;
+                }
+            }
+            InputEvent::EncoderTurned {
+                encoder, value, ..
+            } => {
+                // Encoder can be MIDI CC (0-127) or gamepad analog stick (128-131)
+                self.handle_encoder_turn(*encoder, *value, now).await;
+            }
+            InputEvent::PolyPressure { pad, pressure, .. } => {
+                // Polyphonic aftertouch/pressure
+                self.complete_learning(TriggerSuggestion::Aftertouch {
+                    note: Some(*pad),
+                    pressure_range: (*pressure, *pressure),
+                })
+                .await;
+            }
+            InputEvent::Aftertouch { pressure, .. } => {
+                // Channel-wide aftertouch
+                self.complete_learning(TriggerSuggestion::Aftertouch {
+                    note: None,
+                    pressure_range: (*pressure, *pressure),
+                })
+                .await;
+            }
+            InputEvent::PitchBend { value, .. } => {
+                // Pitch bend/touch strip
+                let signed_value = (*value as i16) - 8192;
+                self.complete_learning(TriggerSuggestion::PitchBend {
+                    bend_range: (signed_value, signed_value),
+                })
+                .await;
+            }
+            InputEvent::ControlChange { control, value, .. } => {
+                // Generic CC (could be encoder or other control)
+                self.complete_learning(TriggerSuggestion::CC {
+                    cc: *control,
+                    value_range: Some((*value, *value)),
+                })
+                .await;
+            }
+            InputEvent::ProgramChange { .. } => {
+                // Program change - not currently supported as trigger, ignore
+            }
+        }
+    }
+
+    /// Handle note/pad press (MIDI pads 0-127)
+    #[allow(dead_code)] // Called by capture_input_event
+    async fn handle_note_press(&self, note: u8, _velocity: u8, now: Instant) {
+        // Check for double-tap
+        let mut last_times = self.last_note_times.write().await;
+        if let Some(last_time) = last_times.get(&note) {
+            let gap = now.duration_since(*last_time);
+            if gap <= Duration::from_millis(500) {
+                // Double-tap detected!
+                self.complete_learning(TriggerSuggestion::DoubleTap {
+                    note,
+                    timeout_ms: gap.as_millis() as u64 + 50,
+                })
+                .await;
+                return;
+            }
+        }
+        last_times.insert(note, now);
+        drop(last_times);
+
+        // Track press time for long press detection
+        let mut press_times = self.note_press_times.write().await;
+        press_times.insert(note, now);
+        drop(press_times);
+
+        // Track held notes for chord detection
+        let mut held = self.held_notes.write().await;
+        if !held.contains(&note) {
+            held.push(note);
+        }
+
+        // Check for chord (2+ notes within 100ms)
+        if held.len() >= 2 {
+            let history = self.input_event_history.read().await;
+            let recent_notes: Vec<u8> = history
+                .iter()
+                .rev()
+                .take_while(|r| now.duration_since(r.timestamp) <= Duration::from_millis(100))
+                .filter_map(|r| match r.event {
+                    InputEvent::PadPressed { pad, .. } if pad < 128 => Some(pad),
+                    _ => None,
+                })
+                .collect();
+
+            if recent_notes.len() >= 2 {
+                // Chord detected!
+                self.complete_learning(TriggerSuggestion::Chord {
+                    notes: held.clone(),
+                    window_ms: 100,
+                })
+                .await;
+                return;
+            }
+        }
+    }
+
+    /// Handle note/pad release (MIDI pads 0-127)
+    #[allow(dead_code)] // Called by capture_input_event
+    async fn handle_note_release(&self, note: u8, now: Instant) {
+        // Check if this was a long press
+        let mut press_times = self.note_press_times.write().await;
+        if let Some(press_time) = press_times.remove(&note) {
+            let duration = now.duration_since(press_time);
+            if duration >= Duration::from_millis(1000) {
+                // Long press detected!
+                self.complete_learning(TriggerSuggestion::LongPress {
+                    note,
+                    duration_ms: duration.as_millis() as u64,
+                })
+                .await;
+                return;
+            } else {
+                // Simple note trigger (velocity-based)
+                let history = self.input_event_history.read().await;
+                if let Some(record) = history
+                    .iter()
+                    .rev()
+                    .find(|r| matches!(r.event, InputEvent::PadPressed { pad, .. } if pad == note))
+                {
+                    if let InputEvent::PadPressed { velocity, .. } = record.event {
+                        // Suggest velocity-based trigger
+                        let trigger = if velocity < 40 {
+                            TriggerSuggestion::VelocityRange {
+                                note,
+                                velocity_min: 0,
+                                velocity_max: 40,
+                                level: "soft".to_string(),
+                            }
+                        } else if velocity < 80 {
+                            TriggerSuggestion::VelocityRange {
+                                note,
+                                velocity_min: 41,
+                                velocity_max: 80,
+                                level: "medium".to_string(),
+                            }
+                        } else {
+                            TriggerSuggestion::VelocityRange {
+                                note,
+                                velocity_min: 81,
+                                velocity_max: 127,
+                                level: "hard".to_string(),
+                            }
+                        };
+                        self.complete_learning(trigger).await;
+                        return;
+                    }
+                }
+
+                // Fallback: simple note trigger
+                self.complete_learning(TriggerSuggestion::Note {
+                    note,
+                    velocity_range: None,
+                })
+                .await;
+            }
+        }
+
+        // Remove from held notes
+        let mut held = self.held_notes.write().await;
+        held.retain(|n| *n != note);
+    }
+
+    /// Handle gamepad button press (buttons 128-255)
+    #[allow(dead_code)] // Called by capture_input_event
+    async fn handle_gamepad_button_press(&self, button: u8, _velocity: u8, now: Instant) {
+        // Check for double-tap
+        let mut last_times = self.last_button_times.write().await;
+        if let Some(last_time) = last_times.get(&button) {
+            let gap = now.duration_since(*last_time);
+            if gap <= Duration::from_millis(500) {
+                // Double-tap detected!
+                self.complete_learning(TriggerSuggestion::DoubleTap {
+                    note: button, // Reuse DoubleTap for gamepad buttons
+                    timeout_ms: gap.as_millis() as u64 + 50,
+                })
+                .await;
+                return;
+            }
+        }
+        last_times.insert(button, now);
+        drop(last_times);
+
+        // Track press time for long press detection
+        let mut press_times = self.button_press_times.write().await;
+        press_times.insert(button, now);
+        drop(press_times);
+
+        // Track held buttons for chord detection
+        let mut held = self.held_buttons.write().await;
+        if !held.contains(&button) {
+            held.push(button);
+        }
+
+        // Check for button chord (2+ buttons within 100ms)
+        if held.len() >= 2 {
+            let history = self.input_event_history.read().await;
+            let recent_buttons: Vec<u8> = history
+                .iter()
+                .rev()
+                .take_while(|r| now.duration_since(r.timestamp) <= Duration::from_millis(100))
+                .filter_map(|r| match r.event {
+                    InputEvent::PadPressed { pad, .. } if pad >= 128 => Some(pad),
+                    _ => None,
+                })
+                .collect();
+
+            if recent_buttons.len() >= 2 {
+                // Button chord detected!
+                self.complete_learning(TriggerSuggestion::GamepadButtonChord {
+                    buttons: held.clone(),
+                    window_ms: 100,
+                })
+                .await;
+                return;
+            }
+        }
+    }
+
+    /// Handle gamepad button release (buttons 128-255)
+    #[allow(dead_code)] // Called by capture_input_event
+    async fn handle_gamepad_button_release(&self, button: u8, now: Instant) {
+        // Check if this was a long press
+        let mut press_times = self.button_press_times.write().await;
+        if let Some(press_time) = press_times.remove(&button) {
+            let duration = now.duration_since(press_time);
+            if duration >= Duration::from_millis(1000) {
+                // Long press detected!
+                self.complete_learning(TriggerSuggestion::LongPress {
+                    note: button, // Reuse LongPress for gamepad buttons
+                    duration_ms: duration.as_millis() as u64,
+                })
+                .await;
+                return;
+            } else {
+                // Simple button trigger
+                self.complete_learning(TriggerSuggestion::GamepadButton {
+                    button,
+                    velocity_range: None,
+                })
+                .await;
+            }
+        }
+
+        // Remove from held buttons
+        let mut held = self.held_buttons.write().await;
+        held.retain(|b| *b != button);
+    }
+
+    /// Handle encoder/analog stick turn
+    #[allow(dead_code)] // Called by capture_input_event
+    async fn handle_encoder_turn(&self, encoder: u8, value: u8, _now: Instant) {
+        // Check if this is a gamepad analog stick (128-131) or MIDI encoder (0-127)
+        if encoder >= 128 && encoder <= 131 {
+            // Gamepad analog stick movement
+            // Determine direction based on value threshold (128 = center)
+            let direction = if value > 128 + 32 {
+                Some("Clockwise".to_string()) // Right/Up
+            } else if value < 128 - 32 {
+                Some("CounterClockwise".to_string()) // Left/Down
+            } else {
+                None // Dead zone
+            };
+
+            self.complete_learning(TriggerSuggestion::GamepadAnalogStick {
+                axis: encoder,
+                direction,
+            })
+            .await;
+        } else if encoder >= 132 && encoder <= 133 {
+            // Gamepad analog trigger (L2/R2)
+            self.complete_learning(TriggerSuggestion::GamepadTrigger {
+                trigger: encoder,
+                threshold: value,
+            })
+            .await;
+        } else {
+            // MIDI encoder/CC
+            // Detect encoder direction by looking at value changes
+            let history = self.input_event_history.read().await;
+            let prev_value: Option<u8> = history
+                .iter()
+                .rev()
+                .skip(1) // Skip current event
+                .find_map(|r| match r.event {
+                    InputEvent::EncoderTurned {
+                        encoder: enc,
+                        value: v,
+                        ..
+                    } if enc == encoder => Some(v),
+                    _ => None,
+                });
+
+            let direction = if let Some(prev) = prev_value {
+                if value > prev {
+                    Some("clockwise".to_string())
+                } else if value < prev {
+                    Some("counterclockwise".to_string())
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            self.complete_learning(TriggerSuggestion::Encoder {
+                cc: encoder,
+                direction,
+            })
+            .await;
         }
     }
 }

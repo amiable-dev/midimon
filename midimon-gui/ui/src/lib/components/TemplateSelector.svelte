@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
-  import { onMount } from 'svelte';
+  import { onMount, createEventDispatcher } from 'svelte';
 
   interface DeviceTemplate {
     id: string;
@@ -14,8 +14,9 @@
     version: string;
   }
 
-  export let onSelect: (templateId: string) => void = () => {};
   export let currentMidiDevice: string | null = null;
+
+  const dispatch = createEventDispatcher();
 
   let templates: DeviceTemplate[] = [];
   let filteredTemplates: DeviceTemplate[] = [];
@@ -25,6 +26,8 @@
   let loading: boolean = false;
   let error: string | null = null;
   let matchingTemplates: DeviceTemplate[] = [];
+  let selectedTemplate: DeviceTemplate | null = null;
+  let showConfirmDialog: boolean = false;
 
   onMount(async () => {
     await loadTemplates();
@@ -92,12 +95,26 @@
     filterTemplates();
   }
 
-  async function handleTemplateSelect(templateId: string) {
-    try {
-      onSelect(templateId);
-    } catch (e) {
-      error = `Failed to select template: ${e}`;
+  async function handleTemplateSelect(template: DeviceTemplate) {
+    selectedTemplate = template;
+    showConfirmDialog = true;
+  }
+
+  function confirmSelection() {
+    if (selectedTemplate) {
+      dispatch('selected', { template: selectedTemplate });
+      showConfirmDialog = false;
+      selectedTemplate = null;
     }
+  }
+
+  function cancelSelection() {
+    showConfirmDialog = false;
+    selectedTemplate = null;
+  }
+
+  function closeModal() {
+    dispatch('close');
   }
 
   function getCategoryIcon(category: string): string {
@@ -105,18 +122,27 @@
       case 'pad-controller': return '🎹';
       case 'keyboard': return '🎼';
       case 'mixer-controller': return '🎚️';
+      case 'gamepad-controller': return '🎮';
       default: return '🎛️';
     }
   }
 </script>
 
-<div class="template-selector">
-  <div class="header">
-    <h3>Device Templates</h3>
-    {#if currentMidiDevice}
-      <p class="device-info">Connected: {currentMidiDevice}</p>
-    {/if}
-  </div>
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<div class="modal-overlay" on:click|self={closeModal}>
+  <div class="modal-content" on:click|stopPropagation>
+    <div class="modal-header">
+      <h2>Device Templates</h2>
+      <button class="close-btn" on:click={closeModal}>×</button>
+    </div>
+
+    <div class="template-selector">
+      <div class="header">
+        {#if currentMidiDevice}
+          <p class="device-info">Connected: {currentMidiDevice}</p>
+        {/if}
+      </div>
 
   {#if loading}
     <div class="loading">Loading templates...</div>
@@ -131,7 +157,7 @@
           {#each matchingTemplates as template}
             <button
               class="template-card recommended"
-              on:click={() => handleTemplateSelect(template.id)}
+              on:click={() => handleTemplateSelect(template)}
             >
               <div class="template-header">
                 <span class="category-icon">{getCategoryIcon(template.category)}</span>
@@ -190,7 +216,7 @@
         {#each filteredTemplates as template}
           <button
             class="template-card"
-            on:click={() => handleTemplateSelect(template.id)}
+            on:click={() => handleTemplateSelect(template)}
           >
             <div class="template-header">
               <span class="category-icon">{getCategoryIcon(template.category)}</span>
@@ -212,6 +238,33 @@
       {/if}
     </div>
   {/if}
+    </div>
+
+    <!-- Confirmation Dialog -->
+    {#if showConfirmDialog && selectedTemplate}
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <div class="confirm-overlay" on:click|self={cancelSelection}>
+        <div class="confirm-dialog">
+          <h3>Create Configuration</h3>
+          <p>Create configuration from template:</p>
+          <div class="template-preview">
+            <div class="preview-icon">{getCategoryIcon(selectedTemplate.category)}</div>
+            <div class="preview-details">
+              <h4>{selectedTemplate.name}</h4>
+              <p class="preview-manufacturer">{selectedTemplate.manufacturer} - {selectedTemplate.model}</p>
+              <p class="preview-description">{selectedTemplate.description}</p>
+            </div>
+          </div>
+          <p class="warning">⚠️ This will create a new configuration file. Make sure to back up your current config if needed.</p>
+          <div class="confirm-actions">
+            <button class="btn-cancel" on:click={cancelSelection}>Cancel</button>
+            <button class="btn-confirm" on:click={confirmSelection}>Create Config</button>
+          </div>
+        </div>
+      </div>
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -408,5 +461,178 @@
     text-align: center;
     padding: 2rem;
     color: var(--text-secondary, #666);
+  }
+
+  /* Modal styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal-content {
+    background: var(--bg-primary, #fff);
+    border-radius: 0.75rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 1200px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border, #d1d5db);
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--text-primary, #333);
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: var(--text-secondary, #666);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+  }
+
+  .close-btn:hover {
+    background: var(--bg-hover, #f3f4f6);
+    color: var(--text-primary, #333);
+  }
+
+  /* Confirmation dialog */
+  .confirm-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  .confirm-dialog {
+    background: var(--bg-primary, #fff);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    max-width: 500px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .confirm-dialog h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.25rem;
+    color: var(--text-primary, #333);
+  }
+
+  .confirm-dialog > p {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary, #666);
+  }
+
+  .template-preview {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-secondary, #f9fafb);
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .preview-icon {
+    font-size: 3rem;
+    flex-shrink: 0;
+  }
+
+  .preview-details h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary, #333);
+  }
+
+  .preview-manufacturer {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary, #666);
+    font-weight: 500;
+  }
+
+  .preview-description {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--text-secondary, #666);
+    line-height: 1.4;
+  }
+
+  .warning {
+    padding: 0.75rem 1rem;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 0.375rem;
+    color: #92400e;
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .confirm-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+  }
+
+  .btn-cancel,
+  .btn-confirm {
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-cancel {
+    background: var(--bg-secondary, #f3f4f6);
+    border: 1px solid var(--border, #d1d5db);
+    color: var(--text-primary, #333);
+  }
+
+  .btn-cancel:hover {
+    background: var(--bg-hover, #e5e7eb);
+  }
+
+  .btn-confirm {
+    background: var(--primary, #3b82f6);
+    border: none;
+    color: white;
+  }
+
+  .btn-confirm:hover {
+    background: #2563eb;
   }
 </style>

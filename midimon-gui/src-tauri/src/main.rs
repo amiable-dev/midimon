@@ -33,6 +33,7 @@ fn main() {
     let app = tauri::Builder::default()
         .manage(AppState::new())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             // Setup tray after app is initialized
             menu_bar::setup_tray(app.handle())?;
@@ -45,6 +46,7 @@ fn main() {
             commands::validate_config,
             commands::ping_daemon,
             commands::list_midi_devices,
+            commands::list_gamepads, // v3.0: Gamepad discovery
             commands::get_config,
             commands::save_config,
             commands::get_config_path,

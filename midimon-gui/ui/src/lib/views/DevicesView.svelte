@@ -8,6 +8,8 @@
   import ProfileManager from '$lib/components/ProfileManager.svelte';
   import { statusStore, devicesStore, appStore } from '$lib/stores.js';
   import api from '$lib/api.js';
+  import { confirm } from '@tauri-apps/plugin-dialog';
+  import { message } from '@tauri-apps/plugin-dialog';
 
   /**
    * Local state
@@ -62,6 +64,7 @@
    * Handle template selection
    */
   async function handleTemplateSelected(event) {
+    console.log('Template selected event:', event.detail);
     selectedTemplate = event.detail.template;
     showTemplateSelector = false;
 
@@ -69,12 +72,47 @@
     try {
       loading = true;
       error = null;
-      await api.templates.createConfig(selectedTemplate.id);
+
+      console.log('Creating config from template:', selectedTemplate.id);
+      const resultMessage = await api.templates.createConfig(selectedTemplate.id);
+      console.log('Config created, message:', resultMessage);
+
       appStore.setError(null);
-      alert('Configuration created from template! Please reload the daemon.');
+
+      // Show success message and prompt for reload
+      const confirmMessage = `${resultMessage}\n\nWould you like to reload the daemon to apply the new configuration?`;
+      console.log('Showing confirm dialog:', confirmMessage);
+
+      const doReload = await confirm(confirmMessage, {
+        title: 'Configuration Created',
+        kind: 'info',
+        okLabel: 'Reload Daemon',
+        cancelLabel: 'Not Now'
+      });
+      console.log('User response:', doReload);
+
+      if (doReload) {
+        console.log('Reloading daemon...');
+        await api.daemon.reload();
+        console.log('Daemon reloaded successfully');
+        await message('Configuration reloaded successfully!', {
+          title: 'Success',
+          kind: 'info'
+        });
+      } else {
+        await message('Configuration saved. Reload the daemon manually to apply changes.', {
+          title: 'Configuration Saved',
+          kind: 'info'
+        });
+      }
     } catch (err) {
+      console.error('Error creating config from template:', err);
       error = err.message || String(err);
       appStore.setError(error);
+      await message(`Error: ${error}`, {
+        title: 'Error',
+        kind: 'error'
+      });
     } finally {
       loading = false;
     }
@@ -184,7 +222,6 @@
 
 {#if showTemplateSelector}
   <TemplateSelector
-    {templates}
     on:selected={handleTemplateSelected}
     on:close={() => showTemplateSelector = false}
   />

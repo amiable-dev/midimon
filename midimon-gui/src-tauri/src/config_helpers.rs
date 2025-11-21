@@ -47,6 +47,23 @@ pub enum TriggerConfig {
         value_min: Option<u16>,
         value_max: Option<u16>,
     },
+    // Gamepad trigger types (v3.0)
+    GamepadButton {
+        button: u8,
+        velocity_min: Option<u8>,
+    },
+    GamepadButtonChord {
+        buttons: Vec<u8>,
+        timeout_ms: Option<u64>,
+    },
+    GamepadAnalogStick {
+        axis: u8,
+        direction: Option<String>,
+    },
+    GamepadTrigger {
+        trigger: u8,
+        threshold: Option<u8>,
+    },
 }
 
 /// Convert TriggerSuggestion to TriggerConfig suitable for config.toml
@@ -117,6 +134,32 @@ pub fn suggestion_to_config(suggestion: &TriggerSuggestion) -> TriggerConfig {
             TriggerConfig::PitchBend {
                 value_min: Some(min_u16),
                 value_max: Some(max_u16),
+            }
+        }
+        // Gamepad trigger conversions (v3.0)
+        TriggerSuggestion::GamepadButton {
+            button,
+            velocity_range,
+        } => TriggerConfig::GamepadButton {
+            button: *button,
+            velocity_min: velocity_range.map(|(min, _)| min),
+        },
+        TriggerSuggestion::GamepadButtonChord { buttons, window_ms } => {
+            TriggerConfig::GamepadButtonChord {
+                buttons: buttons.clone(),
+                timeout_ms: Some(*window_ms),
+            }
+        }
+        TriggerSuggestion::GamepadAnalogStick { axis, direction } => {
+            TriggerConfig::GamepadAnalogStick {
+                axis: *axis,
+                direction: direction.clone(),
+            }
+        }
+        TriggerSuggestion::GamepadTrigger { trigger, threshold } => {
+            TriggerConfig::GamepadTrigger {
+                trigger: *trigger,
+                threshold: Some(*threshold),
             }
         }
     }
