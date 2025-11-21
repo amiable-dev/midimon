@@ -412,45 +412,36 @@ If you see "Permission denied" errors:
 2. Add **"MIDIMon GUI"** to the list
 3. Restart the GUI app
 
-## Next Steps
+## 🎉 Congratulations! You're Now a MIDIMon Power User
 
-Now that you're up and running:
+You've just unlocked:
+- ✅ Visual configuration with Input Learn
+- ✅ Hot-reload (0-10ms config changes)
+- ✅ Per-app profiles
+- ✅ v3.0 gamepad + MIDI support
 
-### For GUI Users
-- [MIDI Learn Tutorial](./midi-learn.md) - Master MIDI Learn mode
-- [Device Templates Guide](../guides/device-templates.md) - Use pre-built templates
-- [Per-App Profiles Guide](../guides/per-app-profiles.md) - Set up application-specific profiles
-- [Live Event Console](../guides/event-console.md) - Debug with real-time monitoring
+### What's Next?
 
-### For CLI Users
-- [Daemon & Hot-Reload](../guides/daemon.md) - Master the daemon CLI
-- [Manual Configuration](../configuration/overview.md) - Edit config.toml
-- [Advanced Triggers](../reference/triggers.md) - All trigger types
-- [Advanced Actions](../reference/actions.md) - All action types
+#### 🚀 Level Up Your Setup
+- **[Explore Device Templates](../guides/device-templates.md)** - Load pre-built configs for popular controllers
+- **[Try Velocity Sensitivity](../guides/velocity-curves.md)** - One pad, three actions based on press strength
+- **[Set Up Hybrid Mode](../configuration/examples.md#hybrid-midi-gamepad-configuration-v30)** - Combine MIDI + gamepad simultaneously
 
-### For All Users
-- [Understanding Modes](./modes.md) - Multi-mode workflow management
-- [Gamepad Support Guide](../guides/gamepad-support.md) - Complete HID controller guide (v3.0+)
-- [LED System](../guides/led-system.md) - Customize LED feedback
-- [Example Configurations](../configuration/examples.md) - Pre-built configs
+#### 💡 Get Inspired
+- **[Configuration Examples](../configuration/examples.md)** - Copy-paste ready workflows for DAWs, development, streaming
+- **[Gamepad Support Guide](../guides/gamepad-support.md)** - Turn your Xbox controller into a macro pad
+- **[LED System Guide](../guides/led-system.md)** - Add visual feedback to your controller
 
-## Performance
+#### 📖 Go Deeper
+- **[Triggers Reference](../configuration/triggers.md)** - All 15+ trigger types explained
+- **[Actions Reference](../configuration/actions.md)** - Complete action type catalog
+- **[Context-Aware Mappings](../guides/context-aware.md)** - App-based, time-based, conditional actions
 
-MIDIMon v2.0.0 is highly optimized:
-- **Response latency**: <1ms typical
-- **Config hot-reload**: 0-10ms
-- **IPC round-trip**: <1ms
-- **Memory usage**: 5-10MB (daemon), ~60MB (GUI)
-- **CPU usage**: <1% idle, <5% active
-- **Binary size**: ~3-5MB (release with LTO)
+#### 🤝 Join the Community
+- **[GitHub Discussions](https://github.com/amiable/midimon/discussions)** - Ask questions, share configs
+- **[Report Issues](https://github.com/amiable/midimon/issues)** - Found a bug? Request a feature?
+- **[Contribute](../development/contributing.md)** - Help make MIDIMon better
 
-## Getting Help
+**Need help?** Check the [FAQ](../troubleshooting/faq.md) or [Troubleshooting Guide](../troubleshooting/common-issues.md).
 
-- [Troubleshooting Guide](../troubleshooting/common-issues.md)
-- [FAQ](../troubleshooting/faq.md)
-- [GitHub Discussions](https://github.com/amiable-dev/midimon/discussions)
-- [Report Issues](https://github.com/amiable-dev/midimon/issues)
-
----
-
-**Congratulations!** You now have MIDIMon v3.0+ running with visual configuration, hot-reload, per-app profiles, and game controller support! 🎉
+**Loving MIDIMon?** ⭐ Star us on [GitHub](https://github.com/amiable/midimon) to support the project!

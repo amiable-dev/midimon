@@ -1,6 +1,7 @@
 # Summary
 
 [Introduction](introduction.md)
+[MIDIMon vs Alternatives](comparison.md)
 
 # Installation
 

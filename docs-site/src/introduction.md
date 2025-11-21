@@ -1,8 +1,36 @@
-# Introduction
+# Turn Any Controller Into a Supercharged Macro Pad
 
-**Transform any MIDI controller or gamepad into an advanced, context-aware automation platform with professional-grade feedback and timing-based triggers.**
+**What if every button on your Xbox controller could be a keyboard shortcut? What if tapping a MIDI pad softly did one thing, and hitting it hard did something else?**
 
-MIDIMon is a powerful Rust-based multi-protocol input mapping system that goes beyond simple note-to-key bindings. Supporting both MIDI controllers and HID gamepads, it provides velocity sensitivity, long press detection, double-tap, chord recognition, and full RGB LED feedback for modern workflows.
+MIDIMon is the missing link between your game controllers, MIDI devices, and your computer. It's open-source, blazingly fast (<1ms latency), and lets you create workflows that expensive macro pads can't touch.
+
+**v3.0 is here**: MIDI + gamepads in one workflow. Use your $30 Xbox controller as a 15-button macro pad, or combine a MIDI controller with a racing wheel for creative hybrid setups.
+
+✨ **The Killer Feature**: Velocity sensitivity. Press soft = copy, press hard = paste. One pad, multiple actions. Mind. Blown.
+
+## What's Possible with MIDIMon
+
+Transform your creative workflow in ways traditional macro tools can't:
+
+### 🎵 Music Production
+- **Velocity-sensitive recording**: Soft press = loop record, hard press = punch record
+- **One pad, three actions**: Turn a $30 MIDI controller into a pressure-sensitive control surface
+- **Gamepad as DAW navigator**: Use your Xbox controller for timeline navigation while keeping hands on MIDI keyboard
+
+### 💻 Software Development
+- **Git workflow on a pad**: Soft = status, medium = commit, hard = commit+push
+- **Velocity-based scrolling**: Soft tap = 1 line, hard hit = jump 10 lines
+- **Build triggers**: Press A button to build, hold B to run tests
+
+### 🎮 Content Creation
+- **Racing wheel for video editing**: Use pedals for effects control, wheel for timeline scrubbing
+- **Gamepad for streaming**: 15+ shortcuts at your fingertips without touching keyboard
+- **Form automation**: Fill complex forms with one button press
+
+### ⚡ Power Users
+- **Repurpose existing hardware**: That dusty Xbox controller? It's now a 15-button macro pad
+- **Hot-reload everything**: Change configs on-the-fly, no restart needed (0-10ms reload)
+- **Context-aware mappings**: Different actions based on active app, time of day, or system state
 
 ## Key Features
 
