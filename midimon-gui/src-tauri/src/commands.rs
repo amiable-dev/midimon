@@ -48,8 +48,18 @@ pub struct DaemonStatus {
     pub lifecycle_state: Option<String>,
     pub uptime_secs: Option<u64>,
     pub events_processed: Option<u64>,
+    pub input_mode: Option<String>,
+    pub hid_devices: Option<Vec<HidDeviceInfo>>,
     pub device: Option<DeviceInfo>,
     pub error: Option<String>,
+}
+
+/// HID device information from daemon status
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct HidDeviceInfo {
+    pub id: String,
+    pub name: String,
+    pub connected: bool,
 }
 
 /// Device information for UI
@@ -110,6 +120,29 @@ pub async fn get_daemon_status(state: State<'_, AppState>) -> Result<DaemonStatu
                                 .and_then(|s| s.get("events_processed"))
                                 .and_then(|e| e.as_u64());
 
+                            // Parse input info (v3.0)
+                            let input_mode = data
+                                .get("input")
+                                .and_then(|i| i.get("mode"))
+                                .and_then(|m| m.as_str())
+                                .map(String::from);
+
+                            let hid_devices = data
+                                .get("input")
+                                .and_then(|i| i.get("hid_devices"))
+                                .and_then(|devices| devices.as_array())
+                                .map(|arr| {
+                                    arr.iter()
+                                        .filter_map(|d| {
+                                            Some(HidDeviceInfo {
+                                                id: d.get("id")?.as_str()?.to_string(),
+                                                name: d.get("name")?.as_str()?.to_string(),
+                                                connected: d.get("connected")?.as_bool()?,
+                                            })
+                                        })
+                                        .collect()
+                                });
+
                             let device = data.get("device").and_then(|d| {
                                 Some(DeviceInfo {
                                     connected: d.get("connected")?.as_bool()?,
@@ -127,6 +160,8 @@ pub async fn get_daemon_status(state: State<'_, AppState>) -> Result<DaemonStatu
                                 lifecycle_state,
                                 uptime_secs,
                                 events_processed,
+                                input_mode,
+                                hid_devices,
                                 device,
                                 error: None,
                             })
@@ -137,6 +172,8 @@ pub async fn get_daemon_status(state: State<'_, AppState>) -> Result<DaemonStatu
                                 lifecycle_state: None,
                                 uptime_secs: None,
                                 events_processed: None,
+                                input_mode: None,
+                                hid_devices: None,
                                 device: None,
                                 error: None,
                             })
@@ -153,6 +190,8 @@ pub async fn get_daemon_status(state: State<'_, AppState>) -> Result<DaemonStatu
                             lifecycle_state: None,
                             uptime_secs: None,
                             events_processed: None,
+                            input_mode: None,
+                            hid_devices: None,
                             device: None,
                             error: Some(error_msg),
                         })
@@ -172,6 +211,8 @@ pub async fn get_daemon_status(state: State<'_, AppState>) -> Result<DaemonStatu
                 lifecycle_state: None,
                 uptime_secs: None,
                 events_processed: None,
+                input_mode: None,
+                hid_devices: None,
                 device: None,
                 error: Some("Daemon not running".to_string()),
             })

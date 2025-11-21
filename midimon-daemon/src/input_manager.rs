@@ -312,6 +312,26 @@ impl InputManager {
         self.mode
     }
 
+    /// Get connected gamepad devices
+    ///
+    /// Returns information about currently connected gamepads managed by this InputManager.
+    /// Returns an empty vector if no gamepad manager is active.
+    pub fn get_connected_gamepads(&self) -> Vec<(String, String)> {
+        if let Some(ref _gamepad_mgr) = self.gamepad_manager {
+            // Query the gamepad manager for connected devices
+            if let Ok(gamepads) = Self::list_gamepads() {
+                gamepads
+                    .into_iter()
+                    .map(|(id, name, _uuid)| (format!("{:?}", id), name))
+                    .collect()
+            } else {
+                vec![]
+            }
+        } else {
+            vec![]
+        }
+    }
+
     /// List available gamepad devices
     ///
     /// Returns a list of (GamepadId, name, UUID) tuples for all detected gamepads.

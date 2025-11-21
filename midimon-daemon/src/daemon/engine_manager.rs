@@ -250,6 +250,22 @@ impl EngineManager {
                 let stats = self.statistics.read().await.clone();
                 let uptime_secs = self.start_time.elapsed().as_secs();
 
+                // Get input manager info (v3.0)
+                let (input_mode, hid_devices) = if let Some(ref mgr) = *self.input_manager.lock().await {
+                    let mode = match mgr.mode() {
+                        InputMode::MidiOnly => "MidiOnly",
+                        InputMode::GamepadOnly => "GamepadOnly",
+                        InputMode::Both => "Both",
+                    };
+                    let gamepads = mgr.get_connected_gamepads()
+                        .into_iter()
+                        .map(|(id, name)| json!({"id": id, "name": name, "connected": true}))
+                        .collect::<Vec<_>>();
+                    (mode, gamepads)
+                } else {
+                    ("MidiOnly", vec![])
+                };
+
                 create_success_response(
                     &id,
                     Some(json!({
@@ -262,6 +278,10 @@ impl EngineManager {
                             "events_processed": stats.events_processed,
                             "errors_since_start": stats.errors_since_start,
                             "config_reloads": stats.config_reloads,
+                        },
+                        "input": {
+                            "mode": input_mode,
+                            "hid_devices": hid_devices,
                         },
                         "device": device_status,
                         // Legacy fields for backward compatibility

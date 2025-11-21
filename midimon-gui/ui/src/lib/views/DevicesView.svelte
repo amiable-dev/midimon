@@ -4,6 +4,7 @@
 <script>
   import { onMount } from 'svelte';
   import DeviceList from '$lib/components/DeviceList.svelte';
+  import HidDeviceList from '$lib/components/HidDeviceList.svelte';
   import TemplateSelector from '$lib/components/TemplateSelector.svelte';
   import ProfileManager from '$lib/components/ProfileManager.svelte';
   import { statusStore, devicesStore, appStore } from '$lib/stores.js';
@@ -185,6 +186,20 @@
               <span class="value">{$statusStore.status.lifecycle_state}</span>
             </div>
           {/if}
+          {#if $statusStore.status.input_mode}
+            <div class="status-row">
+              <span class="label">Input Mode:</span>
+              <span class="value">{$statusStore.status.input_mode}</span>
+            </div>
+          {/if}
+          {#if $statusStore.status.hid_devices && $statusStore.status.hid_devices.length > 0}
+            <div class="status-row">
+              <span class="label">Gamepads:</span>
+              <span class="value">
+                {$statusStore.status.hid_devices.map(d => d.name).join(', ')}
+              </span>
+            </div>
+          {/if}
           {#if $statusStore.status.uptime_secs !== null && $statusStore.status.uptime_secs !== undefined}
             <div class="status-row">
               <span class="label">Uptime:</span>
@@ -214,8 +229,13 @@
     </section>
 
     <section class="devices-section">
-      <h3>MIDI Devices</h3>
+      <h3>MIDI Controllers</h3>
       <DeviceList />
+    </section>
+
+    <section class="devices-section">
+      <h3>HID Gamepads</h3>
+      <HidDeviceList />
     </section>
   </div>
 </div>
