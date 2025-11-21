@@ -544,3 +544,4 @@ midimon/
 ### References
 
 See `.research/implementation-viewpoint-1.md` and `.research/implementation-viewpoint-2.md` for detailed architectural proposals, crate dependencies, and code examples for the target monorepo structure.
+- We must commit code changes with GitHub references, ensuring that there is at least one commit per issue at a minimum if files have been changed.
