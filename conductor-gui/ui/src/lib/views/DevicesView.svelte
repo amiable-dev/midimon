@@ -134,7 +134,7 @@
     <div class="header-content">
       <div>
         <h2>Devices & Profiles</h2>
-        <p class="subtitle">Manage MIDI device connections, templates, and per-app profiles</p>
+        <p class="subtitle">Manage input device connections, templates, and per-app profiles</p>
       </div>
       <div class="header-actions">
         {#if loading}
